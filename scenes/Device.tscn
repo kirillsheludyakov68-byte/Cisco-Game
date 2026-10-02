@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://bbwb7lxkmsshh"]
+
+[ext_resource type="Script" uid="uid://df7onoebm622x" path="res://scripts/device.gd" id="1_gir5p"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_owhx7"]
+size = Vector2(73, 60)
+
+[node name="Devicee" type="Node2D" unique_id=1762509160]
+script = ExtResource("1_gir5p")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=651064448]
+
+[node name="NameLabel" type="Label" parent="." unique_id=1515846097]
+offset_left = 154.0
+offset_top = 107.0
+offset_right = 227.0
+offset_bottom = 130.0
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+text = "PC"
+horizontal_alignment = 1
+
+[node name="ClickArea" type="Area2D" parent="." unique_id=1865850874]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ClickArea" unique_id=1761895634]
+position = Vector2(190.5, 77)
+shape = SubResource("RectangleShape2D_owhx7")

@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://bxjtr8hqkf7hh"]
+
+[ext_resource type="Script" uid="uid://bmdu86l1id2ki" path="res://scripts/cable_panel.gd" id="1_gpeir"]
+
+[node name="CablePanel" type="CanvasLayer" unique_id=1299563539]
+script = ExtResource("1_gpeir")
+
+[node name="PanelContainer" type="PanelContainer" parent="." unique_id=1164621002]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 410.0
+offset_bottom = 60.0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="PanelContainer" unique_id=973879033]
+layout_mode = 2
+
+[node name="ButtonStraight" type="Button" parent="PanelContainer/HBoxContainer" unique_id=1623713519]
+layout_mode = 2
+text = "Прямой Кабель"
+
+[node name="ButtonCrossover" type="Button" parent="PanelContainer/HBoxContainer" unique_id=1850466474]
+layout_mode = 2
+text = "Кроссовер"
+
+[node name="ButtonWireless" type="Button" parent="PanelContainer/HBoxContainer" unique_id=447535527]
+layout_mode = 2
+text = "Wireless"

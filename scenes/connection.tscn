@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://d3a005od8wlwr"]
+
+[node name="Connection" type="Node2D" unique_id=389835790]
+
+[node name="Line" type="Line2D" parent="." unique_id=362886713]
+width = 3.0
+default_color = Color(0, 0, 0, 1)
+joint_mode = 2
+begin_cap_mode = 2
+end_cap_mode = 2
+
+[node name="ClickArea" type="Area2D" parent="." unique_id=1548632716]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ClickArea" unique_id=1427707057]
+
+[node name="CrossTicks" type="Node2D" parent="." unique_id=162670120]

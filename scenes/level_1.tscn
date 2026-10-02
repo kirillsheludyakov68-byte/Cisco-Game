@@ -1,0 +1,41 @@
+[gd_scene format=3 uid="uid://dqhb5ev6csbvo"]
+
+[ext_resource type="Script" uid="uid://b8ckey3vhqtke" path="res://scripts/level.gd" id="1_4nkto"]
+[ext_resource type="PackedScene" uid="uid://bbwb7lxkmsshh" path="res://scenes/Device.tscn" id="1_014kd"]
+[ext_resource type="Texture2D" uid="uid://dq4vts6l7bs6q" path="res://assets/PC.svg" id="4_4nkto"]
+[ext_resource type="PackedScene" uid="uid://bxjtr8hqkf7hh" path="res://scenes/CablePanel.tscn" id="5_fcfvj"]
+[ext_resource type="Texture2D" uid="uid://bmmc2a7t576dd" path="res://assets/Switch.svg" id="5_pa8r4"]
+
+[node name="Level 1" type="Node2D" unique_id=1332610649]
+script = ExtResource("1_4nkto")
+
+[node name="Device_PC1" parent="." unique_id=1762509160 instance=ExtResource("1_014kd")]
+position = Vector2(300, 300)
+ip_address = "192.168.1.1"
+
+[node name="Device_PC2" parent="." unique_id=2030651946 instance=ExtResource("1_014kd")]
+position = Vector2(500, 300)
+device_name = "PC2"
+ip_address = "192.168.1.2"
+
+[node name="Switch" parent="." unique_id=211893048 instance=ExtResource("1_014kd")]
+position = Vector2(400, 200)
+device_name = "Switch1"
+device_type = "Switch"
+
+[node name="CablePanel" parent="." unique_id=1299563539 instance=ExtResource("5_fcfvj")]
+
+[node name="Pc" type="Sprite2D" parent="." unique_id=1291834590]
+position = Vector2(490.5, 377.00003)
+scale = Vector2(0.24579115, 0.23076923)
+texture = ExtResource("4_4nkto")
+
+[node name="Pc" type="Sprite2D" parent="Pc" unique_id=1596702398]
+position = Vector2(809.68884, 0.1665268)
+scale = Vector2(0.9996087, 0.99871784)
+texture = ExtResource("4_4nkto")
+
+[node name="Switch2" type="Sprite2D" parent="." unique_id=535922009]
+position = Vector2(590.5, 277)
+scale = Vector2(0.1611479, 0.19417475)
+texture = ExtResource("5_pa8r4")
