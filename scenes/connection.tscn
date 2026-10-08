@@ -1,6 +1,9 @@
 [gd_scene format=3 uid="uid://d3a005od8wlwr"]
 
+[ext_resource type="Script" uid="uid://ckrn2g3ekwigg" path="res://scripts/connection.gd" id="1_u7hla"]
+
 [node name="Connection" type="Node2D" unique_id=389835790]
+script = ExtResource("1_u7hla")
 
 [node name="Line" type="Line2D" parent="." unique_id=362886713]
 width = 3.0

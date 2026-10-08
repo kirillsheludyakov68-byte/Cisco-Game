@@ -1,0 +1,33 @@
+{
+  "id": 1,
+  "title": "Первое соединение",
+  "description": "PC1 должен связаться со Switch1. Соедини их прямым кабелем.",
+  "devices": [
+	{
+	  "id": "pc1",
+	  "type": "PC",
+	  "name": "PC1",
+	  "position": [500, 300],
+	  "ip": "192.168.1.1",
+	  "mask": "255.255.255.0"
+	},
+	{
+	  "id": "pc2",
+	  "type": "PC",
+	  "name": "PC2",
+	  "position": [800, 300],
+	  "ip": "192.168.1.2",
+	  "mask": "255.255.255.0"
+	},
+	{
+	  "id": "sw1",
+	  "type": "Switch",
+	  "name": "Switch1",
+	  "position": [654, 121]
+	}
+  ],
+  "connections": [
+	{ "from": "pc1", "to": "sw1", "cable": "straight" },
+	{ "from": "pc2", "to": "sw1", "cable": "straight" }
+  ]
+}

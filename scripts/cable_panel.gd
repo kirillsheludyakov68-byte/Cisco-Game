@@ -76,7 +76,7 @@ func handle_device_click(device: Device) -> void:
 
 func _create_connection(a: Device, b: Device, cable_type: int) -> void:
 	var scene := load("res://scenes/Connection.tscn")
-	var conn: Connection = scene.instantiate()
+	var conn = scene.instantiate()
 	# Добавляем в тот же родитель, где лежат устройства
 	get_tree().current_scene.add_child(conn)
 	conn.setup(a, b, cable_type)

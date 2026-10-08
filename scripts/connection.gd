@@ -37,45 +37,42 @@ func _redraw() -> void:
 	if from_device == null or to_device == null:
 		return
 	
-	var a_pos := from_device.global_position
-	var b_pos := to_device.global_position
+	var a_local := to_local(from_device.global_position)
+	var b_local := to_local(to_device.global_position)
 	
-	# Обновляем линию
-	line.points = PackedVector2Array([a_pos, b_pos])
+	line.points = PackedVector2Array([a_local, b_local])
 	
-	# Цвет и стиль в зависимости от типа кабеля
 	match cable_type:
 		NetworkSimulator.CableType.STRAIGHT:
-			line.default_color = Color(0.1, 0.1, 0.1)      # почти чёрный
+			line.default_color = Color(0.1, 0.1, 0.1)
 			line.width = 3.0
 			_clear_ticks()
 		NetworkSimulator.CableType.CROSSOVER:
-			line.default_color = Color(0.9, 0.5, 0.1)      # оранжевый (как в Cisco)
+			line.default_color = Color(0.9, 0.5, 0.1)
 			line.width = 3.0
 			_clear_ticks()
 		NetworkSimulator.CableType.WIRELESS:
-			line.default_color = Color(0.2, 0.2, 0.2, 0.6) # полупрозрачный серый
+			line.default_color = Color(0.2, 0.2, 0.2, 0.6)
 			line.width = 2.0
-			_draw_ticks(a_pos, b_pos)
+			_draw_ticks(a_local, b_local)
 	
-	# Обновляем коллизию (чтобы можно было кликнуть по линии)
-	_update_collision(a_pos, b_pos)
+	_update_collision(a_local, b_local)
 
 func _update_collision(a_pos: Vector2, b_pos: Vector2) -> void:
 	var mid := (a_pos + b_pos) / 2.0
 	var length := a_pos.distance_to(b_pos)
 	var angle := (b_pos - a_pos).angle()
 	
-	# Капсула, вытянутая вдоль линии
 	var capsule: CapsuleShape2D = collision_shape.shape
 	if capsule == null:
 		capsule = CapsuleShape2D.new()
 		collision_shape.shape = capsule
-	capsule.radius = 12.0    # толщина зоны клика
+	capsule.radius = 12.0
 	capsule.height = length
 	
-	collision_shape.global_position = mid
-	collision_shape.global_rotation = angle
+	# Локальные координаты, не global!
+	collision_shape.position = mid
+	collision_shape.rotation = angle
 
 func _clear_ticks() -> void:
 	for child in cross_ticks.get_children():

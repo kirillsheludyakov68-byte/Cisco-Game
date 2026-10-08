@@ -1,26 +1,29 @@
 [gd_scene format=3 uid="uid://bbwb7lxkmsshh"]
 
 [ext_resource type="Script" uid="uid://df7onoebm622x" path="res://scripts/device.gd" id="1_gir5p"]
+[ext_resource type="Texture2D" uid="uid://dq4vts6l7bs6q" path="res://assets/PC.svg" id="2_0c2rk"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_owhx7"]
-size = Vector2(73, 60)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_13r6r"]
+size = Vector2(150, 100)
 
-[node name="Devicee" type="Node2D" unique_id=1762509160]
+[node name="Device" type="Node2D" unique_id=309713625]
 script = ExtResource("1_gir5p")
+texture_pc = ExtResource("2_0c2rk")
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=651064448]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=626860739]
 
-[node name="NameLabel" type="Label" parent="." unique_id=1515846097]
-offset_left = 154.0
-offset_top = 107.0
-offset_right = 227.0
-offset_bottom = 130.0
+[node name="NameLabel" type="Label" parent="." unique_id=1946619920]
+offset_left = -49.0
+offset_top = 34.0
+offset_right = 51.0
+offset_bottom = 84.0
+accessibility_controls_nodes = Array[NodePath]([NodePath(""), NodePath(""), NodePath("")])
 theme_override_colors/font_color = Color(0, 0, 0, 1)
-text = "PC"
+text = "Device "
 horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="ClickArea" type="Area2D" parent="." unique_id=1865850874]
+[node name="ClickArea" type="Area2D" parent="." unique_id=1665592823]
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="ClickArea" unique_id=1761895634]
-position = Vector2(190.5, 77)
-shape = SubResource("RectangleShape2D_owhx7")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ClickArea" unique_id=1331230578]
+shape = SubResource("RectangleShape2D_13r6r")

@@ -1,8 +1,9 @@
 extends Node2D
 class_name Device
 
-@onready var name_label: Label = $NameLabel
 @onready var sprite: Sprite2D = $Sprite
+@onready var name_label: Label = $NameLabel
+@onready var collision_shape: CollisionShape2D = $ClickArea/CollisionShape2D
 
 @export var device_name: String = "PC1":
 	set(value):
@@ -10,27 +11,36 @@ class_name Device
 		if name_label:
 			name_label.text = value
 
-@export var device_type: String = "PC"  # PC, Switch, Router, AccessPoint
+@export var device_type: String = "PC":
+	set(value):
+		device_type = value
+		if sprite:
+			_apply_texture_by_type()
+		if collision_shape:
+			_fit_sprite_to_collision()
+
 @export var ip_address: String = ""
 @export var subnet_mask: String = "255.255.255.0"
 
 @export var texture_pc: Texture2D
 @export var texture_switch: Texture2D
 @export var texture_router: Texture2D
-@export var texture_ap: Texture2D   # Access Point
+@export var texture_ap: Texture2D
 
 signal device_clicked(device: Device)
 
-var _hovered: bool = false
-
 func _ready() -> void:
-	name_label.text = device_name
+	if name_label:
+		name_label.text = device_name
 	_apply_texture_by_type()
+	_fit_sprite_to_collision()
 	$ClickArea.input_event.connect(_on_click_area_input_event)
 	$ClickArea.mouse_entered.connect(_on_mouse_entered)
 	$ClickArea.mouse_exited.connect(_on_mouse_exited)
 
 func _apply_texture_by_type() -> void:
+	if not sprite:
+		return
 	match device_type:
 		"PC":
 			if texture_pc: sprite.texture = texture_pc
@@ -41,31 +51,37 @@ func _apply_texture_by_type() -> void:
 		"AccessPoint":
 			if texture_ap: sprite.texture = texture_ap
 
+func _fit_sprite_to_collision() -> void:
+	if not sprite or not sprite.texture:
+		return
+	if not collision_shape or not collision_shape.shape is RectangleShape2D:
+		return
+	var target_size: Vector2 = collision_shape.shape.size
+	var tex_size: Vector2 = sprite.texture.get_size()
+	if tex_size.x <= 0 or tex_size.y <= 0:
+		return
+	var ratio_x := target_size.x / tex_size.x
+	var ratio_y := target_size.y / tex_size.y
+	var ratio := minf(ratio_x, ratio_y)
+	sprite.scale = Vector2(ratio, ratio)
+
 func _on_click_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		print("Клик по устройству: ", device_name)
 		device_clicked.emit(self)
 
 func _on_mouse_entered() -> void:
-	_hovered = true
-	# Легкая подсветка при наведении — ярче
-	sprite.modulate = Color(1.2, 1.2, 1.2)
+	if sprite:
+		sprite.modulate = Color(1.2, 1.2, 1.2)
 
 func _on_mouse_exited() -> void:
-	_hovered = false
-	sprite.modulate = Color(1, 1, 1)
+	if sprite:
+		sprite.modulate = Color(1, 1, 1)
 
-# Публичный метод — подсветить устройство (для режима соединения)
 func highlight(color: Color) -> void:
-	sprite.modulate = color
+	if sprite:
+		sprite.modulate = color
 
 func reset_highlight() -> void:
-	sprite.modulate = Color(1, 1, 1)
-
-# Проверить: подходит ли это устройство как цель для соединения
-func is_compatible_with(other: Device) -> bool:
-	if other == self:
-		return false
-	# Все устройства совместимы друг с другом
-	# (валидацию кабеля сделаем позже)
-	return true
+	if sprite:
+		sprite.modulate = Color(1, 1, 1)
