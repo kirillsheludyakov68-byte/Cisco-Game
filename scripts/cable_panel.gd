@@ -89,7 +89,7 @@ func _open_device_window(device: Device) -> void:
 	current_device_window = scene.instantiate() as DeviceWindow
 	get_tree().current_scene.add_child(current_device_window)
 	current_device_window.open_for(device)
-	current_device_window.popup_centered(Vector2i(700, 500))
+	current_device_window.popup_centered(Vector2i(650, 470))
 
 func _reset_all_highlights() -> void:
 	for d in NetworkSimulator.devices:

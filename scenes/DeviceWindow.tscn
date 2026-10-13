@@ -4,7 +4,10 @@
 [ext_resource type="Script" uid="uid://csfoa225cofdv" path="res://scripts/device_window.gd" id="1_qt3sd"]
 [ext_resource type="Script" uid="uid://cumsspg1qgu4r" path="res://scripts/tab_bar_style.gd" id="2_y1kbd"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1rrw4"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_y1kbd"]
+bg_color = Color(0.9411765, 0.9411765, 0.9411765, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_74g6v"]
 bg_color = Color(1, 1, 1, 1)
 
 [node name="DeviceWindow" type="Window" unique_id=1530745340]
@@ -21,8 +24,8 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = -3.0
-offset_top = -7.0
-offset_bottom = 1.0
+offset_top = -8.0
+offset_bottom = 2.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
@@ -32,10 +35,8 @@ color = Color(0.9411765, 0.9411765, 0.9411765, 1)
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 50.0
-offset_top = 22.0
-offset_right = -441.0
-offset_bottom = -447.0
+offset_left = 25.0
+offset_top = 10.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -62,15 +63,16 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -300.0
-offset_top = -200.0
+offset_top = -186.0
 offset_right = 300.0
 offset_bottom = 200.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_1rrw4")
+theme_override_styles/panel = SubResource("StyleBoxFlat_y1kbd")
 
 [node name="ContentPanel" type="PanelContainer" parent="MainPanel" unique_id=2013689260]
 layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_74g6v")
 
 [node name="PagePhysical" type="Control" parent="MainPanel/ContentPanel" unique_id=785156055]
 layout_mode = 2
