@@ -58,7 +58,7 @@ func _fit_sprite_to_collision() -> void:
 		return
 	var target_size: Vector2 = collision_shape.shape.size
 	var tex_size: Vector2 = sprite.texture.get_size()
-	if tex_size.x <= 0 or tex_size.y <= 0:
+	if tex_size.x <= 0.0 or tex_size.y <= 0.0:
 		return
 	var ratio_x := target_size.x / tex_size.x
 	var ratio_y := target_size.y / tex_size.y

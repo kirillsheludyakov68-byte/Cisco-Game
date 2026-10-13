@@ -1,34 +1,34 @@
 extends CanvasLayer
 
-# Какой кабель выбран (или -1, если ничего)
 var selected_cable: int = -1
-
-# Первое устройство, с которого начали тянуть кабель
 var first_device: Device = null
-
-# Временная "резиновая" линия за курсором
 var rubber_line: Line2D = null
+var current_device_window: DeviceWindow = null
 
 signal cable_selected(cable_type: int)
 
 func _ready() -> void:
-	$PanelContainer/HBoxContainer/ButtonStraight.pressed.connect(
-		func(): _select(NetworkSimulator.CableType.STRAIGHT))
-	$PanelContainer/HBoxContainer/ButtonCrossover.pressed.connect(
-		func(): _select(NetworkSimulator.CableType.CROSSOVER))
-	$PanelContainer/HBoxContainer/ButtonWireless.pressed.connect(
-		func(): _select(NetworkSimulator.CableType.WIRELESS))
+	$PanelContainer/HBoxContainer/ButtonStraight.pressed.connect(_on_straight)
+	$PanelContainer/HBoxContainer/ButtonCrossover.pressed.connect(_on_crossover)
+	$PanelContainer/HBoxContainer/ButtonWireless.pressed.connect(_on_wireless)
 	
-	# Создаём временную линию, но скрываем её
 	rubber_line = Line2D.new()
 	rubber_line.width = 3.0
 	rubber_line.default_color = Color(0.5, 0.5, 0.5, 0.7)
 	rubber_line.visible = false
 	add_child(rubber_line)
 
+func _on_straight() -> void:
+	_select(NetworkSimulator.CableType.STRAIGHT)
+
+func _on_crossover() -> void:
+	_select(NetworkSimulator.CableType.CROSSOVER)
+
+func _on_wireless() -> void:
+	_select(NetworkSimulator.CableType.WIRELESS)
+
 func _select(cable_type: int) -> void:
 	selected_cable = cable_type
-	# Если уже начали соединение — сбросим
 	_cancel_connection()
 	print("Выбран кабель: ", cable_type)
 	cable_selected.emit(cable_type)
@@ -42,23 +42,20 @@ func _process(_delta: float) -> void:
 	if first_device != null and rubber_line.visible:
 		rubber_line.points = PackedVector2Array([
 			first_device.global_position,
-			get_viewport().get_mouse_position()   # ← координаты в CanvasLayer
+			get_viewport().get_mouse_position()
 		])
 
-# Устройство кликнуто — вызывается из level.gd
 func handle_device_click(device: Device) -> void:
 	if selected_cable == -1:
-		return  # кабель не выбран — ничего не делаем
+		_open_device_window(device)
+		return
 	
 	if first_device == null:
-		# Первый клик — начинаем тянуть
 		first_device = device
 		rubber_line.visible = true
 		print("Начали тянуть от ", device.device_name)
 	else:
-		# Второй клик — пытаемся соединить
 		if first_device == device:
-			# Кликнули на то же устройство — отмена
 			_cancel_connection()
 			return
 		
@@ -68,20 +65,31 @@ func handle_device_click(device: Device) -> void:
 			_cancel_connection()
 			return
 		
-		# Создаём связь
 		_create_connection(first_device, device, selected_cable)
 		_cancel_connection()
-		# После соединения выключаем режим (Вариант A)
 		selected_cable = -1
 
 func _create_connection(a: Device, b: Device, cable_type: int) -> void:
 	var scene := load("res://scenes/Connection.tscn")
 	var conn = scene.instantiate()
-	# Добавляем в тот же родитель, где лежат устройства
 	get_tree().current_scene.add_child(conn)
 	conn.setup(a, b, cable_type)
 	NetworkSimulator.add_connection(conn)
 	print("Соединено: ", a.device_name, " ↔ ", b.device_name)
+
+func _open_device_window(device: Device) -> void:
+	if current_device_window and is_instance_valid(current_device_window):
+		current_device_window.queue_free()
+	
+	var scene := load("res://scenes/DeviceWindow.tscn")
+	if scene == null:
+		push_error("Не удалось загрузить DeviceWindow.tscn")
+		return
+	
+	current_device_window = scene.instantiate() as DeviceWindow
+	get_tree().current_scene.add_child(current_device_window)
+	current_device_window.open_for(device)
+	current_device_window.popup_centered(Vector2i(700, 500))
 
 func _reset_all_highlights() -> void:
 	for d in NetworkSimulator.devices:

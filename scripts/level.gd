@@ -27,11 +27,9 @@ func _load_level(path: String) -> void:
 		push_error("Ошибка парсинга JSON: " + path)
 		return
 	
-	# 1. Создаём устройства
 	for dev_data in data.get("devices", []):
 		_spawn_device(dev_data)
 	
-	# 2. Создаём связи
 	for conn_data in data.get("connections", []):
 		_spawn_connection(conn_data)
 
@@ -39,32 +37,24 @@ func _spawn_device(data: Dictionary) -> void:
 	var device: Device = DEVICE_SCENE.instantiate()
 	add_child(device)
 	
-	# Позиция
 	var pos: Array = data.get("position", [0, 0])
 	device.position = Vector2(pos[0], pos[1])
 	
-	# Имя и IP
 	device.device_name = data.get("name", "Device")
 	device.ip_address = data.get("ip", "")
 	device.subnet_mask = data.get("mask", "255.255.255.0")
 	
-	# ВАЖНО: сначала задаём текстуры, потом тип.
-	# Сеттер device_type вызовет _apply_texture_by_type()
-	# и применит нужную текстуру к спрайту.
 	_apply_textures(device)
 	device.device_type = data.get("type", "PC")
 	
-	# Подключаем сигнал и регистрируем
 	device.device_clicked.connect(_on_device_clicked)
 	NetworkSimulator.register_device(device)
 	device.reset_highlight()
 	
-	# Сохраняем по id
 	var id: String = data.get("id", "")
 	devices_by_id[id] = device
 
 func _apply_textures(device: Device) -> void:
-	# Загружаем все текстуры заранее. Какая нужна — применит сеттер device_type.
 	device.texture_pc = load("res://assets/PC.svg")
 	device.texture_switch = load("res://assets/Switch.svg")
 	device.texture_router = load("res://assets/Router.svg")

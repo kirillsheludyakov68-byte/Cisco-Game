@@ -1,0 +1,84 @@
+[gd_scene format=3 uid="uid://dnck6pfntaav5"]
+
+[ext_resource type="Theme" uid="uid://40pyqxvta52h" path="res://assets/ui_theme.tres" id="1_5hrwp"]
+[ext_resource type="Script" uid="uid://csfoa225cofdv" path="res://scripts/device_window.gd" id="1_qt3sd"]
+[ext_resource type="Script" uid="uid://cumsspg1qgu4r" path="res://scripts/tab_bar_style.gd" id="2_y1kbd"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1rrw4"]
+bg_color = Color(1, 1, 1, 1)
+
+[node name="DeviceWindow" type="Window" unique_id=1530745340]
+oversampling_override = 1.0
+position = Vector2i(0, 36)
+size = Vector2i(650, 470)
+transient = true
+unresizable = true
+theme = ExtResource("1_5hrwp")
+script = ExtResource("1_qt3sd")
+
+[node name="Backdrop" type="ColorRect" parent="." unique_id=505881180]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -3.0
+offset_top = -7.0
+offset_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.9411765, 0.9411765, 0.9411765, 1)
+
+[node name="WindowRoot" type="VBoxContainer" parent="." unique_id=1219564972]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 50.0
+offset_top = 22.0
+offset_right = -441.0
+offset_bottom = -447.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TabBar" type="HBoxContainer" parent="WindowRoot" unique_id=1966572628]
+layout_mode = 2
+script = ExtResource("2_y1kbd")
+
+[node name="TabPhysical" type="Button" parent="WindowRoot/TabBar" unique_id=2147431386]
+layout_mode = 2
+text = "Physical"
+
+[node name="TabConfig" type="Button" parent="WindowRoot/TabBar" unique_id=731123666]
+layout_mode = 2
+text = "Config"
+
+[node name="TabDesktop" type="Button" parent="WindowRoot/TabBar" unique_id=745327592]
+layout_mode = 2
+text = "Desktop"
+
+[node name="MainPanel" type="PanelContainer" parent="." unique_id=390358281]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -200.0
+offset_right = 300.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_1rrw4")
+
+[node name="ContentPanel" type="PanelContainer" parent="MainPanel" unique_id=2013689260]
+layout_mode = 2
+
+[node name="PagePhysical" type="Control" parent="MainPanel/ContentPanel" unique_id=785156055]
+layout_mode = 2
+
+[node name="PageConfig" type="Control" parent="MainPanel/ContentPanel" unique_id=543306201]
+visible = false
+layout_mode = 2
+
+[node name="PageDesktop" type="Control" parent="MainPanel/ContentPanel" unique_id=1030466901]
+visible = false
+layout_mode = 2
