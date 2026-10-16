@@ -1,0 +1,74 @@
+[gd_scene format=3 uid="uid://bhrodtsrky6t"]
+
+[ext_resource type="Script" uid="uid://daoij2bjmxjtp" path="res://scripts/modules_panel.gd" id="1_cbhqr"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2ocn1"]
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0, 0, 1)
+corner_detail = 1
+expand_margin_left = 1.0
+expand_margin_top = 1.0
+expand_margin_right = 1.0
+expand_margin_bottom = 1.0
+
+[sub_resource type="FontFile" id="FontFile_yvgyf"]
+cache/0/variation_coordinates = {}
+cache/0/face_index = 0
+cache/0/embolden = 0.0
+cache/0/transform = Transform2D(1, 0, 0, 1, 0, 0)
+cache/0/spacing_top = 0
+cache/0/spacing_bottom = 0
+cache/0/spacing_space = 0
+cache/0/spacing_glyph = 0
+cache/0/baseline_offset = 0.0
+cache/0/16/0/ascent = 0.0
+cache/0/16/0/descent = 0.0
+cache/0/16/0/underline_position = 0.0
+cache/0/16/0/underline_thickness = 0.0
+cache/0/16/0/scale = 1.0
+cache/0/11/0/ascent = 0.0
+cache/0/11/0/descent = 0.0
+cache/0/11/0/underline_position = 0.0
+cache/0/11/0/underline_thickness = 0.0
+cache/0/11/0/scale = 1.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_13r6r"]
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="ModulesPanel" type="PanelContainer" unique_id=816448491]
+custom_minimum_size = Vector2(167, 600)
+theme_override_styles/panel = SubResource("StyleBoxFlat_2ocn1")
+script = ExtResource("1_cbhqr")
+
+[node name="RootVBox" type="VBoxContainer" parent="." unique_id=2108752822]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="HeaderButton" type="Button" parent="RootVBox" unique_id=1257650392]
+custom_minimum_size = Vector2(0, 22)
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0.015686275, 1)
+theme_override_fonts/font = SubResource("FontFile_yvgyf")
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_13r6r")
+text = "MODULES"
+
+[node name="ScrollList" type="ScrollContainer" parent="RootVBox" unique_id=1544259505]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="ModulesList" type="VBoxContainer" parent="RootVBox/ScrollList" unique_id=515588800]
+layout_mode = 2
+theme_override_constants/separation = 1
