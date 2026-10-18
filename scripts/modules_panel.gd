@@ -10,6 +10,7 @@ const MODULES: Array[String] = [
 
 const BUTTON_HEIGHT: int = 20
 
+@onready var header_button: Button = $RootVBox/HeaderButton
 @onready var modules_list: VBoxContainer = $RootVBox/ScrollList/ModulesList
 
 func _ready() -> void:
@@ -26,6 +27,7 @@ func _populate_modules() -> void:
 		btn.custom_minimum_size = Vector2(0, BUTTON_HEIGHT)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		
+		# --- Стили (фон, рамка, скругление) ---
 		var sb_normal := _make_stylebox(Color(1, 1, 1, 1))
 		var sb_hover := _make_stylebox(Color(0.92, 0.92, 0.92, 1))
 		var sb_pressed := _make_stylebox(Color(0.85, 0.85, 0.85, 1))
@@ -36,13 +38,22 @@ func _populate_modules() -> void:
 		btn.add_theme_stylebox_override("pressed", sb_pressed)
 		btn.add_theme_stylebox_override("focus", sb_focus)
 		
+		# --- Цвета шрифта ---
 		btn.add_theme_color_override("font_color", Color(0, 0, 0, 1))
 		btn.add_theme_color_override("font_hover_color", Color(0, 0, 0, 1))
 		btn.add_theme_color_override("font_pressed_color", Color(0, 0, 0, 1))
 		btn.add_theme_color_override("font_focus_color", Color(0, 0, 0, 1))
 		
-		btn.add_theme_font_size_override("font_size", 16)
+		# --- Копируем ШРИФТ и РАЗМЕР из HeaderButton (Способ 2) ---
+		var font := header_button.get_theme_font("font")
+		if font:
+			btn.add_theme_font_override("font", font)
 		
+		var font_size := header_button.get_theme_font_size("font_size")
+		if font_size > 0:
+			btn.add_theme_font_size_override("font_size", font_size)
+		
+		# ПКМ — начало drag & drop
 		btn.gui_input.connect(_on_module_input.bind(btn, module_name))
 		
 		modules_list.add_child(btn)
