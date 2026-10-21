@@ -1,8 +1,15 @@
 extends CanvasLayer
 
+# Какой кабель выбран (или -1, если ничего)
 var selected_cable: int = -1
+
+# Первое устройство, с которого начали тянуть кабель
 var first_device: Device = null
+
+# Временная "резиновая" линия за курсором
 var rubber_line: Line2D = null
+
+# Текущее открытое окно устройства
 var current_device_window: DeviceWindow = null
 
 signal cable_selected(cable_type: int)
@@ -86,10 +93,14 @@ func _open_device_window(device: Device) -> void:
 		push_error("Не удалось загрузить DeviceWindow.tscn")
 		return
 	
-	current_device_window = scene.instantiate() as DeviceWindow
+	current_device_window = scene.instantiate()
+	
+	# ВАЖНО: Сначала добавляем в дерево
 	get_tree().current_scene.add_child(current_device_window)
+	
+	# Только потом передаем устройство и открываем
 	current_device_window.open_for(device)
-	current_device_window.popup_centered(Vector2i(650, 470))
+	current_device_window.popup_centered(Vector2i(850, 670))
 
 func _reset_all_highlights() -> void:
 	for d in NetworkSimulator.devices:

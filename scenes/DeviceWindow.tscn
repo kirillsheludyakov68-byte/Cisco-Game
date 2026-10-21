@@ -3,6 +3,8 @@
 [ext_resource type="Theme" uid="uid://40pyqxvta52h" path="res://assets/ui_theme.tres" id="1_5hrwp"]
 [ext_resource type="Script" uid="uid://csfoa225cofdv" path="res://scripts/device_window.gd" id="1_qt3sd"]
 [ext_resource type="Script" uid="uid://cumsspg1qgu4r" path="res://scripts/tab_bar_style.gd" id="2_y1kbd"]
+[ext_resource type="PackedScene" uid="uid://bhrodtsrky6t" path="res://scenes/ModulesPanel.tscn" id="4_1rrw4"]
+[ext_resource type="Texture2D" uid="uid://bmj61ikq8a2kp" path="res://assets/devices/PC_on.png" id="5_74g6v"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_y1kbd"]
 bg_color = Color(0.9411765, 0.9411765, 0.9411765, 1)
@@ -10,10 +12,99 @@ bg_color = Color(0.9411765, 0.9411765, 0.9411765, 1)
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_74g6v"]
 bg_color = Color(1, 1, 1, 1)
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_owhx7"]
+bg_color = Color(0.9411765, 0.9411765, 0.9411765, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.50980395, 0.5294118, 0.5647059, 1)
+
+[sub_resource type="FontFile" id="FontFile_13r6r"]
+cache/0/variation_coordinates = {}
+cache/0/face_index = 0
+cache/0/embolden = 0.0
+cache/0/transform = Transform2D(1, 0, 0, 1, 0, 0)
+cache/0/spacing_top = 0
+cache/0/spacing_bottom = 0
+cache/0/spacing_space = 0
+cache/0/spacing_glyph = 0
+cache/0/baseline_offset = 0.0
+cache/0/16/0/ascent = 0.0
+cache/0/16/0/descent = 0.0
+cache/0/16/0/underline_position = 0.0
+cache/0/16/0/underline_thickness = 0.0
+cache/0/16/0/scale = 1.0
+cache/0/13/0/ascent = 0.0
+cache/0/13/0/descent = 0.0
+cache/0/13/0/underline_position = 0.0
+cache/0/13/0/underline_thickness = 0.0
+cache/0/13/0/scale = 1.0
+cache/0/12/0/ascent = 0.0
+cache/0/12/0/descent = 0.0
+cache/0/12/0/underline_position = 0.0
+cache/0/12/0/underline_thickness = 0.0
+cache/0/12/0/scale = 1.0
+cache/0/11/0/ascent = 0.0
+cache/0/11/0/descent = 0.0
+cache/0/11/0/underline_position = 0.0
+cache/0/11/0/underline_thickness = 0.0
+cache/0/11/0/scale = 1.0
+cache/0/14/0/ascent = 0.0
+cache/0/14/0/descent = 0.0
+cache/0/14/0/underline_position = 0.0
+cache/0/14/0/underline_thickness = 0.0
+cache/0/14/0/scale = 1.0
+cache/0/15/0/ascent = 0.0
+cache/0/15/0/descent = 0.0
+cache/0/15/0/underline_position = 0.0
+cache/0/15/0/underline_thickness = 0.0
+cache/0/15/0/scale = 1.0
+
+[sub_resource type="FontFile" id="FontFile_owhx7"]
+cache/0/variation_coordinates = {}
+cache/0/face_index = 0
+cache/0/embolden = 0.0
+cache/0/transform = Transform2D(1, 0, 0, 1, 0, 0)
+cache/0/spacing_top = 0
+cache/0/spacing_bottom = 0
+cache/0/spacing_space = 0
+cache/0/spacing_glyph = 0
+cache/0/baseline_offset = 0.0
+cache/0/16/0/ascent = 0.0
+cache/0/16/0/descent = 0.0
+cache/0/16/0/underline_position = 0.0
+cache/0/16/0/underline_thickness = 0.0
+cache/0/16/0/scale = 1.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_a5ap3"]
+bg_color = Color(0.9529412, 0.9529412, 0.9529412, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.7372549, 0.7372549, 0.7372549, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yvgyf"]
+bg_color = Color(0.74509805, 0.8352941, 0.90588236, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0.32941177, 0.6, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_13r6r"]
+bg_color = Color(0.8, 0.89411765, 0.96862745, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0.7372549, 0.92156863, 1)
+
 [node name="DeviceWindow" type="Window" unique_id=1530745340]
 oversampling_override = 1.0
 position = Vector2i(0, 36)
-size = Vector2i(650, 470)
+size = Vector2i(850, 670)
 transient = true
 unresizable = true
 theme = ExtResource("1_5hrwp")
@@ -23,9 +114,7 @@ script = ExtResource("1_qt3sd")
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -3.0
 offset_top = -8.0
-offset_bottom = 2.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
@@ -36,7 +125,7 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 25.0
-offset_top = 10.0
+offset_top = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -62,10 +151,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -300.0
-offset_top = -186.0
-offset_right = 300.0
-offset_bottom = 200.0
+offset_left = -400.0
+offset_top = -294.0
+offset_right = 395.0
+offset_bottom = 277.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_y1kbd")
@@ -77,6 +166,97 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_74g6v")
 [node name="PagePhysical" type="Control" parent="MainPanel/ContentPanel" unique_id=785156055]
 layout_mode = 2
 
+[node name="ViewerPanel" type="PanelContainer" parent="MainPanel/ContentPanel/PagePhysical" unique_id=1100135362]
+layout_mode = 0
+offset_left = 165.0
+offset_top = 77.0
+offset_right = 795.0
+offset_bottom = 475.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_owhx7")
+
+[node name="DeviceView" type="Control" parent="MainPanel/ContentPanel/PagePhysical/ViewerPanel" unique_id=389325631]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="DeviceImage" type="TextureRect" parent="MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView" unique_id=1390962978]
+layout_mode = 0
+offset_right = 166.0
+offset_bottom = 396.0
+mouse_filter = 0
+texture = ExtResource("5_74g6v")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ViewerLayout" type="VBoxContainer" parent="MainPanel/ContentPanel/PagePhysical" unique_id=614194327]
+layout_mode = 0
+offset_left = 162.0
+offset_top = 3.0
+offset_right = 802.0
+offset_bottom = 26.0
+
+[node name="TitleLabel" type="Label" parent="MainPanel/ContentPanel/PagePhysical/ViewerLayout" unique_id=134238440]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = SubResource("FontFile_13r6r")
+theme_override_font_sizes/font_size = 16
+text = "Physical Divice View"
+horizontal_alignment = 1
+
+[node name="PhysicalLayout" type="HBoxContainer" parent="MainPanel/ContentPanel/PagePhysical" unique_id=1231581937]
+layout_mode = 0
+offset_left = 9.0
+offset_top = 4.0
+offset_right = 113.0
+offset_bottom = 299.0
+theme_override_constants/separation = 10
+
+[node name="ModulesPanel" parent="MainPanel/ContentPanel/PagePhysical/PhysicalLayout" unique_id=816448491 instance=ExtResource("4_1rrw4")]
+layout_mode = 2
+
+[node name="ZoomButtons" type="HBoxContainer" parent="MainPanel/ContentPanel/PagePhysical" unique_id=1746156344]
+layout_mode = 0
+offset_left = 217.0
+offset_top = 34.0
+offset_right = 735.0
+offset_bottom = 64.0
+
+[node name="ZoomIn" type="Button" parent="MainPanel/ContentPanel/PagePhysical/ZoomButtons" unique_id=1004585840]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0, 0, 0, 1)
+theme_override_colors/font_hover_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = SubResource("FontFile_owhx7")
+theme_override_styles/normal = SubResource("StyleBoxFlat_a5ap3")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_yvgyf")
+theme_override_styles/hover = SubResource("StyleBoxFlat_13r6r")
+text = "Zoom In"
+
+[node name="OriginalSize" type="Button" parent="MainPanel/ContentPanel/PagePhysical/ZoomButtons" unique_id=1349430540]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0, 0, 0, 1)
+theme_override_colors/font_hover_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = SubResource("FontFile_owhx7")
+theme_override_styles/normal = SubResource("StyleBoxFlat_a5ap3")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_yvgyf")
+theme_override_styles/hover = SubResource("StyleBoxFlat_13r6r")
+text = "OriginalSize"
+
+[node name="ZoomOut" type="Button" parent="MainPanel/ContentPanel/PagePhysical/ZoomButtons" unique_id=1125816915]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0, 0, 0, 1)
+theme_override_colors/font_hover_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = SubResource("FontFile_owhx7")
+theme_override_styles/normal = SubResource("StyleBoxFlat_a5ap3")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_yvgyf")
+theme_override_styles/hover = SubResource("StyleBoxFlat_13r6r")
+text = "Zoom Out"
+
 [node name="PageConfig" type="Control" parent="MainPanel/ContentPanel" unique_id=543306201]
 visible = false
 layout_mode = 2
@@ -84,3 +264,5 @@ layout_mode = 2
 [node name="PageDesktop" type="Control" parent="MainPanel/ContentPanel" unique_id=1030466901]
 visible = false
 layout_mode = 2
+
+[connection signal="gui_input" from="MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage" to="." method="_on_device_image_gui_input"]

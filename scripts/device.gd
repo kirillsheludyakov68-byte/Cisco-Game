@@ -5,6 +5,7 @@ class_name Device
 @onready var name_label: Label = $NameLabel
 @onready var collision_shape: CollisionShape2D = $ClickArea/CollisionShape2D
 
+var is_powered_on: bool = true
 @export var device_name: String = "PC1":
 	set(value):
 		device_name = value

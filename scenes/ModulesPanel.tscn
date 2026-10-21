@@ -73,7 +73,9 @@ corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
 [node name="ModulesPanel" type="PanelContainer" unique_id=816448491]
-custom_minimum_size = Vector2(167, 600)
+custom_minimum_size = Vector2(150, 470)
+offset_right = 167.0
+offset_bottom = 721.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_2ocn1")
 script = ExtResource("1_cbhqr")
 
