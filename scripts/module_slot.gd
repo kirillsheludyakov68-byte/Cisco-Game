@@ -9,7 +9,7 @@ var device_window = null
 @onready var module_image: TextureRect = $ModuleImage
 
 
-func setup(dev: Device, window) -> void:
+func setup(dev: Device, window, _module_info = null, _extra = null) -> void:
 	device = dev
 	device_window = window
 	refresh()

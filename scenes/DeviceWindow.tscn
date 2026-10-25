@@ -7,6 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://bmj61ikq8a2kp" path="res://assets/devices/PC_on.png" id="5_74g6v"]
 [ext_resource type="PackedScene" path="res://scenes/ModuleSlot.tscn" id="6_slot"]
 [ext_resource type="PackedScene" path="res://scenes/ErrorDialog.tscn" id="7_err"]
+[ext_resource type="PackedScene" path="res://scenes/ModuleInfoPanel.tscn" id="8_info"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_y1kbd"]
 bg_color = Color(0.9411765, 0.9411765, 0.9411765, 1)
@@ -273,6 +274,13 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_a5ap3")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_yvgyf")
 theme_override_styles/hover = SubResource("StyleBoxFlat_13r6r")
 text = "Zoom Out"
+
+[node name="ModuleInfoPanel" parent="MainPanel/ContentPanel/PagePhysical" unique_id=1543509940 instance=ExtResource("8_info")]
+layout_mode = 0
+offset_left = 9.0
+offset_top = 479.0
+offset_right = 791.0
+offset_bottom = 561.0
 
 [node name="PageConfig" type="Control" parent="MainPanel/ContentPanel" unique_id=543306201]
 visible = false

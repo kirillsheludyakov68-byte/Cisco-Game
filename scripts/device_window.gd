@@ -18,6 +18,7 @@ const ERROR_DEFAULT := "Не удалось изменить модуль."
 
 @onready var modules_panel: ModulesPanel = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ModulesPanel
 @onready var module_slot: ModuleSlot = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/ModuleSlot
+@onready var module_info: ModuleInfoPanel = get_node_or_null("MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel") as ModuleInfoPanel
 @onready var error_dialog: ErrorDialog = $ErrorDialog
 
 # Ищем картинку по всему дереву
@@ -36,6 +37,9 @@ func _ready() -> void:
 	if device_image and not device_image.gui_input.is_connected(_on_device_image_gui_input):
 		device_image.gui_input.connect(_on_device_image_gui_input)
 
+	if modules_panel.has_signal("module_selected"):
+		modules_panel.module_selected.connect(_show_module_info)
+
 	_show_page("physical")
 
 
@@ -49,6 +53,22 @@ func open_for(dev: Device) -> void:
 	module_slot.visible = dev.device_type == "PC"
 	module_slot.setup(dev, self)
 	modules_panel.setup(dev, self)
+	_update_module_info()
+
+
+# Показываем описание установленного модуля,
+# а если слот пуст — первого модуля из каталога.
+func _update_module_info() -> void:
+	if device != null and device.installed_module != "":
+		_show_module_info(device.installed_module)
+	else:
+		_show_module_info(ModuleCatalog.MODULES[0])
+
+
+func _show_module_info(module_name: String) -> void:
+	if module_info == null or module_name == "":
+		return
+	module_info.show_module(module_name)
 
 
 func _on_tab_physical() -> void:
@@ -112,6 +132,7 @@ func try_install_module(module_name: String) -> void:
 	var result: Dictionary = device.install_module(module_name)
 	if result.get("ok", false):
 		module_slot.refresh()
+		_show_module_info(module_name)
 	else:
 		_show_module_error(result.get("reason", ""))
 
@@ -123,6 +144,7 @@ func try_remove_module() -> void:
 	var result: Dictionary = device.remove_module()
 	if result.get("ok", false):
 		module_slot.refresh()
+		_update_module_info()
 	else:
 		_show_module_error(result.get("reason", ""))
 

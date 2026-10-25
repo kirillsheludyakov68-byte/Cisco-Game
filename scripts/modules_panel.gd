@@ -1,6 +1,8 @@
 extends PanelContainer
 class_name ModulesPanel
 
+signal module_selected(module_name: String)
+
 const BUTTON_HEIGHT: int = 27
 const PRESS_OFFSET_SCRIPT := preload("res://scripts/button_press_offset.gd")
 const MODULE_BUTTON_SCRIPT := preload("res://scripts/module_button.gd")
@@ -14,6 +16,7 @@ const HIGHLIGHT_BG := Color(1.0, 1.0, 0.78, 1.0)
 
 var device: Device = null
 var device_window = null
+var module_info_panel = null
 
 var _panel_normal_style: StyleBoxFlat
 var _panel_highlight_style: StyleBoxFlat
@@ -29,9 +32,12 @@ func _ready() -> void:
 	drop_zone.highlight_changed.connect(_on_highlight_changed)
 
 
-func setup(dev: Device, window) -> void:
+# Дополнительные аргументы оставлены для совместимости:
+# панель можно использовать и без них.
+func setup(dev: Device, window, module_info = null, _extra = null) -> void:
 	device = dev
 	device_window = window
+	module_info_panel = module_info
 
 
 func _build_styles() -> void:
@@ -104,6 +110,15 @@ func _populate_modules() -> void:
 		# Иконка и имя
 		btn.module_texture = ModuleCatalog.get_icon(module_name)
 		btn.module_name = module_name
+
+		# Описание выбранного модуля — по клику левой кнопкой мыши
+		btn.pressed.connect(_on_module_pressed.bind(module_name))
+
+
+func _on_module_pressed(module_name: String) -> void:
+	if module_info_panel != null and module_info_panel.has_method("show_module"):
+		module_info_panel.show_module(module_name)
+	module_selected.emit(module_name)
 
 
 func _apply_press_offset_to_header() -> void:

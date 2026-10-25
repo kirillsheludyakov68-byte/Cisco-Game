@@ -1,0 +1,42 @@
+[gd_scene format=3 uid="uid://5fomen43g533"]
+
+[ext_resource type="Script" uid="uid://reqx1m415bi4" path="res://scripts/module_info_panel.gd" id="1_info"]
+[ext_resource type="PackedScene" uid="uid://rxp1v8uemtu" path="res://scenes/ModulePreview.tscn" id="2_preview"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_desc"]
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.50980395, 0.5294118, 0.5647059, 1)
+
+[node name="ModuleInfoPanel" type="HBoxContainer" unique_id=86818163]
+custom_minimum_size = Vector2(782, 82)
+theme_override_constants/separation = 8
+script = ExtResource("1_info")
+
+[node name="DescriptionPanel" type="PanelContainer" parent="." unique_id=1411246991]
+custom_minimum_size = Vector2(606, 82)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_desc")
+
+[node name="DescriptionMargin" type="MarginContainer" parent="DescriptionPanel" unique_id=1311872391]
+custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 3
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 3
+
+[node name="DescriptionLabel" type="Label" parent="DescriptionPanel/DescriptionMargin" unique_id=250046474]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.1882353, 0.6156863, 1)
+theme_override_font_sizes/font_size = 13
+autowrap_mode = 3
+
+[node name="ModulePreview" parent="." unique_id=1838361402 instance=ExtResource("2_preview")]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
