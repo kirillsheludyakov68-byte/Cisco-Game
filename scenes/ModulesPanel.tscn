@@ -1,6 +1,7 @@
-[gd_scene format=3 uid="uid://bhrodtsrky6t"]
+[gd_scene load_steps=3 format=3 uid="uid://bhrodtsrky6t"]
 
 [ext_resource type="Script" uid="uid://daoij2bjmxjtp" path="res://scripts/modules_panel.gd" id="1_cbhqr"]
+[ext_resource type="Script" path="res://scripts/module_drop_zone.gd" id="2_drop"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2ocn1"]
 bg_color = Color(0.8862745, 0.8862745, 0.8862745, 1)
@@ -81,7 +82,7 @@ script = ExtResource("1_cbhqr")
 
 [node name="RootVBox" type="VBoxContainer" parent="." unique_id=2108752822]
 layout_mode = 2
-theme_override_constants/separation = 0
+theme_override_constants/separation = 3
 
 [node name="HeaderButton" type="Button" parent="RootVBox" unique_id=1257650392]
 custom_minimum_size = Vector2(0, 22)
@@ -105,4 +106,14 @@ horizontal_scroll_mode = 0
 [node name="ModulesList" type="VBoxContainer" parent="RootVBox/ScrollList" unique_id=515588800]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 1
+theme_override_constants/separation = 3
+
+[node name="DropZone" type="Control" parent="." unique_id=1186539412]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_drop")

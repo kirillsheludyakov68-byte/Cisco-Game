@@ -63,6 +63,8 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 	
 	return {
 		"type": "module",
+		"source": "catalog",
+		"module": module_name,
 		"name": module_name,
 		"texture": module_texture,
 	}

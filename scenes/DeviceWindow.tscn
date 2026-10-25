@@ -5,6 +5,8 @@
 [ext_resource type="Script" uid="uid://cumsspg1qgu4r" path="res://scripts/tab_bar_style.gd" id="2_y1kbd"]
 [ext_resource type="PackedScene" uid="uid://bhrodtsrky6t" path="res://scenes/ModulesPanel.tscn" id="4_1rrw4"]
 [ext_resource type="Texture2D" uid="uid://bmj61ikq8a2kp" path="res://assets/devices/PC_on.png" id="5_74g6v"]
+[ext_resource type="PackedScene" path="res://scenes/ModuleSlot.tscn" id="6_slot"]
+[ext_resource type="PackedScene" path="res://scenes/ErrorDialog.tscn" id="7_err"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_y1kbd"]
 bg_color = Color(0.9411765, 0.9411765, 0.9411765, 1)
@@ -21,6 +23,9 @@ border_width_bottom = 1
 border_color = Color(0.50980395, 0.5294118, 0.5647059, 1)
 
 [sub_resource type="FontFile" id="FontFile_13r6r"]
+subpixel_positioning = 0
+msdf_pixel_range = 14
+msdf_size = 128
 cache/0/variation_coordinates = {}
 cache/0/face_index = 0
 cache/0/embolden = 0.0
@@ -62,6 +67,9 @@ cache/0/15/0/underline_thickness = 0.0
 cache/0/15/0/scale = 1.0
 
 [sub_resource type="FontFile" id="FontFile_owhx7"]
+subpixel_positioning = 0
+msdf_pixel_range = 14
+msdf_size = 128
 cache/0/variation_coordinates = {}
 cache/0/face_index = 0
 cache/0/embolden = 0.0
@@ -188,6 +196,15 @@ texture = ExtResource("5_74g6v")
 expand_mode = 1
 stretch_mode = 5
 
+[node name="ModuleSlot" parent="MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage" unique_id=177739264 instance=ExtResource("6_slot")]
+layout_mode = 1
+anchor_left = 0.205128
+anchor_top = 0.866953
+anchor_right = 0.651282
+anchor_bottom = 0.922747
+grow_horizontal = 2
+grow_vertical = 2
+
 [node name="ViewerLayout" type="VBoxContainer" parent="MainPanel/ContentPanel/PagePhysical" unique_id=614194327]
 layout_mode = 0
 offset_left = 162.0
@@ -264,5 +281,8 @@ layout_mode = 2
 [node name="PageDesktop" type="Control" parent="MainPanel/ContentPanel" unique_id=1030466901]
 visible = false
 layout_mode = 2
+
+[node name="ErrorDialog" parent="." unique_id=959558338 instance=ExtResource("7_err")]
+visible = false
 
 [connection signal="gui_input" from="MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage" to="." method="_on_device_image_gui_input"]

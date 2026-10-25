@@ -30,6 +30,11 @@ func _load_level(path: String) -> void:
 	for dev_data in data.get("devices", []):
 		_spawn_device(dev_data)
 	
+	# Предустановленные модули: { "pc1": ["PT-HOST-NM-1CE"] }
+	var presets = data.get("module_presets", {})
+	if presets is Dictionary:
+		_apply_module_presets(presets)
+	
 	for conn_data in data.get("connections", []):
 		_spawn_connection(conn_data)
 
@@ -59,6 +64,28 @@ func _apply_textures(device: Device) -> void:
 	device.texture_switch = load("res://assets/Switch.svg")
 	device.texture_router = load("res://assets/Router.svg")
 	device.texture_ap = load("res://assets/AccessPoint.svg")
+
+func _apply_module_presets(presets: Dictionary) -> void:
+	for device_id in presets:
+		if not devices_by_id.has(device_id):
+			push_warning("module_presets: устройство не найдено: " + str(device_id))
+			continue
+		
+		var value = presets[device_id]
+		var module_name := ""
+		if value is String:
+			module_name = value
+		elif value is Array and value.size() > 0:
+			module_name = str(value[0])
+			if value.size() > 1:
+				push_warning("module_presets: у ПК только один слот, беру первый модуль для " + str(device_id))
+		
+		if module_name == "":
+			continue
+		
+		var dev: Device = devices_by_id[device_id]
+		dev.set_initial_module(module_name)
+
 
 func _spawn_connection(data: Dictionary) -> void:
 	var from_id: String = data.get("from", "")

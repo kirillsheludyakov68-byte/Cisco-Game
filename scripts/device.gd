@@ -5,7 +5,20 @@ class_name Device
 @onready var name_label: Label = $NameLabel
 @onready var collision_shape: CollisionShape2D = $ClickArea/CollisionShape2D
 
-var is_powered_on: bool = true
+var is_powered_on: bool = true:
+	set(value):
+		if is_powered_on == value:
+			return
+		is_powered_on = value
+		_refresh_active_module()
+		power_changed.emit(is_powered_on)
+
+# Физически установленный в слот модуль
+@export var installed_module: String = ""
+
+# Модуль, который реально работает. Обновляется только при включении ПК.
+var active_module: String = ""
+
 @export var device_name: String = "PC1":
 	set(value):
 		device_name = value
@@ -29,6 +42,8 @@ var is_powered_on: bool = true
 @export var texture_ap: Texture2D
 
 signal device_clicked(device: Device)
+signal power_changed(is_on: bool)
+signal modules_applied(device: Device, module_name: String)
 
 func _ready() -> void:
 	if name_label:
@@ -86,3 +101,55 @@ func highlight(color: Color) -> void:
 func reset_highlight() -> void:
 	if sprite:
 		sprite.modulate = Color(1, 1, 1)
+
+
+# --- Модули ---
+
+func set_power(on: bool) -> void:
+	is_powered_on = on
+
+
+func can_modify_modules() -> bool:
+	return not is_powered_on
+
+
+# Поставить модуль. Работает только при выключенном ПК и пустом слоте.
+# Возвращает {ok: bool, reason: String}.
+func install_module(module_name: String) -> Dictionary:
+	if is_powered_on:
+		return {"ok": false, "reason": "power_on_add"}
+	if installed_module != "":
+		return {"ok": false, "reason": "occupied"}
+	if not ModuleCatalog.has_module(module_name):
+		return {"ok": false, "reason": "unknown"}
+
+	installed_module = module_name
+	_refresh_active_module()
+	return {"ok": true, "reason": ""}
+
+
+# Извлечь модуль. Работает только при выключенном ПК.
+func remove_module() -> Dictionary:
+	if is_powered_on:
+		return {"ok": false, "reason": "power_on_remove"}
+	if installed_module == "":
+		return {"ok": false, "reason": "empty"}
+
+	installed_module = ""
+	_refresh_active_module()
+	return {"ok": true, "reason": ""}
+
+
+# Установка предустановленного модуля из JSON уровня (без проверок питания).
+func set_initial_module(module_name: String) -> void:
+	if not ModuleCatalog.has_module(module_name):
+		push_warning("Неизвестный модуль в уровне: " + module_name)
+		return
+	installed_module = module_name
+	_refresh_active_module()
+
+
+func _refresh_active_module() -> void:
+	active_module = installed_module if is_powered_on else ""
+	if is_powered_on and active_module != "":
+		modules_applied.emit(self, active_module)

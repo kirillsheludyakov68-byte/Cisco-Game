@@ -29,5 +29,8 @@
   "connections": [
 	{ "from": "pc1", "to": "sw1", "cable": "straight" },
 	{ "from": "pc2", "to": "sw1", "cable": "straight" }
-  ]
+  ],
+  "module_presets": {
+	"pc1": ["PT-HOST-NM-1CE"]
+  }
 }
