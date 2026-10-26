@@ -7,7 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://bmj61ikq8a2kp" path="res://assets/devices/PC_on.png" id="5_74g6v"]
 [ext_resource type="PackedScene" path="res://scenes/ModuleSlot.tscn" id="6_slot"]
 [ext_resource type="PackedScene" path="res://scenes/ErrorDialog.tscn" id="7_err"]
-[ext_resource type="PackedScene" path="res://scenes/ModuleInfoPanel.tscn" id="8_info"]
+[ext_resource type="PackedScene" uid="uid://5fomen43g533" path="res://scenes/ModuleInfoPanel.tscn" id="8_info"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_y1kbd"]
 bg_color = Color(0.9411765, 0.9411765, 0.9411765, 1)
@@ -163,7 +163,7 @@ anchor_bottom = 0.5
 offset_left = -400.0
 offset_top = -294.0
 offset_right = 395.0
-offset_bottom = 277.0
+offset_bottom = 286.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_y1kbd")

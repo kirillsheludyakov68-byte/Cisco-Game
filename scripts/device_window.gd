@@ -8,6 +8,12 @@ const ERROR_EMPTY := "В слоте нет модуля."
 const ERROR_UNKNOWN := "Неизвестный модуль."
 const ERROR_DEFAULT := "Не удалось изменить модуль."
 
+const ZOOM_STEP := 1.2
+const ZOOM_MIN := 0.25
+const ZOOM_MAX := 3.0
+const ZOOM_SCROLL_STEP := 48.0
+const ZOOM_SCROLL_BAR_WIDTH := 14.0
+
 @onready var tab_physical: Button = $WindowRoot/TabBar/TabPhysical
 @onready var tab_config: Button = $WindowRoot/TabBar/TabConfig
 @onready var tab_desktop: Button = $WindowRoot/TabBar/TabDesktop
@@ -21,10 +27,20 @@ const ERROR_DEFAULT := "Не удалось изменить модуль."
 @onready var module_info: ModuleInfoPanel = get_node_or_null("MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel") as ModuleInfoPanel
 @onready var error_dialog: ErrorDialog = $ErrorDialog
 
+@onready var device_view: Control = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView
+@onready var zoom_in_button: Button = $MainPanel/ContentPanel/PagePhysical/ZoomButtons/ZoomIn
+@onready var original_size_button: Button = $MainPanel/ContentPanel/PagePhysical/ZoomButtons/OriginalSize
+@onready var zoom_out_button: Button = $MainPanel/ContentPanel/PagePhysical/ZoomButtons/ZoomOut
+
 # Ищем картинку по всему дереву
 @onready var device_image: TextureRect = find_child("DeviceImage", true, false)
 
 var device: Device = null
+var _zoom_scale := 1.0
+var _zoom_pan := Vector2.ZERO
+var _device_base_rect := Rect2()
+var _zoom_scroll_bar: VScrollBar = null
+var _updating_zoom_scroll := false
 
 
 func _ready() -> void:
@@ -33,9 +49,25 @@ func _ready() -> void:
 	tab_config.pressed.connect(_on_tab_config)
 	tab_desktop.pressed.connect(_on_tab_desktop)
 
+	zoom_in_button.pressed.connect(_on_zoom_in_pressed)
+	original_size_button.pressed.connect(_on_original_size_pressed)
+	zoom_out_button.pressed.connect(_on_zoom_out_pressed)
+
+	# Клиппинг не даёт увеличенному изображению выйти за пределы Physical Device View.
+	device_view.clip_contents = true
+	# PASS нужен, чтобы колесо мыши работало и над пустой частью области просмотра.
+	device_view.mouse_filter = Control.MOUSE_FILTER_PASS
+	if not device_view.gui_input.is_connected(_on_device_view_gui_input):
+		device_view.gui_input.connect(_on_device_view_gui_input)
+	call_deferred("_setup_zoom")
+
 	# Подключаем клик по картинке
 	if device_image and not device_image.gui_input.is_connected(_on_device_image_gui_input):
 		device_image.gui_input.connect(_on_device_image_gui_input)
+
+	# И колесо мыши над слотом модуля — чтобы прокрутка не прерывалась.
+	if module_slot and not module_slot.gui_input.is_connected(_on_module_slot_gui_input):
+		module_slot.gui_input.connect(_on_module_slot_gui_input)
 
 	if modules_panel.has_signal("module_selected"):
 		modules_panel.module_selected.connect(_show_module_info)
@@ -48,6 +80,7 @@ func open_for(dev: Device) -> void:
 	title = "Устройство: " + dev.device_name
 	_show_page("physical")
 	_update_device_image()
+	_reset_zoom()
 
 	# Слот модулей есть только у ПК
 	module_slot.visible = dev.device_type == "PC"
@@ -108,13 +141,171 @@ func _update_device_image() -> void:
 		device_image.texture = load("res://assets/devices/Router.png")
 
 
+# --- Масштаб Physical Device View ---
+
+func _setup_zoom() -> void:
+	if device_image == null:
+		return
+	_device_base_rect = Rect2(device_image.position, device_image.size)
+	_create_zoom_scroll_bar()
+	_apply_zoom()
+
+
+func _reset_zoom() -> void:
+	_zoom_scale = 1.0
+	_zoom_pan = Vector2.ZERO
+	_apply_zoom()
+
+
+func _on_zoom_in_pressed() -> void:
+	_set_zoom(_zoom_scale * ZOOM_STEP)
+
+
+func _on_zoom_out_pressed() -> void:
+	_set_zoom(_zoom_scale / ZOOM_STEP)
+
+
+func _on_original_size_pressed() -> void:
+	_reset_zoom()
+
+
+func _set_zoom(value: float) -> void:
+	_zoom_scale = clampf(value, ZOOM_MIN, ZOOM_MAX)
+	_apply_zoom()
+
+
+func _apply_zoom() -> void:
+	if device_image == null or _device_base_rect.size == Vector2.ZERO:
+		return
+
+	device_image.size = _device_base_rect.size * _zoom_scale
+	_clamp_zoom_pan()
+	_update_device_image_position()
+	_update_zoom_scroll_bar()
+
+
+# Картинка всегда масштабируется от левого верхнего угла.
+# _zoom_pan позволяет вручную прокрутить её вниз, когда она выше области.
+func _update_device_image_position() -> void:
+	if device_image == null:
+		return
+	device_image.position = _device_base_rect.position + _zoom_pan
+
+
+func _get_max_zoom_scroll() -> Vector2:
+	if _device_base_rect.size == Vector2.ZERO:
+		return Vector2.ZERO
+
+	var content_size := _device_base_rect.size * _zoom_scale
+	return Vector2(
+		maxf(content_size.x - device_view.size.x, 0.0),
+		maxf(content_size.y - device_view.size.y, 0.0)
+	)
+
+
+func _clamp_zoom_pan() -> void:
+	var max_scroll := _get_max_zoom_scroll()
+	_zoom_pan.x = clampf(_zoom_pan.x, -max_scroll.x, 0.0)
+	_zoom_pan.y = clampf(_zoom_pan.y, -max_scroll.y, 0.0)
+
+
+func _create_zoom_scroll_bar() -> void:
+	if _zoom_scroll_bar != null:
+		return
+
+	_zoom_scroll_bar = VScrollBar.new()
+	_zoom_scroll_bar.name = "ZoomScrollBar"
+	_zoom_scroll_bar.visible = false
+	_zoom_scroll_bar.step = 1.0
+	_zoom_scroll_bar.focus_mode = Control.FOCUS_NONE
+	_zoom_scroll_bar.z_index = 20
+	device_view.add_child(_zoom_scroll_bar)
+
+	_zoom_scroll_bar.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
+	_zoom_scroll_bar.offset_left = -ZOOM_SCROLL_BAR_WIDTH
+	_zoom_scroll_bar.offset_right = 0.0
+	_zoom_scroll_bar.offset_top = 2.0
+	_zoom_scroll_bar.offset_bottom = -2.0
+	_zoom_scroll_bar.value_changed.connect(_on_zoom_scroll_bar_changed)
+
+
+func _update_zoom_scroll_bar() -> void:
+	if _zoom_scroll_bar == null or _device_base_rect.size == Vector2.ZERO:
+		return
+
+	var content_size := _device_base_rect.size * _zoom_scale
+	var view_size := device_view.size
+	var max_scroll_y := maxf(content_size.y - view_size.y, 0.0)
+
+	_updating_zoom_scroll = true
+	_zoom_scroll_bar.min_value = 0.0
+	_zoom_scroll_bar.max_value = maxf(content_size.y, view_size.y)
+	_zoom_scroll_bar.page = view_size.y
+	_zoom_scroll_bar.value = clampf(-_zoom_pan.y, 0.0, max_scroll_y)
+	_zoom_scroll_bar.visible = max_scroll_y > 0.5
+	_updating_zoom_scroll = false
+
+
+func _on_zoom_scroll_bar_changed(value: float) -> void:
+	if _updating_zoom_scroll:
+		return
+
+	_zoom_pan.y = -value
+	_clamp_zoom_pan()
+	_update_device_image_position()
+
+
+func _scroll_zoom(amount: float) -> void:
+	var max_scroll := _get_max_zoom_scroll()
+	if max_scroll.y <= 0.5:
+		return
+
+	# amount > 0 — прокрутка вниз, к нижней части корпуса.
+	_zoom_pan.y = clampf(_zoom_pan.y - amount, -max_scroll.y, 0.0)
+	_update_device_image_position()
+	_update_zoom_scroll_bar()
+
+
+func _handle_zoom_wheel(event: InputEvent) -> bool:
+	if not (event is InputEventMouseButton):
+		return false
+
+	var mouse_event := event as InputEventMouseButton
+	if not mouse_event.pressed:
+		return false
+
+	if mouse_event.button_index == MOUSE_BUTTON_WHEEL_UP:
+		_scroll_zoom(-ZOOM_SCROLL_STEP)
+		return true
+	if mouse_event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+		_scroll_zoom(ZOOM_SCROLL_STEP)
+		return true
+	return false
+
+
+func _on_device_view_gui_input(event: InputEvent) -> void:
+	if _handle_zoom_wheel(event):
+		device_view.accept_event()
+
+
+func _on_module_slot_gui_input(event: InputEvent) -> void:
+	if _handle_zoom_wheel(event):
+		module_slot.accept_event()
+
+
 func _on_device_image_gui_input(event: InputEvent) -> void:
+	if _handle_zoom_wheel(event):
+		device_image.accept_event()
+		return
+
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		# Огромная зона для теста, чтобы точно попасть
 		# (X, Y, Ширина, Высота) - потом подгонишь под кнопку
 		var button_rect = Rect2(132, 118, 14, 21)
 
-		if button_rect.has_point(event.position):
+		# Координаты события локальные для уже масштабированной картинки.
+		var base_position: Vector2 = event.position / _zoom_scale
+		if button_rect.has_point(base_position):
 			if device == null:
 				return
 
