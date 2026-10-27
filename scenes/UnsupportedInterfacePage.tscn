@@ -1,0 +1,53 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/unsupported_interface_page.gd" id="1_page"]
+
+[node name="UnsupportedInterfacePage" type="PanelContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_page")
+
+[node name="Root" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 9
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 9
+theme_override_constants/margin_bottom = 9
+
+[node name="VBox" type="VBoxContainer" parent="Root"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="HeaderPanel" type="PanelContainer" parent="Root/VBox"]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+
+[node name="HeaderLabel" type="Label" parent="Root/VBox/HeaderPanel"]
+layout_mode = 2
+text = "Интерфейс"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BodyScroll" type="ScrollContainer" parent="Root/VBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Body" type="VBoxContainer" parent="Root/VBox/BodyScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 7
+
+[node name="MessageLabel" type="Label" parent="Root/VBox/BodyScroll/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 2
+
+[node name="ModuleLabel" type="Label" parent="Root/VBox/BodyScroll/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 2

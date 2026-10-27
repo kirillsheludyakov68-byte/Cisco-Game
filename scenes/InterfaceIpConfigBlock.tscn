@@ -1,0 +1,127 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/interface_ip_config_block.gd" id="1_block"]
+
+[node name="InterfaceIpConfigBlock" type="VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+script = ExtResource("1_block")
+
+[node name="IPv4Panel" type="PanelContainer" parent="."]
+layout_mode = 2
+
+[node name="IPv4Margin" type="MarginContainer" parent="IPv4Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 7
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 7
+
+[node name="IPv4VBox" type="VBoxContainer" parent="IPv4Panel/IPv4Margin"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="IPv4Title" type="Label" parent="IPv4Panel/IPv4Margin/IPv4VBox"]
+layout_mode = 2
+text = "IP Configuration"
+
+[node name="IPv4ModeRow" type="VBoxContainer" parent="IPv4Panel/IPv4Margin/IPv4VBox"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="IPv4Dhcp" type="CheckBox" parent="IPv4Panel/IPv4Margin/IPv4VBox/IPv4ModeRow"]
+layout_mode = 2
+text = "DHCP"
+
+[node name="IPv4Static" type="CheckBox" parent="IPv4Panel/IPv4Margin/IPv4VBox/IPv4ModeRow"]
+layout_mode = 2
+text = "Static"
+
+[node name="IPv4Fields" type="GridContainer" parent="IPv4Panel/IPv4Margin/IPv4VBox"]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 5
+columns = 2
+
+[node name="IPv4Label" type="Label" parent="IPv4Panel/IPv4Margin/IPv4VBox/IPv4Fields"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "IPv4 Address"
+vertical_alignment = 1
+
+[node name="IPv4Edit" type="LineEdit" parent="IPv4Panel/IPv4Margin/IPv4VBox/IPv4Fields"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_length = 15
+
+[node name="MaskLabel" type="Label" parent="IPv4Panel/IPv4Margin/IPv4VBox/IPv4Fields"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "Subnet Mask"
+vertical_alignment = 1
+
+[node name="MaskEdit" type="LineEdit" parent="IPv4Panel/IPv4Margin/IPv4VBox/IPv4Fields"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_length = 15
+
+[node name="IPv6Panel" type="PanelContainer" parent="."]
+layout_mode = 2
+
+[node name="IPv6Margin" type="MarginContainer" parent="IPv6Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 7
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 7
+
+[node name="IPv6VBox" type="VBoxContainer" parent="IPv6Panel/IPv6Margin"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="IPv6Title" type="Label" parent="IPv6Panel/IPv6Margin/IPv6VBox"]
+layout_mode = 2
+text = "IPv6 Configuration"
+
+[node name="IPv6ModeRow" type="VBoxContainer" parent="IPv6Panel/IPv6Margin/IPv6VBox"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="IPv6Automatic" type="CheckBox" parent="IPv6Panel/IPv6Margin/IPv6VBox/IPv6ModeRow"]
+layout_mode = 2
+text = "Automatic"
+
+[node name="IPv6Static" type="CheckBox" parent="IPv6Panel/IPv6Margin/IPv6VBox/IPv6ModeRow"]
+layout_mode = 2
+text = "Static"
+
+[node name="IPv6Fields" type="GridContainer" parent="IPv6Panel/IPv6Margin/IPv6VBox"]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 5
+columns = 2
+
+[node name="IPv6Label" type="Label" parent="IPv6Panel/IPv6Margin/IPv6VBox/IPv6Fields"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "IPv6 Address"
+vertical_alignment = 1
+
+[node name="IPv6Edit" type="LineEdit" parent="IPv6Panel/IPv6Margin/IPv6VBox/IPv6Fields"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_length = 45
+
+[node name="LinkLocalLabel" type="Label" parent="IPv6Panel/IPv6Margin/IPv6VBox/IPv6Fields"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "Link Local Address"
+vertical_alignment = 1
+
+[node name="LinkLocalEdit" type="LineEdit" parent="IPv6Panel/IPv6Margin/IPv6VBox/IPv6Fields"]
+layout_mode = 2
+size_flags_horizontal = 3
+editable = false
+max_length = 45
+placeholder_text = "Не сформирован"

@@ -56,4 +56,8 @@ func can_connect(a, b) -> Dictionary:
 		return {"ok": false, "reason": "Нельзя соединить устройство с самим собой"}
 	if find_connection(a, b) != null:
 		return {"ok": false, "reason": "Уже соединены"}
+	if a.has_method("is_network_ready") and not a.is_network_ready():
+		return {"ok": false, "reason": "Сетевой интерфейс первого устройства недоступен или отключён"}
+	if b.has_method("is_network_ready") and not b.is_network_ready():
+		return {"ok": false, "reason": "Сетевой интерфейс второго устройства недоступен или отключён"}
 	return {"ok": true, "reason": ""}

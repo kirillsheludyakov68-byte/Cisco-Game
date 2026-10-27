@@ -7,6 +7,7 @@ const ERROR_OCCUPIED := "В слоте уже установлен модуль.
 const ERROR_EMPTY := "В слоте нет модуля."
 const ERROR_UNKNOWN := "Неизвестный модуль."
 const ERROR_DEFAULT := "Не удалось изменить модуль."
+const ERROR_POWERED_OFF := "Устройство должно быть включено."
 
 const ZOOM_STEP := 1.2
 const ZOOM_MIN := 0.25
@@ -25,6 +26,7 @@ const ZOOM_SCROLL_BAR_WIDTH := 14.0
 @onready var modules_panel: ModulesPanel = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ModulesPanel
 @onready var module_slot: ModuleSlot = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/ModuleSlot
 @onready var module_info: ModuleInfoPanel = get_node_or_null("MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel") as ModuleInfoPanel
+@onready var config_panel: ConfigPanel = $MainPanel/ContentPanel/PageConfig/ConfigPanel
 @onready var error_dialog: ErrorDialog = $ErrorDialog
 
 @onready var device_view: Control = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView
@@ -76,8 +78,14 @@ func _ready() -> void:
 
 
 func open_for(dev: Device) -> void:
+	if device != null and device.device_name_changed.is_connected(_on_device_name_changed):
+		device.device_name_changed.disconnect(_on_device_name_changed)
+
 	device = dev
 	title = "Устройство: " + dev.device_name
+	if not device.device_name_changed.is_connected(_on_device_name_changed):
+		device.device_name_changed.connect(_on_device_name_changed)
+
 	_show_page("physical")
 	_update_device_image()
 	_reset_zoom()
@@ -87,6 +95,11 @@ func open_for(dev: Device) -> void:
 	module_slot.setup(dev, self)
 	modules_panel.setup(dev, self)
 	_update_module_info()
+	config_panel.setup(dev)
+
+
+func _on_device_name_changed(new_name: String) -> void:
+	title = "Устройство: " + new_name
 
 
 # Показываем описание установленного модуля,
@@ -117,12 +130,22 @@ func _on_tab_desktop() -> void:
 
 
 func _show_page(page: String) -> void:
+	if page == "config" and device != null and not device.is_powered_on:
+		if error_dialog:
+			error_dialog.show_error(ERROR_POWERED_OFF)
+		return
+
+	if page_config.visible and page != "config":
+		config_panel.commit_pending()
+
 	page_physical.visible = (page == "physical")
 	page_config.visible = (page == "config")
 	page_desktop.visible = (page == "desktop")
 
 
 func _on_close_requested() -> void:
+	if page_config.visible:
+		config_panel.commit_pending()
 	queue_free()
 
 

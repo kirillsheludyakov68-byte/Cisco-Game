@@ -1,0 +1,265 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/wmp300n_config_page.gd" id="1_page"]
+[ext_resource type="PackedScene" path="res://scenes/InterfaceIpConfigBlock.tscn" id="2_ip"]
+
+[node name="WMP300NConfigPage" type="PanelContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_page")
+
+[node name="Root" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 9
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 9
+theme_override_constants/margin_bottom = 9
+
+[node name="VBox" type="VBoxContainer" parent="Root"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="HeaderPanel" type="PanelContainer" parent="Root/VBox"]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+
+[node name="HeaderLabel" type="Label" parent="Root/VBox/HeaderPanel"]
+layout_mode = 2
+text = "Wireless0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StatusLabel" type="Label" parent="Root/VBox"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 2
+
+[node name="BodyScroll" type="ScrollContainer" parent="Root/VBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Body" type="VBoxContainer" parent="Root/VBox/BodyScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="TopGrid" type="GridContainer" parent="Root/VBox/BodyScroll/Body"]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 6
+columns = 2
+
+[node name="PortStatusLabel" type="Label" parent="Root/VBox/BodyScroll/Body/TopGrid"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "Port Status"
+vertical_alignment = 1
+
+[node name="PortStatusCheck" type="CheckBox" parent="Root/VBox/BodyScroll/Body/TopGrid"]
+layout_mode = 2
+text = "On"
+
+[node name="BandwidthLabel" type="Label" parent="Root/VBox/BodyScroll/Body/TopGrid"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "Bandwidth"
+vertical_alignment = 1
+
+[node name="BandwidthValue" type="Label" parent="Root/VBox/BodyScroll/Body/TopGrid"]
+layout_mode = 2
+text = "11 Mbps"
+vertical_alignment = 1
+
+[node name="MacLabel" type="Label" parent="Root/VBox/BodyScroll/Body/TopGrid"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "MAC Address"
+vertical_alignment = 1
+
+[node name="MacEdit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/TopGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+editable = false
+max_length = 14
+
+[node name="SsidLabel" type="Label" parent="Root/VBox/BodyScroll/Body/TopGrid"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "SSID"
+vertical_alignment = 1
+
+[node name="SsidEdit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/TopGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_length = 32
+
+[node name="AuthPanel" type="PanelContainer" parent="Root/VBox/BodyScroll/Body"]
+layout_mode = 2
+
+[node name="AuthMargin" type="MarginContainer" parent="Root/VBox/BodyScroll/Body/AuthPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 7
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 7
+
+[node name="AuthVBox" type="VBoxContainer" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="AuthTitle" type="Label" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox"]
+layout_mode = 2
+text = "Authentication"
+
+[node name="AuthContent" type="HBoxContainer" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="AuthLeft" type="VBoxContainer" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="AuthOptions" type="GridContainer" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent/AuthLeft"]
+layout_mode = 2
+theme_override_constants/h_separation = 14
+theme_override_constants/v_separation = 4
+columns = 2
+
+[node name="AuthDisabled" type="CheckBox" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent/AuthLeft/AuthOptions"]
+layout_mode = 2
+text = "Disabled"
+
+[node name="AuthWep" type="CheckBox" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent/AuthLeft/AuthOptions"]
+layout_mode = 2
+text = "WEP"
+
+[node name="AuthWpaPsk" type="CheckBox" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent/AuthLeft/AuthOptions"]
+layout_mode = 2
+text = "WPA-PSK"
+
+[node name="AuthWpa2Psk" type="CheckBox" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent/AuthLeft/AuthOptions"]
+layout_mode = 2
+text = "WPA2-PSK"
+
+[node name="AuthWpa" type="CheckBox" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent/AuthLeft/AuthOptions"]
+layout_mode = 2
+text = "WPA"
+
+[node name="AuthWpa2" type="CheckBox" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent/AuthLeft/AuthOptions"]
+layout_mode = 2
+text = "WPA2"
+
+[node name="Auth8021x" type="CheckBox" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent/AuthLeft/AuthOptions"]
+layout_mode = 2
+text = "802.1X"
+
+[node name="MethodRow" type="HBoxContainer" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent/AuthLeft"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="MethodLabel" type="Label" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent/AuthLeft/MethodRow"]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+text = "Method"
+vertical_alignment = 1
+
+[node name="MethodOption" type="OptionButton" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent/AuthLeft/MethodRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AuthFields" type="GridContainer" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 5
+columns = 2
+
+[node name="WepKeyLabel" type="Label" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent/AuthFields"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "WEP Key"
+vertical_alignment = 1
+
+[node name="WepKeyEdit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent/AuthFields"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_length = 64
+
+[node name="PskLabel" type="Label" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent/AuthFields"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "PSK Pass Phrase"
+vertical_alignment = 1
+
+[node name="PskEdit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent/AuthFields"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_length = 64
+
+[node name="UserIdLabel" type="Label" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent/AuthFields"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "User ID"
+vertical_alignment = 1
+
+[node name="UserIdEdit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent/AuthFields"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_length = 64
+
+[node name="PasswordLabel" type="Label" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent/AuthFields"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "Password"
+vertical_alignment = 1
+
+[node name="PasswordEdit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent/AuthFields"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_length = 64
+
+[node name="EapUserLabel" type="Label" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent/AuthFields"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "User Name"
+vertical_alignment = 1
+
+[node name="EapUserEdit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent/AuthFields"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_length = 64
+
+[node name="EapPasswordLabel" type="Label" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent/AuthFields"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "Password"
+vertical_alignment = 1
+
+[node name="EapPasswordEdit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/AuthContent/AuthFields"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_length = 64
+
+[node name="EncryptionRow" type="HBoxContainer" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="EncryptionLabel" type="Label" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/EncryptionRow"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "Encryption Type"
+vertical_alignment = 1
+
+[node name="EncryptionOption" type="OptionButton" parent="Root/VBox/BodyScroll/Body/AuthPanel/AuthMargin/AuthVBox/EncryptionRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="IpConfig" parent="Root/VBox/BodyScroll/Body" instance=ExtResource("2_ip")]
+layout_mode = 2
