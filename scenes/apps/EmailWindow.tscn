@@ -1,0 +1,108 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/apps/email_window.gd" id="1_email"]
+
+[node name="EmailWindow" type="VBoxContainer"]
+custom_minimum_size = Vector2(620, 460)
+theme_override_constants/separation = 5
+script = ExtResource("1_email")
+
+[node name="ComposeGrid" type="GridContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 3
+columns = 2
+
+[node name="FromLabel" type="Label" parent="ComposeGrid"]
+custom_minimum_size = Vector2(58, 0)
+layout_mode = 2
+text = "From"
+vertical_alignment = 1
+
+[node name="FromEdit" type="LineEdit" parent="ComposeGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+editable = false
+
+[node name="ToLabel" type="Label" parent="ComposeGrid"]
+layout_mode = 2
+text = "To"
+vertical_alignment = 1
+
+[node name="ToEdit" type="LineEdit" parent="ComposeGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "pc2@local"
+
+[node name="SubjectLabel" type="Label" parent="ComposeGrid"]
+layout_mode = 2
+text = "Subject"
+vertical_alignment = 1
+
+[node name="SubjectEdit" type="LineEdit" parent="ComposeGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Тема письма"
+
+[node name="MessageLabel" type="Label" parent="."]
+layout_mode = 2
+text = "Message"
+
+[node name="BodyEdit" type="TextEdit" parent="."]
+custom_minimum_size = Vector2(0, 82)
+layout_mode = 2
+size_flags_vertical = 3
+wrap_mode = 1
+placeholder_text = "Текст письма"
+
+[node name="SendRow" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SendButton" type="Button" parent="SendRow"]
+custom_minimum_size = Vector2(78, 25)
+layout_mode = 2
+text = "Send"
+
+[node name="StatusLabel" type="Label" parent="SendRow"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 2
+vertical_alignment = 1
+
+[node name="InboxTitle" type="Label" parent="."]
+layout_mode = 2
+text = "Inbox"
+
+[node name="InboxPanel" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="InboxMargin" type="MarginContainer" parent="InboxPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 4
+
+[node name="InboxRow" type="HBoxContainer" parent="InboxPanel/InboxMargin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="InboxList" type="ItemList" parent="InboxPanel/InboxMargin/InboxRow"]
+custom_minimum_size = Vector2(240, 100)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Preview" type="RichTextLabel" parent="InboxPanel/InboxMargin/InboxRow"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+bbcode_enabled = false
+fit_content = false
+scroll_active = true
+scroll_following = false

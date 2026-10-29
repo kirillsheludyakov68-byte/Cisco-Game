@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ErrorDialog.tscn" id="7_err"]
 [ext_resource type="PackedScene" uid="uid://5fomen43g533" path="res://scenes/ModuleInfoPanel.tscn" id="8_info"]
 [ext_resource type="PackedScene" path="res://scenes/ConfigPanel.tscn" id="9_config"]
+[ext_resource type="PackedScene" path="res://scenes/DesktopPage.tscn" id="10_desktop"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_y1kbd"]
 bg_color = Color(0.9411765, 0.9411765, 0.9411765, 1)
@@ -298,6 +299,14 @@ grow_vertical = 2
 [node name="PageDesktop" type="Control" parent="MainPanel/ContentPanel" unique_id=1030466901]
 visible = false
 layout_mode = 2
+
+[node name="DesktopPage" parent="MainPanel/ContentPanel/PageDesktop" instance=ExtResource("10_desktop")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="ErrorDialog" parent="." unique_id=959558338 instance=ExtResource("7_err")]
 visible = false

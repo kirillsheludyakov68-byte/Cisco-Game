@@ -1,0 +1,51 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/desktop_window_frame.gd" id="1_frame"]
+
+[node name="DesktopWindowFrame" type="PanelContainer"]
+custom_minimum_size = Vector2(360, 220)
+mouse_default_cursor_shape = 2
+script = ExtResource("1_frame")
+
+[node name="FrameVBox" type="VBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="TitleBar" type="PanelContainer" parent="FrameVBox"]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+mouse_filter = 0
+
+[node name="TitleRow" type="HBoxContainer" parent="FrameVBox/TitleBar"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="TitleLabel" type="Label" parent="FrameVBox/TitleBar/TitleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+text = "Application"
+vertical_alignment = 1
+text_overrun_behavior = 3
+
+[node name="CloseButton" type="Button" parent="FrameVBox/TitleBar/TitleRow"]
+custom_minimum_size = Vector2(25, 21)
+layout_mode = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+text = "×"
+
+[node name="ContentHost" type="PanelContainer" parent="FrameVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="ContentMargin" type="MarginContainer" parent="FrameVBox/ContentHost"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10

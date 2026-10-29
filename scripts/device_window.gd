@@ -27,6 +27,7 @@ const ZOOM_SCROLL_BAR_WIDTH := 14.0
 @onready var module_slot: ModuleSlot = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/ModuleSlot
 @onready var module_info: ModuleInfoPanel = get_node_or_null("MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel") as ModuleInfoPanel
 @onready var config_panel: ConfigPanel = $MainPanel/ContentPanel/PageConfig/ConfigPanel
+@onready var desktop_page: DesktopPage = $MainPanel/ContentPanel/PageDesktop/DesktopPage
 @onready var error_dialog: ErrorDialog = $ErrorDialog
 
 @onready var device_view: Control = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView
@@ -96,6 +97,7 @@ func open_for(dev: Device) -> void:
 	modules_panel.setup(dev, self)
 	_update_module_info()
 	config_panel.setup(dev)
+	desktop_page.setup(dev)
 
 
 func _on_device_name_changed(new_name: String) -> void:
@@ -135,17 +137,30 @@ func _show_page(page: String) -> void:
 			error_dialog.show_error(ERROR_POWERED_OFF)
 		return
 
-	if page_config.visible and page != "config":
+	var was_config_visible := page_config.visible
+	var was_desktop_visible := page_desktop.visible
+	if was_config_visible and page != "config":
 		config_panel.commit_pending()
+	if was_desktop_visible and page != "desktop" and desktop_page != null:
+		desktop_page.commit_pending_windows()
 
 	page_physical.visible = (page == "physical")
 	page_config.visible = (page == "config")
 	page_desktop.visible = (page == "desktop")
 
+	if page == "config" and not was_config_visible and config_panel != null:
+		# IP Configuration на Desktop пишет в ту же модель DeviceInterface,
+		# поэтому при входе в Config перечитываем актуальные значения.
+		config_panel.refresh()
+	if page == "desktop" and not was_desktop_visible and desktop_page != null:
+		desktop_page.on_activated()
+
 
 func _on_close_requested() -> void:
 	if page_config.visible:
 		config_panel.commit_pending()
+	if desktop_page != null:
+		desktop_page.commit_pending_windows()
 	queue_free()
 
 

@@ -1,0 +1,52 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/desktop_app_tile.gd" id="1_tile"]
+
+[node name="DesktopAppTile" type="VBoxContainer"]
+custom_minimum_size = Vector2(132, 160)
+size_flags_horizontal = 3
+mouse_filter = 0
+mouse_default_cursor_shape = 2
+focus_mode = 2
+theme_override_constants/separation = 5
+script = ExtResource("1_tile")
+
+[node name="IconFrame" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(132, 108)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="IconMargin" type="MarginContainer" parent="IconFrame"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="IconCenter" type="CenterContainer" parent="IconFrame/IconMargin"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Icon" type="TextureRect" parent="IconFrame/IconMargin/IconCenter"]
+custom_minimum_size = Vector2(88, 88)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MissingIcon" type="Label" parent="IconFrame/IconMargin/IconCenter"]
+visible = false
+layout_mode = 2
+text = "Нет\nиконки"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Caption" type="Label" parent="."]
+layout_mode = 2
+mouse_filter = 2
+text = "Application"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2

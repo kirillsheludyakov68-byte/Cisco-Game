@@ -76,6 +76,16 @@ static func mark_line_edit_error(edit: LineEdit, has_error: bool) -> void:
 	edit.add_theme_stylebox_override("focus", line_edit_focus_style(has_error))
 
 
+static func apply_text_edit(edit: TextEdit) -> void:
+	edit.add_theme_stylebox_override("normal", line_edit_style())
+	edit.add_theme_stylebox_override("focus", line_edit_focus_style())
+	edit.add_theme_stylebox_override("read_only", line_edit_style(false, true))
+	edit.add_theme_color_override("font_color", TEXT_COLOR)
+	edit.add_theme_color_override("font_readonly_color", MUTED_COLOR)
+	edit.add_theme_color_override("font_placeholder_color", Color(0.50, 0.50, 0.50))
+	edit.add_theme_font_size_override("font_size", 13)
+
+
 static func apply_option_button(option: OptionButton) -> void:
 	option.add_theme_stylebox_override("normal", line_edit_style())
 	option.add_theme_stylebox_override("hover", line_edit_focus_style())
