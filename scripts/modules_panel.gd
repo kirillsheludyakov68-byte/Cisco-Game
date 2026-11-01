@@ -36,6 +36,7 @@ func setup(dev: Device, window, module_info = null, _extra = null) -> void:
 	device = dev
 	device_window = window
 	module_info_panel = module_info
+	_populate_modules()
 
 
 func _build_styles() -> void:
@@ -56,8 +57,12 @@ func _on_highlight_changed(active: bool) -> void:
 	)
 
 
-func _on_module_dropped(_module_name: String) -> void:
-	if device_window != null:
+func _on_module_dropped(_module_name: String, slot_index: int) -> void:
+	if device_window == null:
+		return
+	if device_window.has_method("try_remove_module_from_slot"):
+		device_window.try_remove_module_from_slot(slot_index)
+	elif device_window.has_method("try_remove_module"):
 		device_window.try_remove_module()
 
 
@@ -66,7 +71,18 @@ func _populate_modules() -> void:
 		push_error("ModulesList не найден")
 		return
 
-	for module_name in ModuleCatalog.MODULES:
+	for child in modules_list.get_children():
+		modules_list.remove_child(child)
+		child.queue_free()
+
+	var modules: Array[String] = []
+	if device != null:
+		modules = ModuleCatalog.get_modules_for_device(device.device_type)
+	else:
+		for module_name in ModuleCatalog.MODULES:
+			modules.append(module_name)
+
+	for module_name in modules:
 		var btn := Button.new()
 		btn.text = module_name
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL

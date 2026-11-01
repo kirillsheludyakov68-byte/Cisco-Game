@@ -11,6 +11,7 @@ const SECTION_INTERFACE := "interface"
 @onready var interface_header_button: Button = $Root/NavPanel/NavScroll/NavList/InterfaceHeaderButton
 @onready var interface_items: VBoxContainer = $Root/NavPanel/NavScroll/NavList/InterfaceItems
 @onready var global_page: GlobalSettingsPage = $Root/PageStack/GlobalSettingsPage
+@onready var switch_global_page: SwitchGlobalSettingsPage = $Root/PageStack/SwitchGlobalSettingsPage
 @onready var interface_page_host: Control = $Root/PageStack/InterfacePageHost
 
 var device: Device = null
@@ -55,7 +56,9 @@ func setup(dev: Device) -> void:
 		selected_interface_name = device.interfaces[0].interface_name
 
 	_build_interface_nav()
-	global_page.setup(device, selected_interface_name)
+	var settings_page := _get_settings_page()
+	if settings_page.has_method("setup"):
+		settings_page.setup(device, selected_interface_name)
 	_show_settings()
 
 
@@ -77,8 +80,11 @@ func refresh_interfaces() -> void:
 	_build_interface_nav()
 
 	if current_section == SECTION_SETTINGS:
-		global_page.set_selected_interface(selected_interface_name)
-		global_page.refresh()
+		var settings_page := _get_settings_page()
+		if settings_page.has_method("set_selected_interface"):
+			settings_page.set_selected_interface(selected_interface_name)
+		if settings_page.has_method("refresh"):
+			settings_page.refresh()
 		return
 
 	var iface := device.get_interface(selected_interface_name)
@@ -160,11 +166,15 @@ func _on_settings_pressed() -> void:
 func _show_settings() -> void:
 	_commit_current_section()
 	current_section = SECTION_SETTINGS
-	global_page.visible = true
+	var settings_page := _get_settings_page()
+	global_page.visible = settings_page == global_page
+	switch_global_page.visible = settings_page == switch_global_page
 	interface_page_host.visible = false
 	settings_button.button_pressed = true
-	global_page.set_selected_interface(selected_interface_name)
-	global_page.refresh()
+	if settings_page.has_method("set_selected_interface"):
+		settings_page.set_selected_interface(selected_interface_name)
+	if settings_page.has_method("refresh"):
+		settings_page.refresh()
 	_update_nav_selection()
 
 
@@ -190,13 +200,16 @@ func _display_interface(iface: DeviceInterface) -> void:
 
 	current_section = SECTION_INTERFACE
 	selected_interface_name = iface.interface_name
-	global_page.set_selected_interface(selected_interface_name)
+	var settings_page := _get_settings_page()
+	if settings_page.has_method("set_selected_interface"):
+		settings_page.set_selected_interface(selected_interface_name)
 
 	_ensure_interface_page(iface.source_module)
 	if _interface_page != null and _interface_page.has_method("setup"):
 		_interface_page.setup(device, iface, iface.source_module)
 
 	global_page.visible = false
+	switch_global_page.visible = false
 	interface_page_host.visible = true
 	_update_nav_selection()
 
@@ -241,9 +254,17 @@ func _free_interface_page() -> void:
 
 func _commit_current_section() -> void:
 	if current_section == SECTION_SETTINGS:
-		global_page.commit_pending()
+		var settings_page := _get_settings_page()
+		if settings_page.has_method("commit_pending"):
+			settings_page.commit_pending()
 	elif _interface_page != null and _interface_page.has_method("commit_pending"):
 		_interface_page.commit_pending()
+
+
+func _get_settings_page() -> Control:
+	if device != null and device.device_type == "Switch":
+		return switch_global_page
+	return global_page
 
 
 func _apply_styles() -> void:

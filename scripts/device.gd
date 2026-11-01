@@ -11,13 +11,39 @@ var is_powered_on: bool = true:
 			return
 		is_powered_on = value
 		_refresh_active_module()
+		if device_type == "Switch":
+			if value:
+				_start_switch_boot()
+			else:
+				_cancel_switch_boot()
 		power_changed.emit(is_powered_on)
 
-# Физически установленный в слот модуль
+# Физически установленный в слот модуль ПК.
 @export var installed_module: String = ""
+
+# Физически установленные модули коммутатора: { slot_index: module_name }.
+var installed_switch_modules: Dictionary = {}
 
 # Модуль, который реально работает. Обновляется только при включении ПК.
 var active_module: String = ""
+
+# Отображаемое имя и отдельное сетевое имя устройства.
+@export var hostname: String = "Switch":
+	set(value):
+		if hostname == value:
+			return
+		hostname = value
+		hostname_changed.emit(hostname)
+
+# Заглушка, пока настоящее серийное число не задано уровнем.
+@export var serial_number: String = "Serial Number"
+
+# Журнал коммутатора общий для CLI и Equivalent IOS Commands.
+var console: SwitchConsole = SwitchConsole.new()
+var is_booting: bool = false
+
+var _switch_defaults_initialized: bool = false
+var _boot_generation: int = 0
 
 @export var device_name: String = "PC1":
 	set(value):
@@ -32,6 +58,8 @@ var active_module: String = ""
 	set(value):
 		var previous_type := device_type
 		device_type = value
+		if value == "Switch":
+			_ensure_switch_defaults()
 		if sprite:
 			_apply_texture_by_type()
 		if collision_shape:
@@ -85,11 +113,17 @@ signal device_clicked(device: Device)
 signal power_changed(is_on: bool)
 signal modules_applied(device: Device, module_name: String)
 signal device_name_changed(new_name: String)
+signal hostname_changed(new_hostname: String)
+signal boot_started
+signal boot_finished
+signal boot_state_changed(is_booting: bool)
 signal configuration_changed
 signal interfaces_changed
 
 
 func _ready() -> void:
+	if device_type == "Switch":
+		_ensure_switch_defaults()
 	_sync_interfaces_from_module()
 	_ensure_mac_addresses()
 	if name_label:
@@ -99,6 +133,14 @@ func _ready() -> void:
 	$ClickArea.input_event.connect(_on_click_area_input_event)
 	$ClickArea.mouse_entered.connect(_on_mouse_entered)
 	$ClickArea.mouse_exited.connect(_on_mouse_exited)
+
+
+func _ensure_switch_defaults() -> void:
+	if _switch_defaults_initialized:
+		return
+	_switch_defaults_initialized = true
+	if installed_switch_modules.is_empty():
+		installed_switch_modules = ModuleCatalog.get_default_switch_modules()
 
 func _apply_texture_by_type() -> void:
 	if not sprite:
@@ -151,6 +193,18 @@ func reset_highlight() -> void:
 
 # --- Сетевая конфигурация ---
 
+func get_installed_module(slot_index: int = -1) -> String:
+	if device_type == "Switch":
+		return str(installed_switch_modules.get(slot_index, ""))
+	if slot_index <= 0:
+		return installed_module
+	return ""
+
+
+func get_installed_switch_modules() -> Dictionary:
+	return installed_switch_modules.duplicate(true)
+
+
 func get_primary_interface() -> DeviceInterface:
 	return interfaces[0] if not interfaces.is_empty() else null
 
@@ -181,6 +235,7 @@ func set_interface_enabled(interface_name: String, enabled: bool) -> void:
 	if iface == null or iface.enabled == enabled:
 		return
 	iface.enabled = enabled
+	_log_console("%s is %s" % [interface_name, "up" if enabled else "down"])
 	configuration_changed.emit()
 
 
@@ -257,7 +312,10 @@ func set_interface_ipv6_mode(interface_name: String, mode: String) -> void:
 
 
 func set_interface_bandwidth(interface_name: String, mode: String, mbps: int = 10) -> void:
-	if mode != DeviceInterface.BANDWIDTH_10MBPS and mode != DeviceInterface.BANDWIDTH_AUTO:
+	if mode != DeviceInterface.BANDWIDTH_10MBPS \
+			and mode != DeviceInterface.BANDWIDTH_100MBPS \
+			and mode != DeviceInterface.BANDWIDTH_1000MBPS \
+			and mode != DeviceInterface.BANDWIDTH_AUTO:
 		return
 	var iface := get_interface(interface_name)
 	if iface == null:
@@ -265,7 +323,9 @@ func set_interface_bandwidth(interface_name: String, mode: String, mbps: int = 1
 	if iface.bandwidth_mode == mode and iface.bandwidth_mbps == mbps:
 		return
 	iface.bandwidth_mode = mode
-	iface.bandwidth_mbps = maxi(mbps, 1)
+	if mode != DeviceInterface.BANDWIDTH_AUTO:
+		iface.bandwidth_mbps = maxi(mbps, 1)
+	_log_console("%s bandwidth set to %s" % [interface_name, mode])
 	configuration_changed.emit()
 
 
@@ -278,6 +338,7 @@ func set_interface_duplex(interface_name: String, mode: String) -> void:
 	if iface == null or iface.duplex_mode == mode:
 		return
 	iface.duplex_mode = mode
+	_log_console("%s duplex set to %s" % [interface_name, mode])
 	configuration_changed.emit()
 
 
@@ -358,33 +419,55 @@ func _sync_interfaces_from_module() -> void:
 	var specs: Array[Dictionary] = []
 	if device_type == "PC":
 		specs = ModuleCatalog.get_network_interfaces(installed_module)
+		for spec in specs:
+			spec["source_module"] = installed_module
+			spec["slot_index"] = -1
+	elif device_type == "Switch":
+		var slots: Array = installed_switch_modules.keys()
+		slots.sort()
+		for slot_value in slots:
+			var slot_index := int(slot_value)
+			var module_name := str(installed_switch_modules[slot_value])
+			var spec := ModuleCatalog.get_switch_interface_spec(module_name, slot_index)
+			if not spec.is_empty():
+				specs.append(spec)
 	else:
 		specs = ModuleCatalog.get_builtin_interfaces(device_type)
+		for spec in specs:
+			spec["source_module"] = ""
+			spec["slot_index"] = -1
 
-	var source_module := installed_module if device_type == "PC" else ""
 	var new_signature: Array[String] = []
 	for spec in specs:
-		new_signature.append("%s|%s|%s" % [
+		new_signature.append("%s|%s|%s|%d" % [
 			str(spec.get("name", "")),
 			str(spec.get("kind", "ethernet")),
-			source_module,
+			str(spec.get("source_module", "")),
+			int(spec.get("slot_index", -1)),
 		])
 
 	var current_signature: Array[String] = []
 	for iface in interfaces:
-		current_signature.append("%s|%s|%s" % [
+		current_signature.append("%s|%s|%s|%d" % [
 			iface.interface_name,
 			iface.interface_kind,
 			iface.source_module,
+			iface.slot_index,
 		])
 
 	if new_signature == current_signature:
 		return
 
-	# Через Config можно менять IP, поэтому при смене модуля сохраняем
-	# настройки первого интерфейса и переносим их на новый первый интерфейс.
-	if not interfaces.is_empty():
-		var old_primary := interfaces[0]
+	var old_by_name: Dictionary = {}
+	var old_primary: DeviceInterface = null
+	for iface in interfaces:
+		old_by_name[iface.interface_name] = iface
+		if old_primary == null:
+			old_primary = iface
+
+	# Совместимость со старым поведением ПК: настройки первого интерфейса
+	# переносятся на новый первый интерфейс при смене модуля.
+	if old_primary != null:
 		if not old_primary.ipv4_address.is_empty():
 			_pending_ipv4 = old_primary.ipv4_address
 		_pending_mask = old_primary.subnet_mask
@@ -397,11 +480,27 @@ func _sync_interfaces_from_module() -> void:
 	for spec in specs:
 		var interface_name := str(spec.get("name", "Interface%d" % index))
 		var interface_kind := str(spec.get("kind", "ethernet"))
-		var network_interface := DeviceInterface.new(interface_name, _generate_mac(index))
+		var source_module := str(spec.get("source_module", ""))
+		var slot_index := int(spec.get("slot_index", -1))
+		var old_interface = old_by_name.get(interface_name)
+		var mac_address := ""
+		if old_interface != null:
+			mac_address = old_interface.mac_address
+		if mac_address.is_empty():
+			mac_address = _generate_mac(slot_index if slot_index >= 0 else index)
+
+		var network_interface := DeviceInterface.new(interface_name, mac_address)
 		network_interface.interface_kind = interface_kind
 		network_interface.source_module = source_module
+		network_interface.slot_index = slot_index
 		network_interface.bandwidth_mbps = int(spec.get("bandwidth_mbps", 10))
 		network_interface.bandwidth_kbps = int(spec.get("bandwidth_kbps", 0))
+		var bandwidth_mode := str(spec.get("bandwidth_mode", DeviceInterface.BANDWIDTH_AUTO))
+		if bandwidth_mode == DeviceInterface.BANDWIDTH_10MBPS \
+				or bandwidth_mode == DeviceInterface.BANDWIDTH_100MBPS \
+				or bandwidth_mode == DeviceInterface.BANDWIDTH_1000MBPS \
+				or bandwidth_mode == DeviceInterface.BANDWIDTH_AUTO:
+			network_interface.bandwidth_mode = bandwidth_mode
 		var duplex_mode := str(spec.get("duplex_mode", DeviceInterface.DUPLEX_AUTO))
 		if duplex_mode == DeviceInterface.DUPLEX_HALF \
 				or duplex_mode == DeviceInterface.DUPLEX_FULL \
@@ -415,18 +514,45 @@ func _sync_interfaces_from_module() -> void:
 		var ipv6_mode := str(spec.get("ipv6_mode", NetworkSettings.IPV6_STATIC))
 		if ipv6_mode == NetworkSettings.IPV6_AUTOMATIC or ipv6_mode == NetworkSettings.IPV6_STATIC:
 			network_interface.ipv6_mode = ipv6_mode
+
+		if old_interface != null:
+			_copy_interface_state(old_interface, network_interface)
+		elif index == 0 and device_type == "PC":
+			# ПК сохраняет IP первого интерфейса при смене/переустановке модуля.
+			network_interface.ipv4_address = _pending_ipv4
+			network_interface.subnet_mask = _pending_mask
+			network_interface.ipv6_address = _pending_ipv6
+			network_interface.ipv6_prefix = _pending_ipv6_prefix
+
 		interfaces.append(network_interface)
 		index += 1
 
-	if not interfaces.is_empty():
-		var primary := interfaces[0]
-		primary.ipv4_address = _pending_ipv4
-		primary.subnet_mask = _pending_mask
-		primary.ipv6_address = _pending_ipv6
-		primary.ipv6_prefix = _pending_ipv6_prefix
-
 	_ensure_mac_addresses()
 	interfaces_changed.emit()
+
+
+func _copy_interface_state(source: DeviceInterface, target: DeviceInterface) -> void:
+	target.enabled = source.enabled
+	target.bandwidth_mode = source.bandwidth_mode
+	target.bandwidth_mbps = source.bandwidth_mbps
+	target.bandwidth_kbps = source.bandwidth_kbps
+	target.duplex_mode = source.duplex_mode
+	target.ipv4_mode = source.ipv4_mode
+	target.ipv4_address = source.ipv4_address
+	target.subnet_mask = source.subnet_mask
+	target.ipv6_mode = source.ipv6_mode
+	target.ipv6_address = source.ipv6_address
+	target.ipv6_prefix = source.ipv6_prefix
+	target.wireless.ssid = source.wireless.ssid
+	target.wireless.authentication_mode = source.wireless.authentication_mode
+	target.wireless.wep_key = source.wireless.wep_key
+	target.wireless.psk_passphrase = source.wireless.psk_passphrase
+	target.wireless.user_id = source.wireless.user_id
+	target.wireless.password = source.wireless.password
+	target.wireless.eap_method = source.wireless.eap_method
+	target.wireless.eap_user_name = source.wireless.eap_user_name
+	target.wireless.eap_password = source.wireless.eap_password
+	target.wireless.encryption_type = source.wireless.encryption_type
 
 
 func _ensure_mac_addresses() -> void:
@@ -458,7 +584,7 @@ func can_modify_modules() -> bool:
 	return not is_powered_on
 
 
-# Поставить модуль. Работает только при выключенном ПК и пустом слоте.
+# Поставить модуль в единственный слот ПК.
 # Возвращает {ok: bool, reason: String}.
 func install_module(module_name: String) -> Dictionary:
 	if is_powered_on:
@@ -474,7 +600,7 @@ func install_module(module_name: String) -> Dictionary:
 	return {"ok": true, "reason": ""}
 
 
-# Извлечь модуль. Работает только при выключенном ПК.
+# Извлечь модуль из единственного слота ПК.
 func remove_module() -> Dictionary:
 	if is_powered_on:
 		return {"ok": false, "reason": "power_on_remove"}
@@ -484,6 +610,40 @@ func remove_module() -> Dictionary:
 	installed_module = ""
 	_sync_interfaces_from_module()
 	_refresh_active_module()
+	return {"ok": true, "reason": ""}
+
+
+# Поставить модуль в конкретный слот коммутатора.
+func install_module_in_slot(module_name: String, slot_index: int) -> Dictionary:
+	if device_type != "Switch":
+		return install_module(module_name)
+	if is_powered_on:
+		return {"ok": false, "reason": "power_on_add"}
+	if slot_index < 0 or slot_index >= ModuleCatalog.SWITCH_SLOT_COUNT:
+		return {"ok": false, "reason": "invalid_slot"}
+	if str(installed_switch_modules.get(slot_index, "")) != "":
+		return {"ok": false, "reason": "occupied"}
+	if not ModuleCatalog.has_switch_module(module_name):
+		return {"ok": false, "reason": "unknown"}
+
+	installed_switch_modules[slot_index] = module_name
+	_sync_interfaces_from_module()
+	return {"ok": true, "reason": ""}
+
+
+# Извлечь модуль из конкретного слота коммутатора.
+func remove_module_from_slot(slot_index: int) -> Dictionary:
+	if device_type != "Switch":
+		return remove_module()
+	if is_powered_on:
+		return {"ok": false, "reason": "power_on_remove"}
+	if slot_index < 0 or slot_index >= ModuleCatalog.SWITCH_SLOT_COUNT:
+		return {"ok": false, "reason": "invalid_slot"}
+	if str(installed_switch_modules.get(slot_index, "")) == "":
+		return {"ok": false, "reason": "empty"}
+
+	installed_switch_modules.erase(slot_index)
+	_sync_interfaces_from_module()
 	return {"ok": true, "reason": ""}
 
 
@@ -497,7 +657,140 @@ func set_initial_module(module_name: String) -> void:
 	_refresh_active_module()
 
 
+func set_initial_switch_module(module_name: String, slot_index: int) -> void:
+	if not ModuleCatalog.has_switch_module(module_name):
+		push_warning("Неизвестный модуль коммутатора в уровне: " + module_name)
+		return
+	if slot_index < 0 or slot_index >= ModuleCatalog.SWITCH_SLOT_COUNT:
+		push_warning("Некорректный слот модуля коммутатора: " + str(slot_index))
+		return
+	installed_switch_modules[slot_index] = module_name
+	_sync_interfaces_from_module()
+
+
+func set_hostname(value: String) -> bool:
+	var trimmed := value.strip_edges()
+	if trimmed.is_empty() or trimmed.length() > 32:
+		return false
+	if hostname == trimmed:
+		return true
+	hostname = trimmed
+	_log_console("Hostname set to %s" % hostname)
+	return true
+
+
+func get_console_text() -> String:
+	var text := console.get_text()
+	if device_type == "Switch" and is_powered_on and not is_booting:
+		var prompt := "%s>" % hostname
+		if text.is_empty():
+			return prompt
+		return text + "\n" + prompt
+	return text
+
+
+func _log_console(line: String) -> void:
+	if device_type == "Switch" and is_powered_on and not is_booting:
+		console.append_line(line)
+
+
+func _start_switch_boot() -> void:
+	if device_type != "Switch" or not is_inside_tree():
+		return
+
+	_boot_generation += 1
+	var generation := _boot_generation
+	is_booting = true
+	console.clear()
+	boot_state_changed.emit(true)
+	boot_started.emit()
+	_run_switch_boot(generation)
+
+
+func _run_switch_boot(generation: int) -> void:
+	var started_at := Time.get_ticks_msec()
+	console.append_line("System Bootstrap, Version 15.0(2)SE, RELEASE SOFTWARE")
+	console.append_line("Copyright (c) 1986-2026 Cisco Systems, Inc.")
+	console.append_line("")
+
+	var alive: bool = await _boot_wait(1.5, generation)
+	if not alive:
+		return
+
+	console.append_line("Cisco IOS Software, C2960S Software (C2960S-UNIVERSALK9-M), Version 15.0(2)SE")
+	console.append_line("Technical Support: http://www.cisco.com/techsupport")
+	console.append_line("")
+
+	alive = await _boot_wait(1.5, generation)
+	if not alive:
+		return
+
+	console.append_line("Loading flash:/c2960s-universalk9-mz.150-2.SE.bin... OK")
+	alive = await _boot_wait(1.0, generation)
+	if not alive:
+		return
+
+	console.append_line("Initializing switch modules...")
+	var slots: Array = installed_switch_modules.keys()
+	slots.sort()
+	for slot_value in slots:
+		alive = await _boot_wait(0.4, generation)
+		if not alive:
+			return
+		var slot_index := int(slot_value)
+		var module_name := str(installed_switch_modules[slot_value])
+		console.append_line("Slot %d: %s ... OK" % [slot_index, module_name])
+	if slots.is_empty():
+		console.append_line("No switch modules installed.")
+
+	alive = await _boot_wait(0.5, generation)
+	if not alive:
+		return
+
+	console.append_line("Bringing up interfaces...")
+	for iface in interfaces:
+		alive = await _boot_wait(0.2, generation)
+		if not alive:
+			return
+		if iface.enabled:
+			console.append_line("%s ... up" % iface.interface_name)
+
+	var elapsed := float(Time.get_ticks_msec() - started_at) / 1000.0
+	var remaining := maxf(10.0 - elapsed, 0.0)
+	if remaining > 0.0:
+		alive = await _boot_wait(remaining, generation)
+		if not alive:
+			return
+
+	console.append_line("Switch is ready.")
+	is_booting = false
+	boot_state_changed.emit(false)
+	boot_finished.emit()
+
+
+func _boot_wait(seconds: float, generation: int) -> bool:
+	if not _boot_is_current(generation):
+		return false
+	await get_tree().create_timer(seconds).timeout
+	return _boot_is_current(generation)
+
+
+func _boot_is_current(generation: int) -> bool:
+	return is_inside_tree() and is_powered_on and is_booting and generation == _boot_generation
+
+
+func _cancel_switch_boot() -> void:
+	_boot_generation += 1
+	if is_booting:
+		is_booting = false
+		boot_state_changed.emit(false)
+	console.append_line("Power off.")
+
+
 func _refresh_active_module() -> void:
+	if device_type == "Switch":
+		active_module = ""
+		return
 	active_module = installed_module if is_powered_on else ""
 	if is_powered_on and active_module != "":
 		modules_applied.emit(self, active_module)

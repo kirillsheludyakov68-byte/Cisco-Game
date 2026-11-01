@@ -1,0 +1,44 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/switch_physical_overlay.gd" id="1_overlay"]
+[ext_resource type="Texture2D" path="res://assets/Switch/PowerOn.png" id="2_power"]
+
+[node name="SwitchPhysicalOverlay" type="Control"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+script = ExtResource("1_overlay")
+
+[node name="SlotsLayer" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="PowerArea" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 0
+offset_right = 35.0
+offset_bottom = 50.0
+mouse_filter = 0
+mouse_default_cursor_shape = 2
+tooltip_text = "Power"
+
+[node name="PowerOnOverlay" type="TextureRect" parent="PowerArea"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_power")
+expand_mode = 1
+stretch_mode = 5

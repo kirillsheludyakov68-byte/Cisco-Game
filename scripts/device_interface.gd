@@ -2,6 +2,8 @@ extends RefCounted
 class_name DeviceInterface
 
 const BANDWIDTH_10MBPS := "10mbps"
+const BANDWIDTH_100MBPS := "100mbps"
+const BANDWIDTH_1000MBPS := "1000mbps"
 const BANDWIDTH_AUTO := "auto"
 
 const DUPLEX_HALF := "half"
@@ -11,6 +13,8 @@ const DUPLEX_AUTO := "auto"
 var interface_name: String = "FastEthernet0"
 var interface_kind: String = "ethernet"
 var source_module: String = ""
+# Для коммутатора — номер слота, из которого создан интерфейс. Для ПК — -1.
+var slot_index: int = -1
 var enabled: bool = true
 
 var bandwidth_mode: String = BANDWIDTH_AUTO

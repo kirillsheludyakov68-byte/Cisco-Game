@@ -3,11 +3,15 @@ class_name DeviceWindow
 
 const ERROR_POWER_ADD := "Невозможно добавить модуль, пока компьютер включён."
 const ERROR_POWER_REMOVE := "Невозможно извлечь модуль, пока компьютер включён."
+const ERROR_POWER_ADD_SWITCH := "Невозможно добавить модуль, пока коммутатор включён."
+const ERROR_POWER_REMOVE_SWITCH := "Невозможно извлечь модуль, пока коммутатор включён."
 const ERROR_OCCUPIED := "В слоте уже установлен модуль. Сначала извлеките его."
 const ERROR_EMPTY := "В слоте нет модуля."
 const ERROR_UNKNOWN := "Неизвестный модуль."
 const ERROR_DEFAULT := "Не удалось изменить модуль."
+const ERROR_INVALID_SLOT := "Некорректный слот модуля."
 const ERROR_POWERED_OFF := "Устройство должно быть включено."
+const ERROR_BOOTING := "Устройство загружается. Подождите."
 
 const ZOOM_STEP := 1.2
 const ZOOM_MIN := 0.25
@@ -17,16 +21,20 @@ const ZOOM_SCROLL_BAR_WIDTH := 14.0
 
 @onready var tab_physical: Button = $WindowRoot/TabBar/TabPhysical
 @onready var tab_config: Button = $WindowRoot/TabBar/TabConfig
+@onready var tab_cli: Button = $WindowRoot/TabBar/TabCLI
 @onready var tab_desktop: Button = $WindowRoot/TabBar/TabDesktop
 
 @onready var page_physical: Control = $MainPanel/ContentPanel/PagePhysical
 @onready var page_config: Control = $MainPanel/ContentPanel/PageConfig
+@onready var page_cli: Control = $MainPanel/ContentPanel/PageCLI
 @onready var page_desktop: Control = $MainPanel/ContentPanel/PageDesktop
 
 @onready var modules_panel: ModulesPanel = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ModulesPanel
 @onready var module_slot: ModuleSlot = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/ModuleSlot
+@onready var switch_overlay: SwitchPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/SwitchPhysicalOverlay
 @onready var module_info: ModuleInfoPanel = get_node_or_null("MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel") as ModuleInfoPanel
 @onready var config_panel: ConfigPanel = $MainPanel/ContentPanel/PageConfig/ConfigPanel
+@onready var cli_page: SwitchCLIPage = $MainPanel/ContentPanel/PageCLI/SwitchCLIPage
 @onready var desktop_page: DesktopPage = $MainPanel/ContentPanel/PageDesktop/DesktopPage
 @onready var error_dialog: ErrorDialog = $ErrorDialog
 
@@ -42,14 +50,20 @@ var device: Device = null
 var _zoom_scale := 1.0
 var _zoom_pan := Vector2.ZERO
 var _device_base_rect := Rect2()
+var _pc_base_rect := Rect2()
 var _zoom_scroll_bar: VScrollBar = null
 var _updating_zoom_scroll := false
 
 
 func _ready() -> void:
+	# Запоминаем исходный размер ПК-картинки до открытия коммутатора.
+	_pc_base_rect = Rect2(device_image.position, device_image.size)
+	_device_base_rect = _pc_base_rect
+
 	close_requested.connect(_on_close_requested)
 	tab_physical.pressed.connect(_on_tab_physical)
 	tab_config.pressed.connect(_on_tab_config)
+	tab_cli.pressed.connect(_on_tab_cli)
 	tab_desktop.pressed.connect(_on_tab_desktop)
 
 	zoom_in_button.pressed.connect(_on_zoom_in_pressed)
@@ -75,48 +89,110 @@ func _ready() -> void:
 	if modules_panel.has_signal("module_selected"):
 		modules_panel.module_selected.connect(_show_module_info)
 
+	tab_cli.visible = false
+	tab_desktop.visible = true
+	page_cli.visible = false
 	_show_page("physical")
 
 
 func open_for(dev: Device) -> void:
-	if device != null and device.device_name_changed.is_connected(_on_device_name_changed):
-		device.device_name_changed.disconnect(_on_device_name_changed)
+	_disconnect_device()
 
 	device = dev
 	title = "Устройство: " + dev.device_name
 	if not device.device_name_changed.is_connected(_on_device_name_changed):
 		device.device_name_changed.connect(_on_device_name_changed)
+	if not device.power_changed.is_connected(_on_device_power_changed):
+		device.power_changed.connect(_on_device_power_changed)
 
-	_show_page("physical")
-	_update_device_image()
-	_reset_zoom()
+	var is_switch := dev.device_type == "Switch"
+	tab_desktop.visible = not is_switch
+	tab_cli.visible = is_switch
+	page_desktop.visible = false
+	page_cli.visible = false
 
-	# Слот модулей есть только у ПК
-	module_slot.visible = dev.device_type == "PC"
+	# Слот модулей есть только у ПК, у коммутатора — десять отдельных слотов.
+	module_slot.visible = not is_switch
+	switch_overlay.visible = is_switch
 	module_slot.setup(dev, self)
+	if is_switch:
+		switch_overlay.setup(dev, self)
 	modules_panel.setup(dev, self)
+	_update_device_image()
+	_update_device_base_rect()
+	_reset_zoom()
 	_update_module_info()
 	config_panel.setup(dev)
-	desktop_page.setup(dev)
+	if is_switch:
+		cli_page.setup(dev)
+	else:
+		desktop_page.setup(dev)
+	_show_page("physical")
+
+
+func _disconnect_device() -> void:
+	if device == null:
+		return
+	if device.device_name_changed.is_connected(_on_device_name_changed):
+		device.device_name_changed.disconnect(_on_device_name_changed)
+	if device.power_changed.is_connected(_on_device_power_changed):
+		device.power_changed.disconnect(_on_device_power_changed)
 
 
 func _on_device_name_changed(new_name: String) -> void:
 	title = "Устройство: " + new_name
 
 
+func _on_device_power_changed(_is_on: bool) -> void:
+	_update_device_image()
+	_update_device_base_rect()
+	_apply_zoom()
+	module_slot.refresh()
+	if switch_overlay.visible:
+		switch_overlay.refresh()
+	cli_page.refresh()
+	if _is_on and page_config.visible:
+		config_panel.refresh()
+
+
 # Показываем описание установленного модуля,
 # а если слот пуст — первого модуля из каталога.
 func _update_module_info() -> void:
-	if device != null and device.installed_module != "":
+	if device == null:
+		return
+	if device.device_type == "Switch":
+		var module_name := _get_first_installed_switch_module()
+		if module_name.is_empty() and not ModuleCatalog.SWITCH_MODULES.is_empty():
+			module_name = ModuleCatalog.SWITCH_MODULES[0]
+		_show_module_info(module_name)
+		return
+
+	if device.installed_module != "":
 		_show_module_info(device.installed_module)
-	else:
+	elif not ModuleCatalog.MODULES.is_empty():
 		_show_module_info(ModuleCatalog.MODULES[0])
+
+
+func _get_first_installed_switch_module() -> String:
+	if device == null:
+		return ""
+	for slot_index in range(ModuleCatalog.SWITCH_SLOT_COUNT):
+		var module_name := device.get_installed_module(slot_index)
+		if not module_name.is_empty():
+			return module_name
+	return ""
 
 
 func _show_module_info(module_name: String) -> void:
 	if module_info == null or module_name == "":
 		return
 	module_info.show_module(module_name)
+
+
+func show_slot_module_info(slot_index: int) -> void:
+	if device == null or device.device_type != "Switch":
+		return
+	_show_module_info(device.get_installed_module(slot_index))
 
 
 func _on_tab_physical() -> void:
@@ -127,17 +203,33 @@ func _on_tab_config() -> void:
 	_show_page("config")
 
 
+func _on_tab_cli() -> void:
+	_show_page("cli")
+
+
 func _on_tab_desktop() -> void:
 	_show_page("desktop")
 
 
 func _show_page(page: String) -> void:
-	if page == "config" and device != null and not device.is_powered_on:
+	if device != null:
+		if device.device_type == "Switch" and page == "desktop":
+			page = "physical"
+		elif device.device_type != "Switch" and page == "cli":
+			page = "physical"
+
+	if page != "physical" and device != null and not device.is_powered_on:
 		if error_dialog:
 			error_dialog.show_error(ERROR_POWERED_OFF)
 		return
 
+	if page == "config" and device != null and device.device_type == "Switch" and device.is_booting:
+		if error_dialog:
+			error_dialog.show_error(ERROR_BOOTING)
+		return
+
 	var was_config_visible := page_config.visible
+	var was_cli_visible := page_cli.visible
 	var was_desktop_visible := page_desktop.visible
 	if was_config_visible and page != "config":
 		config_panel.commit_pending()
@@ -146,12 +238,15 @@ func _show_page(page: String) -> void:
 
 	page_physical.visible = (page == "physical")
 	page_config.visible = (page == "config")
+	page_cli.visible = (page == "cli")
 	page_desktop.visible = (page == "desktop")
 
 	if page == "config" and not was_config_visible and config_panel != null:
 		# IP Configuration на Desktop пишет в ту же модель DeviceInterface,
 		# поэтому при входе в Config перечитываем актуальные значения.
 		config_panel.refresh()
+	if page == "cli" and not was_cli_visible and cli_page != null:
+		cli_page.on_activated()
 	if page == "desktop" and not was_desktop_visible and desktop_page != null:
 		desktop_page.on_activated()
 
@@ -168,15 +263,48 @@ func _update_device_image() -> void:
 	if device == null or device_image == null:
 		return
 
+	switch_overlay.visible = device.device_type == "Switch"
 	if device.device_type == "PC":
 		if device.is_powered_on:
 			device_image.texture = load("res://assets/devices/PC_on.png")
 		else:
 			device_image.texture = load("res://assets/devices/PC_off.png")
 	elif device.device_type == "Switch":
-		device_image.texture = load("res://assets/devices/Switch.png")
+		# Базовая текстура — выключенное состояние, PowerOn.png
+		# накладывается ровно на кнопку питания.
+		device_image.texture = load("res://assets/Switch/iPTRealSwitch.png")
+		switch_overlay.setup(device, self)
+		switch_overlay.refresh()
 	elif device.device_type == "Router":
 		device_image.texture = load("res://assets/devices/Router.png")
+
+
+func _update_device_base_rect() -> void:
+	if device_image == null or device_image.texture == null:
+		return
+
+	if device != null and device.device_type == "Switch":
+		var texture_size := device_image.texture.get_size()
+		var view_size := device_view.size
+		if view_size.x <= 1.0 or view_size.y <= 1.0:
+			view_size = Vector2(630, 398)
+		var margin := 10.0
+		var fit_scale := minf(
+			(view_size.x - margin * 2.0) / maxf(texture_size.x, 1.0),
+			(view_size.y - margin * 2.0) / maxf(texture_size.y, 1.0)
+		)
+		var fitted_size := texture_size * maxf(fit_scale, 0.01)
+		_device_base_rect = Rect2(
+			Vector2(
+				(view_size.x - fitted_size.x) * 0.5,
+				(view_size.y - fitted_size.y) * 0.5
+			),
+			fitted_size
+		)
+	else:
+		if _pc_base_rect.size == Vector2.ZERO:
+			_pc_base_rect = Rect2(Vector2.ZERO, Vector2(166, 396))
+		_device_base_rect = _pc_base_rect
 
 
 # --- Масштаб Physical Device View ---
@@ -184,7 +312,10 @@ func _update_device_image() -> void:
 func _setup_zoom() -> void:
 	if device_image == null:
 		return
-	_device_base_rect = Rect2(device_image.position, device_image.size)
+	if _pc_base_rect.size == Vector2.ZERO:
+		_pc_base_rect = Rect2(device_image.position, device_image.size)
+	if _device_base_rect.size == Vector2.ZERO:
+		_update_device_base_rect()
 	_create_zoom_scroll_bar()
 	_apply_zoom()
 
@@ -326,6 +457,12 @@ func _on_device_view_gui_input(event: InputEvent) -> void:
 		device_view.accept_event()
 
 
+# Публичный вход для слотов коммутатора: они тоже должны пропускать
+# колесо мыши к механизму прокрутки Physical Device View.
+func handle_zoom_wheel(event: InputEvent) -> bool:
+	return _handle_zoom_wheel(event)
+
+
 func _on_module_slot_gui_input(event: InputEvent) -> void:
 	if _handle_zoom_wheel(event):
 		module_slot.accept_event()
@@ -336,6 +473,11 @@ func _on_device_image_gui_input(event: InputEvent) -> void:
 		device_image.accept_event()
 		return
 
+	# У коммутатора кнопку питания обрабатывает SwitchPhysicalOverlay,
+	# чтобы её зона точно совпадала с PowerOn.png.
+	if device == null or device.device_type != "PC":
+		return
+
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		# Огромная зона для теста, чтобы точно попасть
 		# (X, Y, Ширина, Высота) - потом подгонишь под кнопку
@@ -344,12 +486,7 @@ func _on_device_image_gui_input(event: InputEvent) -> void:
 		# Координаты события локальные для уже масштабированной картинки.
 		var base_position: Vector2 = event.position / _zoom_scale
 		if button_rect.has_point(base_position):
-			if device == null:
-				return
-
 			device.set_power(not device.is_powered_on)
-			_update_device_image()
-			module_slot.refresh()
 
 
 # --- Модули: вызываются из ModuleSlot и ModulesPanel ---
@@ -360,6 +497,22 @@ func try_install_module(module_name: String) -> void:
 
 	var result: Dictionary = device.install_module(module_name)
 	if result.get("ok", false):
+		module_slot.refresh()
+		_show_module_info(module_name)
+	else:
+		_show_module_error(result.get("reason", ""))
+
+
+func try_install_module_to_slot(module_name: String, slot_index: int) -> void:
+	if device == null:
+		return
+	if device.device_type != "Switch":
+		try_install_module(module_name)
+		return
+
+	var result: Dictionary = device.install_module_in_slot(module_name, slot_index)
+	if result.get("ok", false):
+		switch_overlay.refresh()
 		module_slot.refresh()
 		_show_module_info(module_name)
 	else:
@@ -378,19 +531,47 @@ func try_remove_module() -> void:
 		_show_module_error(result.get("reason", ""))
 
 
+func try_remove_module_from_slot(slot_index: int) -> void:
+	if device == null:
+		return
+	if device.device_type != "Switch" or slot_index < 0:
+		try_remove_module()
+		return
+
+	var result: Dictionary = device.remove_module_from_slot(slot_index)
+	if result.get("ok", false):
+		switch_overlay.refresh()
+		module_slot.refresh()
+		_update_module_info()
+	else:
+		_show_module_error(result.get("reason", ""))
+
+
+func toggle_power() -> void:
+	if device == null:
+		return
+	device.set_power(not device.is_powered_on)
+
+
 func _show_module_error(reason: String) -> void:
 	var text := ERROR_DEFAULT
 	match reason:
 		"power_on_add":
-			text = ERROR_POWER_ADD
+			text = ERROR_POWER_ADD_SWITCH if _is_switch() else ERROR_POWER_ADD
 		"power_on_remove":
-			text = ERROR_POWER_REMOVE
+			text = ERROR_POWER_REMOVE_SWITCH if _is_switch() else ERROR_POWER_REMOVE
 		"occupied":
 			text = ERROR_OCCUPIED
 		"empty":
 			text = ERROR_EMPTY
 		"unknown":
 			text = ERROR_UNKNOWN
+		"invalid_slot":
+			text = ERROR_INVALID_SLOT
 
 	if error_dialog:
 		error_dialog.show_error(text)
+
+
+func _is_switch() -> bool:
+	return device != null and device.device_type == "Switch"

@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/config_panel.gd" id="1_panel"]
 [ext_resource type="PackedScene" path="res://scenes/GlobalSettingsPage.tscn" id="2_global"]
+[ext_resource type="PackedScene" path="res://scenes/SwitchGlobalSettingsPage.tscn" id="3_switch_global"]
 
 [node name="ConfigPanel" type="MarginContainer"]
 anchors_preset = 15
@@ -64,6 +65,15 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 
 [node name="GlobalSettingsPage" parent="Root/PageStack" instance=ExtResource("2_global")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="SwitchGlobalSettingsPage" parent="Root/PageStack" instance=ExtResource("3_switch_global")]
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0

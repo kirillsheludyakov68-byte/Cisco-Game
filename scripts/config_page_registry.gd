@@ -9,6 +9,9 @@ const MODULE_PAGES := {
 	"WMP300N": preload("res://scenes/WMP300NConfigPage.tscn"),
 	"PT-HOST-NM-1W": preload("res://scenes/WMP300NConfigPage.tscn"),
 	"PT-HOST-NM-1AM": preload("res://scenes/Modem0ConfigPage.tscn"),
+	"PT-SWITCH-NM-1CE": preload("res://scenes/SwitchInterfaceConfigPage.tscn"),
+	"PT-SWITCH-NM-1CFE": preload("res://scenes/SwitchInterfaceConfigPage.tscn"),
+	"PT-SWITCH-NM-1FGE": preload("res://scenes/SwitchInterfaceConfigPage.tscn"),
 }
 
 const BUILTIN_PAGE := preload("res://scenes/InterfaceSettingsPage.tscn")

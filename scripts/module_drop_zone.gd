@@ -1,7 +1,7 @@
 extends Control
 class_name ModuleDropZone
 
-signal module_dropped(module_name: String)
+signal module_dropped(module_name: String, slot_index: int)
 signal highlight_changed(active: bool)
 
 # Панель свёрнута — принимать дроп нельзя
@@ -55,7 +55,10 @@ func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
 func _drop_data(_at_position: Vector2, data: Variant) -> void:
 	_set_highlight(false)
 	if data is Dictionary:
-		module_dropped.emit(data.get("module", ""))
+		module_dropped.emit(
+			str(data.get("module", "")),
+			int(data.get("slot_index", -1))
+		)
 
 
 func _notification(what: int) -> void:

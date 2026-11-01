@@ -1,0 +1,122 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/switch_interface_config_page.gd" id="1_page"]
+
+[node name="SwitchInterfaceConfigPage" type="PanelContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_page")
+
+[node name="Root" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 9
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 9
+theme_override_constants/margin_bottom = 9
+
+[node name="VBox" type="VBoxContainer" parent="Root"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="HeaderPanel" type="PanelContainer" parent="Root/VBox"]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+
+[node name="HeaderLabel" type="Label" parent="Root/VBox/HeaderPanel"]
+layout_mode = 2
+text = "Интерфейс"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StatusLabel" type="Label" parent="Root/VBox"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 2
+
+[node name="BodyScroll" type="ScrollContainer" parent="Root/VBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Body" type="VBoxContainer" parent="Root/VBox/BodyScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="Fields" type="GridContainer" parent="Root/VBox/BodyScroll/Body"]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 7
+columns = 2
+
+[node name="PortStatusLabel" type="Label" parent="Root/VBox/BodyScroll/Body/Fields"]
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+text = "Port Status"
+vertical_alignment = 1
+
+[node name="PortStatusCheck" type="CheckBox" parent="Root/VBox/BodyScroll/Body/Fields"]
+layout_mode = 2
+text = "On"
+
+[node name="BandwidthLabel" type="Label" parent="Root/VBox/BodyScroll/Body/Fields"]
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+text = "Bandwidth"
+vertical_alignment = 1
+
+[node name="BandwidthOption" type="OptionButton" parent="Root/VBox/BodyScroll/Body/Fields"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="DuplexLabel" type="Label" parent="Root/VBox/BodyScroll/Body/Fields"]
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+text = "Duplex"
+vertical_alignment = 1
+
+[node name="DuplexOption" type="OptionButton" parent="Root/VBox/BodyScroll/Body/Fields"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MacLabel" type="Label" parent="Root/VBox/BodyScroll/Body/Fields"]
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+text = "MAC Address"
+vertical_alignment = 1
+
+[node name="MacEdit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/Fields"]
+layout_mode = 2
+size_flags_horizontal = 3
+editable = false
+
+[node name="HintLabel" type="Label" parent="Root/VBox/BodyScroll/Body"]
+layout_mode = 2
+text = "Изменения применяются сразу."
+autowrap_mode = 2
+
+[node name="EquivalentPanel" type="PanelContainer" parent="Root/VBox"]
+custom_minimum_size = Vector2(0, 250)
+layout_mode = 2
+size_flags_vertical = 1
+
+[node name="EquivalentVBox" type="VBoxContainer" parent="Root/VBox/EquivalentPanel"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="EquivalentHeader" type="Label" parent="Root/VBox/EquivalentPanel/EquivalentVBox"]
+layout_mode = 2
+text = "Equivalent IOS Commands"
+
+[node name="IOSOutput" type="TextEdit" parent="Root/VBox/EquivalentPanel/EquivalentVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+editable = false
+wrap_mode = 0
+scroll_fit_content_height = false
