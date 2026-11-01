@@ -52,6 +52,7 @@ var _zoom_pan := Vector2.ZERO
 var _device_base_rect := Rect2()
 var _pc_base_rect := Rect2()
 var _zoom_scroll_bar: VScrollBar = null
+var _zoom_h_scroll_bar: HScrollBar = null
 var _updating_zoom_scroll := false
 
 
@@ -397,13 +398,33 @@ func _create_zoom_scroll_bar() -> void:
 	_zoom_scroll_bar.offset_bottom = -2.0
 	_zoom_scroll_bar.value_changed.connect(_on_zoom_scroll_bar_changed)
 
+	# Коммутатор — широкая картинка, поэтому при увеличении нужна
+	# ещё и горизонтальная прокрутка, иначе кнопка питания уходит за край.
+	_zoom_h_scroll_bar = HScrollBar.new()
+	_zoom_h_scroll_bar.name = "ZoomHScrollBar"
+	_zoom_h_scroll_bar.visible = false
+	_zoom_h_scroll_bar.step = 1.0
+	_zoom_h_scroll_bar.focus_mode = Control.FOCUS_NONE
+	_zoom_h_scroll_bar.z_index = 20
+	device_view.add_child(_zoom_h_scroll_bar)
+
+	_zoom_h_scroll_bar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_zoom_h_scroll_bar.offset_left = 2.0
+	_zoom_h_scroll_bar.offset_right = -2.0
+	_zoom_h_scroll_bar.offset_top = -ZOOM_SCROLL_BAR_WIDTH
+	_zoom_h_scroll_bar.offset_bottom = 0.0
+	_zoom_h_scroll_bar.value_changed.connect(_on_zoom_h_scroll_bar_changed)
+
 
 func _update_zoom_scroll_bar() -> void:
-	if _zoom_scroll_bar == null or _device_base_rect.size == Vector2.ZERO:
+	if _zoom_scroll_bar == null or _zoom_h_scroll_bar == null:
+		return
+	if _device_base_rect.size == Vector2.ZERO:
 		return
 
 	var content_size := _device_base_rect.size * _zoom_scale
 	var view_size := device_view.size
+	var max_scroll_x := maxf(content_size.x - view_size.x, 0.0)
 	var max_scroll_y := maxf(content_size.y - view_size.y, 0.0)
 
 	_updating_zoom_scroll = true
@@ -412,7 +433,18 @@ func _update_zoom_scroll_bar() -> void:
 	_zoom_scroll_bar.page = view_size.y
 	_zoom_scroll_bar.value = clampf(-_zoom_pan.y, 0.0, max_scroll_y)
 	_zoom_scroll_bar.visible = max_scroll_y > 0.5
+
+	_zoom_h_scroll_bar.min_value = 0.0
+	_zoom_h_scroll_bar.max_value = maxf(content_size.x, view_size.x)
+	_zoom_h_scroll_bar.page = view_size.x
+	_zoom_h_scroll_bar.value = clampf(-_zoom_pan.x, 0.0, max_scroll_x)
+	_zoom_h_scroll_bar.visible = max_scroll_x > 0.5
 	_updating_zoom_scroll = false
+
+	# Не даём вертикальной полосе перекрывать угол горизонтальной.
+	_zoom_scroll_bar.offset_bottom = (
+		-ZOOM_SCROLL_BAR_WIDTH if _zoom_h_scroll_bar.visible else -2.0
+	)
 
 
 func _on_zoom_scroll_bar_changed(value: float) -> void:
@@ -420,6 +452,15 @@ func _on_zoom_scroll_bar_changed(value: float) -> void:
 		return
 
 	_zoom_pan.y = -value
+	_clamp_zoom_pan()
+	_update_device_image_position()
+
+
+func _on_zoom_h_scroll_bar_changed(value: float) -> void:
+	if _updating_zoom_scroll:
+		return
+
+	_zoom_pan.x = -value
 	_clamp_zoom_pan()
 	_update_device_image_position()
 
