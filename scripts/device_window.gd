@@ -369,15 +369,14 @@ func _update_device_base_rect() -> void:
 		var view_size := device_view.size
 		if view_size.x <= 1.0 or view_size.y <= 1.0:
 			view_size = Vector2(606, 396)
-		var margin := 10.0
 		var fit_scale := minf(
-			(view_size.x - margin * 2.0) / maxf(texture_size.x, 1.0),
-			(view_size.y - margin * 2.0) / maxf(texture_size.y, 1.0)
+			view_size.x / maxf(texture_size.x, 1.0),
+			view_size.y / maxf(texture_size.y, 1.0)
 		)
 		var fitted_size := texture_size * maxf(fit_scale, 0.01)
-		# Коммутатор прижат к левому верхнему углу области просмотра,
-		# чтобы кнопка питания и слоты всегда были на одном месте.
-		_device_base_rect = Rect2(Vector2(margin, margin), fitted_size)
+		# Левый верхний угол коммутатора совпадает с левым верхним
+		# углом области просмотра.
+		_device_base_rect = Rect2(Vector2.ZERO, fitted_size)
 	else:
 		if _pc_base_rect.size == Vector2.ZERO:
 			_pc_base_rect = Rect2(Vector2.ZERO, Vector2(166, 396))
