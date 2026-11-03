@@ -185,7 +185,7 @@ layout_mode = 2
 
 [node name="ViewerPanel" type="PanelContainer" parent="MainPanel/ContentPanel/PagePhysical" unique_id=1100135362]
 layout_mode = 0
-offset_left = 165.0
+offset_left = 187.0
 offset_top = 77.0
 offset_right = 795.0
 offset_bottom = 475.0
@@ -220,9 +220,9 @@ layout_mode = 1
 
 [node name="ViewerLayout" type="VBoxContainer" parent="MainPanel/ContentPanel/PagePhysical" unique_id=614194327]
 layout_mode = 0
-offset_left = 162.0
+offset_left = 187.0
 offset_top = 3.0
-offset_right = 802.0
+offset_right = 795.0
 offset_bottom = 26.0
 
 [node name="TitleLabel" type="Label" parent="MainPanel/ContentPanel/PagePhysical/ViewerLayout" unique_id=134238440]
@@ -237,8 +237,8 @@ horizontal_alignment = 1
 layout_mode = 0
 offset_left = 9.0
 offset_top = 4.0
-offset_right = 113.0
-offset_bottom = 299.0
+offset_right = 177.0
+offset_bottom = 474.0
 theme_override_constants/separation = 10
 
 [node name="ModulesPanel" parent="MainPanel/ContentPanel/PagePhysical/PhysicalLayout" unique_id=816448491 instance=ExtResource("4_1rrw4")]
@@ -246,9 +246,9 @@ layout_mode = 2
 
 [node name="ZoomButtons" type="HBoxContainer" parent="MainPanel/ContentPanel/PagePhysical" unique_id=1746156344]
 layout_mode = 0
-offset_left = 217.0
+offset_left = 239.0
 offset_top = 34.0
-offset_right = 735.0
+offset_right = 743.0
 offset_bottom = 64.0
 
 [node name="ZoomIn" type="Button" parent="MainPanel/ContentPanel/PagePhysical/ZoomButtons" unique_id=1004585840]

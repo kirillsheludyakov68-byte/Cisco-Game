@@ -26,6 +26,7 @@ const POWER_RECT := Rect2(796, 24, 35, 50)
 @onready var slots_layer: Control = $SlotsLayer
 @onready var power_area: Control = $PowerArea
 @onready var power_overlay: TextureRect = $PowerArea/PowerOnOverlay
+@onready var power_off_overlay: TextureRect = $PowerArea/PowerOffOverlay
 
 var device: Device = null
 var device_window = null
@@ -51,8 +52,11 @@ func setup(dev: Device, window) -> void:
 func refresh() -> void:
 	for slot in _slots:
 		slot.refresh()
+	var is_on := device != null and device.is_powered_on
 	if power_overlay != null:
-		power_overlay.visible = device != null and device.is_powered_on
+		power_overlay.visible = is_on
+	if power_off_overlay != null:
+		power_off_overlay.visible = device != null and not is_on
 
 
 func _build_slots() -> void:

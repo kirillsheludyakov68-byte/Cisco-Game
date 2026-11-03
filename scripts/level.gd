@@ -51,6 +51,8 @@ func _spawn_device(data: Dictionary) -> void:
 	
 	_apply_textures(device)
 	device.device_type = data.get("type", "PC")
+	if data.has("power"):
+		device.set_initial_power(bool(data.get("power")))
 	
 	device.device_clicked.connect(_on_device_clicked)
 	NetworkSimulator.register_device(device)

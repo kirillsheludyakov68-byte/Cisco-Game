@@ -20,6 +20,16 @@ func append_line(line: String) -> void:
 	line_added.emit(line)
 
 
+# Дописывает текст в последнюю строку. Нужно для визуальной
+# загрузки: символы # появляются по одному в одной строке.
+func append_text(text: String) -> void:
+	if _lines.is_empty():
+		_lines.append(text)
+	else:
+		_lines[_lines.size() - 1] += text
+	line_added.emit(_lines[_lines.size() - 1])
+
+
 func append_lines(lines: Array[String]) -> void:
 	for line in lines:
 		append_line(line)

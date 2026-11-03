@@ -7,7 +7,6 @@ class_name SwitchInterfaceConfigPage
 @onready var port_status_check: CheckBox = $Root/VBox/BodyScroll/Body/Fields/PortStatusCheck
 @onready var bandwidth_option: OptionButton = $Root/VBox/BodyScroll/Body/Fields/BandwidthOption
 @onready var duplex_option: OptionButton = $Root/VBox/BodyScroll/Body/Fields/DuplexOption
-@onready var mac_edit: LineEdit = $Root/VBox/BodyScroll/Body/Fields/MacEdit
 @onready var hint_label: Label = $Root/VBox/BodyScroll/Body/HintLabel
 @onready var equivalent_panel: PanelContainer = $Root/VBox/EquivalentPanel
 @onready var equivalent_header: Label = $Root/VBox/EquivalentPanel/EquivalentVBox/EquivalentHeader
@@ -57,7 +56,6 @@ func refresh() -> void:
 		port_status_check.disabled = true
 		bandwidth_option.disabled = true
 		duplex_option.disabled = true
-		mac_edit.text = ""
 		_update_console()
 		_updating = false
 		return
@@ -67,7 +65,6 @@ func refresh() -> void:
 	port_status_check.button_pressed = network_interface.enabled
 	bandwidth_option.disabled = false
 	duplex_option.disabled = false
-	mac_edit.text = network_interface.get_mac_cisco()
 
 	_select_bandwidth(network_interface.bandwidth_mode)
 	_select_duplex(network_interface.duplex_mode)
@@ -228,14 +225,11 @@ func _apply_styles() -> void:
 	ConfigStyles.apply_label($Root/VBox/BodyScroll/Body/Fields/PortStatusLabel)
 	ConfigStyles.apply_label($Root/VBox/BodyScroll/Body/Fields/BandwidthLabel)
 	ConfigStyles.apply_label($Root/VBox/BodyScroll/Body/Fields/DuplexLabel)
-	ConfigStyles.apply_label($Root/VBox/BodyScroll/Body/Fields/MacLabel)
 	ConfigStyles.apply_label(hint_label, 11, true)
 	ConfigStyles.apply_status_label(status_label)
 	ConfigStyles.apply_plain_checkbox(port_status_check)
 	ConfigStyles.apply_option_button(bandwidth_option)
 	ConfigStyles.apply_option_button(duplex_option)
-	ConfigStyles.apply_line_edit(mac_edit)
-	ConfigStyles.set_line_edit_editable(mac_edit, false)
 	ConfigStyles.apply_text_edit(ios_output)
 	ios_output.editable = false
 	ios_output.wrap_mode = TextEdit.LINE_WRAPPING_NONE

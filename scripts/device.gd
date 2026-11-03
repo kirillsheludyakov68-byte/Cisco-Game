@@ -11,7 +11,7 @@ var is_powered_on: bool = true:
 			return
 		is_powered_on = value
 		_refresh_active_module()
-		if device_type == "Switch":
+		if device_type == "Switch" and not _suppress_power_boot:
 			if value:
 				_start_switch_boot()
 			else:
@@ -44,6 +44,7 @@ var is_booting: bool = false
 
 var _switch_defaults_initialized: bool = false
 var _boot_generation: int = 0
+var _suppress_power_boot: bool = false
 
 @export var device_name: String = "PC1":
 	set(value):
@@ -580,6 +581,16 @@ func set_power(on: bool) -> void:
 	is_powered_on = on
 
 
+# Начальное состояние из уровня: без запуска загрузки и без записи
+# «Power off.» в консоль. Так коммутатор может стартовать выключенным.
+func set_initial_power(on: bool) -> void:
+	if is_powered_on == on:
+		return
+	_suppress_power_boot = true
+	is_powered_on = on
+	_suppress_power_boot = false
+
+
 func can_modify_modules() -> bool:
 	return not is_powered_on
 
@@ -709,33 +720,101 @@ func _start_switch_boot() -> void:
 
 func _run_switch_boot(generation: int) -> void:
 	var started_at := Time.get_ticks_msec()
-	console.append_line("System Bootstrap, Version 15.0(2)SE, RELEASE SOFTWARE")
-	console.append_line("Copyright (c) 1986-2026 Cisco Systems, Inc.")
+	console.append_line("Boot Sector Filesystem (bs:) installed, fsid: 3")
+	console.append_line("Parameter Block Filesystem (pb:) installed, fsid: 4")
 	console.append_line("")
 
-	var alive: bool = await _boot_wait(1.5, generation)
-	if not alive:
+	if not await _boot_wait(0.6, generation):
 		return
 
-	console.append_line("Cisco IOS Software, C2960S Software (C2960S-UNIVERSALK9-M), Version 15.0(2)SE")
-	console.append_line("Technical Support: http://www.cisco.com/techsupport")
+	console.append_line('Loading "flash:/pt3000-i6q4l2-mz.121-22.EA4.bin"...')
 	console.append_line("")
 
-	alive = await _boot_wait(1.5, generation)
-	if not alive:
+	# Полоса загрузки: символы # дописываются в одну строку.
+	for _index in range(74):
+		if not await _boot_wait(0.04, generation):
+			return
+		console.append_text("#")
+	console.append_text(" [OK]")
+
+	if not await _boot_wait(0.3, generation):
 		return
 
-	console.append_line("Loading flash:/c2960s-universalk9-mz.150-2.SE.bin... OK")
-	alive = await _boot_wait(1.0, generation)
-	if not alive:
+	var rights_lines: Array[String] = [
+		"              Restricted Rights Legend",
+		"",
+		"Use, duplication, or disclosure by the Government is",
+		"subject to restrictions as set forth in subparagraph",
+		"(c) of the Commercial Computer Software - Restricted",
+		"Rights clause at FAR sec. 52.227-19 and subparagraph",
+		"(c) (1) (ii) of the Rights in Technical Data and Computer",
+		"Software clause at DFARS sec. 252.227-7013.",
+		"",
+		"           cisco Systems, Inc.",
+		"           170 West Tasman Drive",
+		"           San Jose, California 95134-1706",
+		"",
+		"",
+	]
+	for line in rights_lines:
+		if not await _boot_wait(0.05, generation):
+			return
+		console.append_line(line)
+
+	if not await _boot_wait(0.3, generation):
+		return
+
+	var ios_lines: Array[String] = [
+		"Cisco Internetwork Operating System Software",
+		"IOS (tm) PT3000 Software (PT3000-I6Q4L2-M), Version 12.1(22)EA4, RELEASE SOFTWARE (fc1)",
+		"Copyright (c) 1986-2006 by cisco Systems, Inc.",
+		"Compiled Fri 12-May-06 17:19 by pt_team",
+		"",
+	]
+	for line in ios_lines:
+		if not await _boot_wait(0.08, generation):
+			return
+		console.append_line(line)
+
+	if not await _boot_wait(0.3, generation):
+		return
+
+	var base_mac := "00D0.58DD.11D7"
+	var primary := get_primary_interface()
+	if primary != null and not primary.get_mac_cisco().is_empty():
+		base_mac = primary.get_mac_cisco()
+
+	var hardware_lines: Array[String] = [
+		"Cisco WS-CSwitch-PT (RC32300) processor (revision C0) with 21039K bytes of memory.",
+		"Processor board ID FHK0610Z0WC",
+		"Running Standard Image",
+		"%d Ethernet/IEEE 802.3 interface(s)" % interfaces.size(),
+		"",
+		"63488K bytes of flash-simulated non-volatile configuration memory.",
+		"Base ethernet MAC Address: %s" % base_mac,
+		"Motherboard assembly number: 73-5781-09",
+		"Power supply part number: 34-0965-01",
+		"Motherboard serial number: FOC061004SZ",
+		"Power supply serial number: DAB0609127D",
+		"Model revision number: C0",
+		"Motherboard revision number: A0",
+		"Model number: WS-CSwitch-PT",
+		"System serial number: %s" % serial_number,
+		"",
+	]
+	for line in hardware_lines:
+		if not await _boot_wait(0.05, generation):
+			return
+		console.append_line(line)
+
+	if not await _boot_wait(0.3, generation):
 		return
 
 	console.append_line("Initializing switch modules...")
 	var slots: Array = installed_switch_modules.keys()
 	slots.sort()
 	for slot_value in slots:
-		alive = await _boot_wait(0.4, generation)
-		if not alive:
+		if not await _boot_wait(0.1, generation):
 			return
 		var slot_index := int(slot_value)
 		var module_name := str(installed_switch_modules[slot_value])
@@ -743,26 +822,25 @@ func _run_switch_boot(generation: int) -> void:
 	if slots.is_empty():
 		console.append_line("No switch modules installed.")
 
-	alive = await _boot_wait(0.5, generation)
-	if not alive:
+	if not await _boot_wait(0.3, generation):
 		return
 
 	console.append_line("Bringing up interfaces...")
 	for iface in interfaces:
-		alive = await _boot_wait(0.2, generation)
-		if not alive:
+		if not await _boot_wait(0.1, generation):
 			return
 		if iface.enabled:
 			console.append_line("%s ... up" % iface.interface_name)
 
+	# Загрузка всегда занимает 10 секунд от момента включения.
 	var elapsed := float(Time.get_ticks_msec() - started_at) / 1000.0
 	var remaining := maxf(10.0 - elapsed, 0.0)
 	if remaining > 0.0:
-		alive = await _boot_wait(remaining, generation)
-		if not alive:
+		if not await _boot_wait(remaining, generation):
 			return
 
-	console.append_line("Switch is ready.")
+	console.append_line("")
+	console.append_line("Press RETURN to get started!")
 	is_booting = false
 	boot_state_changed.emit(false)
 	boot_finished.emit()

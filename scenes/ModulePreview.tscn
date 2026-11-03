@@ -32,5 +32,8 @@ theme_override_constants/margin_bottom = 0
 [node name="ModuleImage" type="TextureRect" parent="Margin" unique_id=389903334]
 visible = false
 layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
 mouse_filter = 2
 expand_mode = 1
+stretch_mode = 5

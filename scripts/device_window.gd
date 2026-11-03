@@ -11,7 +11,7 @@ const ERROR_UNKNOWN := "Неизвестный модуль."
 const ERROR_DEFAULT := "Не удалось изменить модуль."
 const ERROR_INVALID_SLOT := "Некорректный слот модуля."
 const ERROR_POWERED_OFF := "Устройство должно быть включено."
-const ERROR_BOOTING := "Устройство загружается. Подождите."
+const ERROR_BOOTING := "Коммутатор загружается. Пожалуйста, подождите."
 
 const ZOOM_STEP := 1.2
 const ZOOM_MIN := 0.25
@@ -54,6 +54,8 @@ var _pc_base_rect := Rect2()
 var _zoom_scroll_bar: VScrollBar = null
 var _zoom_h_scroll_bar: HScrollBar = null
 var _updating_zoom_scroll := false
+var _boot_warning_active := false
+var _config_focus_modes: Dictionary = {}
 
 
 func _ready() -> void:
@@ -62,6 +64,8 @@ func _ready() -> void:
 	_device_base_rect = _pc_base_rect
 
 	close_requested.connect(_on_close_requested)
+	if error_dialog:
+		error_dialog.closed.connect(_on_error_dialog_closed)
 	tab_physical.pressed.connect(_on_tab_physical)
 	tab_config.pressed.connect(_on_tab_config)
 	tab_cli.pressed.connect(_on_tab_cli)
@@ -77,6 +81,8 @@ func _ready() -> void:
 	device_view.mouse_filter = Control.MOUSE_FILTER_PASS
 	if not device_view.gui_input.is_connected(_on_device_view_gui_input):
 		device_view.gui_input.connect(_on_device_view_gui_input)
+	if not device_view.resized.is_connected(_on_device_view_resized):
+		device_view.resized.connect(_on_device_view_resized)
 	call_deferred("_setup_zoom")
 
 	# Подключаем клик по картинке
@@ -98,6 +104,7 @@ func _ready() -> void:
 
 func open_for(dev: Device) -> void:
 	_disconnect_device()
+	_dismiss_boot_warning()
 
 	device = dev
 	title = "Устройство: " + dev.device_name
@@ -105,6 +112,8 @@ func open_for(dev: Device) -> void:
 		device.device_name_changed.connect(_on_device_name_changed)
 	if not device.power_changed.is_connected(_on_device_power_changed):
 		device.power_changed.connect(_on_device_power_changed)
+	if not device.boot_finished.is_connected(_on_device_boot_finished):
+		device.boot_finished.connect(_on_device_boot_finished)
 
 	var is_switch := dev.device_type == "Switch"
 	tab_desktop.visible = not is_switch
@@ -138,13 +147,29 @@ func _disconnect_device() -> void:
 		device.device_name_changed.disconnect(_on_device_name_changed)
 	if device.power_changed.is_connected(_on_device_power_changed):
 		device.power_changed.disconnect(_on_device_power_changed)
+	if device.boot_finished.is_connected(_on_device_boot_finished):
+		device.boot_finished.disconnect(_on_device_boot_finished)
 
 
 func _on_device_name_changed(new_name: String) -> void:
 	title = "Устройство: " + new_name
 
 
-func _on_device_power_changed(_is_on: bool) -> void:
+func _on_device_view_resized() -> void:
+	if device == null or device.device_type != "Switch":
+		return
+	# После первого расчёта раскладки область просмотра может измениться.
+	# Пересчитываем размер картинки, чтобы она точно вписалась в окно.
+	_update_device_base_rect()
+	_clamp_zoom_pan()
+	_apply_zoom()
+
+
+func _on_device_power_changed(is_on: bool) -> void:
+	if not is_on:
+		_dismiss_boot_warning()
+		if page_config.visible or page_cli.visible:
+			_show_page("physical")
 	_update_device_image()
 	_update_device_base_rect()
 	_apply_zoom()
@@ -152,8 +177,61 @@ func _on_device_power_changed(_is_on: bool) -> void:
 	if switch_overlay.visible:
 		switch_overlay.refresh()
 	cli_page.refresh()
-	if _is_on and page_config.visible:
+	if is_on and page_config.visible:
 		config_panel.refresh()
+
+
+func _show_boot_warning() -> void:
+	_boot_warning_active = true
+	_lock_config_keyboard(true)
+	if error_dialog:
+		error_dialog.show_warning(ERROR_BOOTING)
+
+
+func _dismiss_boot_warning() -> void:
+	if not _boot_warning_active:
+		return
+	_boot_warning_active = false
+	_lock_config_keyboard(false)
+	if error_dialog:
+		error_dialog.dismiss()
+
+
+func _on_error_dialog_closed() -> void:
+	if not _boot_warning_active:
+		return
+	_dismiss_boot_warning()
+	_show_page("physical")
+
+
+# Пока висит предупреждение о загрузке, убираем фокус со всех
+# элементов Config. Мышь и так блокируется затемнением диалога,
+# а это не даёт перейти к настройкам клавишей Tab.
+func _lock_config_keyboard(locked: bool) -> void:
+	if locked:
+		if not _config_focus_modes.is_empty():
+			return
+		_apply_focus_lock(config_panel, true)
+	else:
+		if _config_focus_modes.is_empty():
+			return
+		_apply_focus_lock(config_panel, false)
+		_config_focus_modes.clear()
+
+
+func _apply_focus_lock(node: Node, locked: bool) -> void:
+	for child in node.get_children():
+		if child is Control:
+			if locked:
+				_config_focus_modes[child] = child.focus_mode
+				child.focus_mode = Control.FOCUS_NONE
+			elif _config_focus_modes.has(child):
+				child.focus_mode = _config_focus_modes[child]
+		_apply_focus_lock(child, locked)
+
+
+func _on_device_boot_finished() -> void:
+	_dismiss_boot_warning()
 
 
 # Показываем описание установленного модуля,
@@ -224,11 +302,6 @@ func _show_page(page: String) -> void:
 			error_dialog.show_error(ERROR_POWERED_OFF)
 		return
 
-	if page == "config" and device != null and device.device_type == "Switch" and device.is_booting:
-		if error_dialog:
-			error_dialog.show_error(ERROR_BOOTING)
-		return
-
 	var was_config_visible := page_config.visible
 	var was_cli_visible := page_cli.visible
 	var was_desktop_visible := page_desktop.visible
@@ -251,6 +324,13 @@ func _show_page(page: String) -> void:
 	if page == "desktop" and not was_desktop_visible and desktop_page != null:
 		desktop_page.on_activated()
 
+	# Во время загрузки коммутатора вкладку Config/CLI открыть можно,
+	# чтобы увидеть процесс загрузки, но модальное предупреждение
+	# блокирует изменение настроек. По ОК возвращаемся на Physical.
+	if page != "physical" and device != null \
+			and device.device_type == "Switch" and device.is_booting:
+		_show_boot_warning()
+
 
 func _on_close_requested() -> void:
 	if page_config.visible:
@@ -271,8 +351,8 @@ func _update_device_image() -> void:
 		else:
 			device_image.texture = load("res://assets/devices/PC_off.png")
 	elif device.device_type == "Switch":
-		# Базовая текстура — выключенное состояние, PowerOn.png
-		# накладывается ровно на кнопку питания.
+		# Базовая текстура коммутатора; поверх неё показывается
+		# кнопка питания в состоянии PowerOn.png или PowerOff.png.
 		device_image.texture = load("res://assets/Switch/iPTRealSwitch.png")
 		switch_overlay.setup(device, self)
 		switch_overlay.refresh()
@@ -288,20 +368,16 @@ func _update_device_base_rect() -> void:
 		var texture_size := device_image.texture.get_size()
 		var view_size := device_view.size
 		if view_size.x <= 1.0 or view_size.y <= 1.0:
-			view_size = Vector2(630, 398)
+			view_size = Vector2(606, 396)
 		var margin := 10.0
 		var fit_scale := minf(
 			(view_size.x - margin * 2.0) / maxf(texture_size.x, 1.0),
 			(view_size.y - margin * 2.0) / maxf(texture_size.y, 1.0)
 		)
 		var fitted_size := texture_size * maxf(fit_scale, 0.01)
-		_device_base_rect = Rect2(
-			Vector2(
-				(view_size.x - fitted_size.x) * 0.5,
-				(view_size.y - fitted_size.y) * 0.5
-			),
-			fitted_size
-		)
+		# Коммутатор прижат к левому верхнему углу области просмотра,
+		# чтобы кнопка питания и слоты всегда были на одном месте.
+		_device_base_rect = Rect2(Vector2(margin, margin), fitted_size)
 	else:
 		if _pc_base_rect.size == Vector2.ZERO:
 			_pc_base_rect = Rect2(Vector2.ZERO, Vector2(166, 396))
