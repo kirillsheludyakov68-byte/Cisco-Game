@@ -216,3 +216,17 @@ func has_open_app(app_id: String) -> bool:
 
 func get_open_app_count() -> int:
 	return _windows.size()
+
+
+func get_tile_control(app_id: String) -> Control:
+	for tile in _tiles:
+		if is_instance_valid(tile) and tile.app_id == app_id:
+			return tile
+	return null
+
+
+func get_app_content(app_id: String) -> Control:
+	var content = _window_contents.get(app_id)
+	if content != null and is_instance_valid(content):
+		return content as Control
+	return null

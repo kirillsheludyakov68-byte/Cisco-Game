@@ -109,6 +109,12 @@ const BUILTIN_INTERFACES := {
 			"name": "FastEthernet0",
 			"kind": "ethernet",
 		},
+		# Оптический порт нужен, чтобы правило Switch ↔ Router по Fiber
+		# можно было проверить на реальных интерфейсах, а не только в таблице.
+		{
+			"name": "Fiber0",
+			"kind": "fiber",
+		},
 	],
 	"AccessPoint": [
 		{
@@ -186,15 +192,18 @@ static func get_switch_interface_spec(module_name: String, slot_index: int) -> D
 		return {}
 
 	var bandwidth_mbps := 10
+	var interface_kind := "ethernet"
 	match module_name:
 		PT_SWITCH_NM_1CFE:
 			bandwidth_mbps = 100
 		PT_SWITCH_NM_1FGE:
 			bandwidth_mbps = 1000
+			# PT-SWITCH-NM-1FGE — оптический Gigabit Ethernet.
+			interface_kind = "fiber"
 
 	return {
 		"name": interface_name,
-		"kind": "ethernet",
+		"kind": interface_kind,
 		"source_module": module_name,
 		"slot_index": slot_index,
 		"bandwidth_mbps": bandwidth_mbps,

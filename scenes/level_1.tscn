@@ -2,8 +2,11 @@
 
 [ext_resource type="Script" uid="uid://b8ckey3vhqtke" path="res://scripts/level.gd" id="1_4nkto"]
 [ext_resource type="PackedScene" uid="uid://bxjtr8hqkf7hh" path="res://scenes/CablePanel.tscn" id="5_fcfvj"]
+[ext_resource type="PackedScene" path="res://scenes/TaskPanel.tscn" id="6_task"]
 
 [node name="Level 1" type="Node2D" unique_id=1332610649]
 script = ExtResource("1_4nkto")
 
 [node name="CablePanel" parent="." unique_id=1299563539 instance=ExtResource("5_fcfvj")]
+
+[node name="TaskPanel" parent="." instance=ExtResource("6_task")]

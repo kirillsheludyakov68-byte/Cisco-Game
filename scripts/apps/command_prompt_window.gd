@@ -157,11 +157,15 @@ func _run_ping(args: PackedStringArray) -> void:
 		return
 
 	var result: Dictionary = simulator.ping_ipv4(device, target)
-	if bool(result.get("ok", false)):
+	var ok := bool(result.get("ok", false))
+	if ok:
 		_append_line("Ответ от " + target + ": узел доступен.")
 		_append_line("  Проверка выполнена по текущей топологии; ICMP не эмулируется.")
 	else:
 		_append_line("Не удалось проверить " + target + ": " + str(result.get("reason", "неизвестная ошибка")))
+
+	# Уровень слушает этот сигнал, чтобы отметить шаг задания.
+	simulator.ping_checked.emit(device, target, ok)
 
 
 func _append_line(text: String) -> void:

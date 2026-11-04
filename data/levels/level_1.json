@@ -1,7 +1,8 @@
 {
   "id": 1,
   "title": "Первое соединение",
-  "description": "PC1 должен связаться со Switch1. Соедини их прямым кабелем.",
+  "description": "Цель: с PC2 успешно выполнить ping 192.168.1.1 и получить ответ.",
+  "hints": 3,
   "devices": [
 	{
 	  "id": "pc1",
@@ -17,7 +18,8 @@
 	  "name": "PC2",
 	  "position": [800, 300],
 	  "ip": "192.168.1.2",
-	  "mask": "255.255.255.0"
+	  "mask": "255.255.255.0",
+	  "power": false
 	},
 	{
 	  "id": "sw1",
@@ -28,10 +30,50 @@
 	}
   ],
   "connections": [
-	{ "from": "pc1", "to": "sw1", "cable": "straight" },
-	{ "from": "pc2", "to": "sw1", "cable": "straight" }
+	{ "from": "pc1", "to": "sw1", "cable": "straight" }
   ],
   "module_presets": {
 	"pc1": ["PT-HOST-NM-1CE"]
-  }
+  },
+  "objectives": [
+	{
+	  "id": "module",
+	  "type": "module",
+	  "device": "pc2",
+	  "module": "PT-HOST-NM-1CE",
+	  "interface_kind": "ethernet",
+	  "text": "Установите Ethernet-модуль PT-HOST-NM-1CE в PC2."
+	},
+	{
+	  "id": "cable",
+	  "type": "connection",
+	  "from": "pc2",
+	  "to": "sw1",
+	  "cable": "straight",
+	  "interface_kind": "ethernet",
+	  "text": "Соедините PC2 и Switch1 прямым кабелем."
+	},
+	{
+	  "id": "switch_power",
+	  "type": "power",
+	  "device": "sw1",
+	  "on": true,
+	  "booted": true,
+	  "text": "Включите Switch1 и дождитесь загрузки (около 10 секунд)."
+	},
+	{
+	  "id": "pc2_power",
+	  "type": "power",
+	  "device": "pc2",
+	  "on": true,
+	  "text": "Включите PC2."
+	},
+	{
+	  "id": "ping",
+	  "type": "ping",
+	  "from": "pc2",
+	  "target": "192.168.1.1",
+	  "text": "Выполните ping 192.168.1.1 с PC2 и получите ответ."
+	}
+  ]
 }

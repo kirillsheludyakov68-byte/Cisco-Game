@@ -1,5 +1,7 @@
 extends CanvasLayer
 
+const ERROR_DIALOG_SCENE := preload("res://scenes/ErrorDialog.tscn")
+
 # Какой кабель выбран (или -1, если ничего)
 var selected_cable: int = -1
 
@@ -14,6 +16,8 @@ var _cable_buttons: Dictionary = {}
 
 # Текущее открытое окно устройства
 var current_device_window: DeviceWindow = null
+
+var _error_dialog: ErrorDialog = null
 
 signal cable_selected(cable_type: int)
 
@@ -30,10 +34,23 @@ func _ready() -> void:
 	rubber_line.visible = false
 	add_child(rubber_line)
 
+	# Ошибки кабеля показываем поверх игрового UI, а не только в консоли.
+	var error_layer := CanvasLayer.new()
+	error_layer.name = "ErrorLayer"
+	error_layer.layer = 20
+	add_child(error_layer)
+	_error_dialog = ERROR_DIALOG_SCENE.instantiate() as ErrorDialog
+	if _error_dialog != null:
+		error_layer.add_child(_error_dialog)
+
 func _register_button(cable_type: int, button: Button) -> void:
 	_cable_buttons[cable_type] = button
 	button.toggle_mode = true
 	button.pressed.connect(_on_cable_button_pressed.bind(cable_type))
+
+
+func get_cable_button(cable_type: int) -> Button:
+	return _cable_buttons.get(cable_type) as Button
 
 func _on_cable_button_pressed(cable_type: int) -> void:
 	# Повторное нажатие на выбранную иконку выключает режим прокладки кабеля.
@@ -97,9 +114,11 @@ func handle_device_click(device: Device) -> void:
 			_cancel_connection()
 			return
 
-		var check := NetworkSimulator.can_connect(first_device, device)
+		var check := NetworkSimulator.can_connect(first_device, device, selected_cable)
 		if not check.ok:
 			print("Нельзя соединить: ", check.reason)
+			if _error_dialog != null:
+				_error_dialog.show_error(str(check.reason))
 			_cancel_connection()
 			return
 

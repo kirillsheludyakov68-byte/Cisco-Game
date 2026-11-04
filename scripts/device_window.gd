@@ -37,6 +37,7 @@ const ZOOM_SCROLL_BAR_WIDTH := 14.0
 @onready var cli_page: SwitchCLIPage = $MainPanel/ContentPanel/PageCLI/SwitchCLIPage
 @onready var desktop_page: DesktopPage = $MainPanel/ContentPanel/PageDesktop/DesktopPage
 @onready var error_dialog: ErrorDialog = $ErrorDialog
+@onready var hint_overlay: HintArrow = $HintOverlay
 
 @onready var device_view: Control = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView
 @onready var zoom_in_button: Button = $MainPanel/ContentPanel/PagePhysical/ZoomButtons/ZoomIn
@@ -105,6 +106,7 @@ func _ready() -> void:
 func open_for(dev: Device) -> void:
 	_disconnect_device()
 	_dismiss_boot_warning()
+	hide_hint()
 
 	device = dev
 	title = "Устройство: " + dev.device_name
@@ -166,6 +168,7 @@ func _on_device_view_resized() -> void:
 
 
 func _on_device_power_changed(is_on: bool) -> void:
+	hide_hint()
 	if not is_on:
 		_dismiss_boot_warning()
 		if page_config.visible or page_cli.visible:
@@ -296,6 +299,8 @@ func _show_page(page: String) -> void:
 			page = "physical"
 		elif device.device_type != "Switch" and page == "cli":
 			page = "physical"
+
+	hide_hint()
 
 	if page != "physical" and device != null and not device.is_powered_on:
 		if error_dialog:
@@ -613,6 +618,7 @@ func try_install_module(module_name: String) -> void:
 
 	var result: Dictionary = device.install_module(module_name)
 	if result.get("ok", false):
+		hide_hint()
 		module_slot.refresh()
 		_show_module_info(module_name)
 	else:
@@ -641,6 +647,7 @@ func try_remove_module() -> void:
 
 	var result: Dictionary = device.remove_module()
 	if result.get("ok", false):
+		hide_hint()
 		module_slot.refresh()
 		_update_module_info()
 	else:
@@ -667,6 +674,94 @@ func toggle_power() -> void:
 	if device == null:
 		return
 	device.set_power(not device.is_powered_on)
+
+
+# --- Подсказки внутри окна устройства ---
+
+func hide_hint() -> void:
+	if hint_overlay != null:
+		hint_overlay.hide_hint()
+
+
+func show_hint_node(node: Control) -> void:
+	if hint_overlay == null or node == null or not is_instance_valid(node):
+		return
+	hint_overlay.show_control(node)
+
+
+func show_hint_rect(rect: Rect2) -> void:
+	if hint_overlay == null or rect.size == Vector2.ZERO:
+		return
+	hint_overlay.show_rect(rect)
+
+
+func show_hint_tab(page: String) -> void:
+	match page:
+		"physical":
+			show_hint_node(tab_physical)
+		"config":
+			show_hint_node(tab_config)
+		"cli":
+			show_hint_node(tab_cli)
+		"desktop":
+			show_hint_node(tab_desktop)
+
+
+func show_hint_module() -> void:
+	if modules_panel == null:
+		return
+	if not modules_panel.is_list_visible():
+		show_hint_node(modules_panel.header_button)
+		return
+	var module_button := modules_panel.get_module_button(ModuleCatalog.PT_HOST_NM_1CE)
+	if module_button != null:
+		show_hint_node(module_button)
+		return
+	show_hint_node(module_slot)
+
+
+func show_hint_power() -> void:
+	show_hint_rect(get_power_hint_rect())
+
+
+func show_hint_desktop_app(app_id: String) -> void:
+	if desktop_page == null:
+		return
+	var content := desktop_page.get_app_content(app_id)
+	if content != null:
+		if app_id == "command_prompt":
+			var input := content.get_node_or_null(
+				"TerminalPanel/TerminalMargin/TerminalVBox/PromptRow/Input"
+			)
+			if input is Control:
+				show_hint_node(input)
+				return
+		show_hint_node(content)
+		return
+	var tile := desktop_page.get_tile_control(app_id)
+	if tile != null:
+		show_hint_node(tile)
+		return
+	show_hint_node(desktop_page)
+
+
+# Координаты кнопки питания в системе координат окна.
+# Для ПК это область на изображении, для коммутатора — PowerArea оверлея.
+func get_power_hint_rect() -> Rect2:
+	if device == null:
+		return Rect2()
+	if device.device_type == "Switch":
+		if switch_overlay != null and switch_overlay.power_area != null:
+			return switch_overlay.power_area.get_global_rect()
+		return Rect2()
+	if device.device_type == "PC" and device_image != null:
+		var base_rect := Rect2(132, 118, 14, 21)
+		var image_rect := device_image.get_global_rect()
+		return Rect2(
+			image_rect.position + base_rect.position * _zoom_scale,
+			base_rect.size * _zoom_scale
+		)
+	return Rect2()
 
 
 func _show_module_error(reason: String) -> void:

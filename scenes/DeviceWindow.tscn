@@ -12,6 +12,7 @@
 [ext_resource type="PackedScene" path="res://scenes/DesktopPage.tscn" id="10_desktop"]
 [ext_resource type="PackedScene" path="res://scenes/SwitchPhysicalOverlay.tscn" id="11_switch"]
 [ext_resource type="PackedScene" path="res://scenes/SwitchCLIPage.tscn" id="12_cli"]
+[ext_resource type="Script" path="res://scripts/hint_arrow.gd" id="13_hint"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_y1kbd"]
 bg_color = Color(0.9411765, 0.9411765, 0.9411765, 1)
@@ -330,7 +331,19 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
+[node name="HintOverlay" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+z_index = 100
+script = ExtResource("13_hint")
+
 [node name="ErrorDialog" parent="." unique_id=959558338 instance=ExtResource("7_err")]
 visible = false
+z_index = 200
 
 [connection signal="gui_input" from="MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage" to="." method="_on_device_image_gui_input"]

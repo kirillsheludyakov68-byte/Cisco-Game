@@ -51,6 +51,17 @@ func _on_header_pressed() -> void:
 	drop_zone.enabled = scroll_list.visible
 
 
+func is_list_visible() -> bool:
+	return scroll_list.visible
+
+
+func get_module_button(module_name: String) -> Button:
+	for child in modules_list.get_children():
+		if child is Button and str(child.get("module_name")) == module_name:
+			return child
+	return null
+
+
 func _on_highlight_changed(active: bool) -> void:
 	add_theme_stylebox_override(
 		"panel", _panel_highlight_style if active else _panel_normal_style
