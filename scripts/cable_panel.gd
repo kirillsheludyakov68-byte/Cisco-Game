@@ -9,95 +9,140 @@ var first_device: Device = null
 # Временная "резиновая" линия за курсором
 var rubber_line: Line2D = null
 
+# Кнопки кабелей: CableType -> Button
+var _cable_buttons: Dictionary = {}
+
 # Текущее открытое окно устройства
 var current_device_window: DeviceWindow = null
 
 signal cable_selected(cable_type: int)
 
 func _ready() -> void:
-	$PanelContainer/HBoxContainer/ButtonStraight.pressed.connect(_on_straight)
-	$PanelContainer/HBoxContainer/ButtonCrossover.pressed.connect(_on_crossover)
-	$PanelContainer/HBoxContainer/ButtonWireless.pressed.connect(_on_wireless)
-	
+	_register_button(NetworkSimulator.CableType.STRAIGHT, $PanelContainer/HBoxContainer/ButtonStraight)
+	_register_button(NetworkSimulator.CableType.CROSSOVER, $PanelContainer/HBoxContainer/ButtonCrossover)
+	_register_button(NetworkSimulator.CableType.WIRELESS, $PanelContainer/HBoxContainer/ButtonWireless)
+	_register_button(NetworkSimulator.CableType.FIBER, $PanelContainer/HBoxContainer/ButtonFiber)
+
+	# Создаём временную линию, но скрываем её
 	rubber_line = Line2D.new()
 	rubber_line.width = 3.0
 	rubber_line.default_color = Color(0.5, 0.5, 0.5, 0.7)
 	rubber_line.visible = false
 	add_child(rubber_line)
 
-func _on_straight() -> void:
-	_select(NetworkSimulator.CableType.STRAIGHT)
+func _register_button(cable_type: int, button: Button) -> void:
+	_cable_buttons[cable_type] = button
+	button.toggle_mode = true
+	button.pressed.connect(_on_cable_button_pressed.bind(cable_type))
 
-func _on_crossover() -> void:
-	_select(NetworkSimulator.CableType.CROSSOVER)
+func _on_cable_button_pressed(cable_type: int) -> void:
+	# Повторное нажатие на выбранную иконку выключает режим прокладки кабеля.
+	# После этого клик по устройству снова открывает окно настроек.
+	var button := _cable_buttons.get(cable_type) as Button
+	if button != null and selected_cable == cable_type and not button.button_pressed:
+		selected_cable = -1
+		_cancel_connection()
+		_clear_button_selection()
+		return
 
-func _on_wireless() -> void:
-	_select(NetworkSimulator.CableType.WIRELESS)
+	# Визуально оставляем нажатой только одну кнопку.
+	for type in _cable_buttons:
+		_cable_buttons[type].button_pressed = (type == cable_type)
+	_select(cable_type)
 
 func _select(cable_type: int) -> void:
 	selected_cable = cable_type
+	# Если уже начали соединение — сбросим
 	_cancel_connection()
-	print("Выбран кабель: ", cable_type)
 	cable_selected.emit(cable_type)
 
 func _cancel_connection() -> void:
 	first_device = null
-	rubber_line.visible = false
+	if rubber_line != null:
+		rubber_line.visible = false
 	_reset_all_highlights()
 
 func _process(_delta: float) -> void:
-	if first_device != null and rubber_line.visible:
+	if first_device != null and not is_instance_valid(first_device):
+		_cancel_connection()
+		return
+
+	if first_device != null and rubber_line != null and rubber_line.visible:
 		rubber_line.points = PackedVector2Array([
 			first_device.global_position,
-			get_viewport().get_mouse_position()
+			get_viewport().get_mouse_position()   # ← координаты в CanvasLayer
 		])
 
+# Устройство кликнуто — вызывается из level.gd
 func handle_device_click(device: Device) -> void:
+	if device == null or not is_instance_valid(device):
+		return
+
 	if selected_cable == -1:
+		# Кабель не выбран — открываем окно настроек устройства.
 		_open_device_window(device)
 		return
-	
+
+	if first_device != null and not is_instance_valid(first_device):
+		_cancel_connection()
+
 	if first_device == null:
+		# Первый клик — начинаем тянуть
 		first_device = device
 		rubber_line.visible = true
-		print("Начали тянуть от ", device.device_name)
 	else:
+		# Второй клик — пытаемся соединить
 		if first_device == device:
+			# Кликнули на то же устройство — отмена
 			_cancel_connection()
 			return
-		
+
 		var check := NetworkSimulator.can_connect(first_device, device)
 		if not check.ok:
 			print("Нельзя соединить: ", check.reason)
 			_cancel_connection()
 			return
-		
+
+		# Создаём связь
 		_create_connection(first_device, device, selected_cable)
 		_cancel_connection()
+		# После соединения выключаем режим (Вариант A)
 		selected_cable = -1
+		_clear_button_selection()
 
 func _create_connection(a: Device, b: Device, cable_type: int) -> void:
 	var scene := load("res://scenes/Connection.tscn")
 	var conn = scene.instantiate()
-	get_tree().current_scene.add_child(conn)
+	# Добавляем в тот же родитель, где лежат устройства (в уровень).
+	var parent := get_parent()
+	if parent == null:
+		parent = get_tree().current_scene
+	parent.add_child(conn)
 	conn.setup(a, b, cable_type)
 	NetworkSimulator.add_connection(conn)
 	print("Соединено: ", a.device_name, " ↔ ", b.device_name)
 
+func _clear_button_selection() -> void:
+	for button in _cable_buttons.values():
+		button.button_pressed = false
+
 func _open_device_window(device: Device) -> void:
 	if current_device_window and is_instance_valid(current_device_window):
 		current_device_window.queue_free()
-	
+
 	var scene := load("res://scenes/DeviceWindow.tscn")
 	if scene == null:
 		push_error("Не удалось загрузить DeviceWindow.tscn")
 		return
-	
+
 	current_device_window = scene.instantiate()
-	
+
 	# ВАЖНО: Сначала добавляем в дерево
-	get_tree().current_scene.add_child(current_device_window)
-	
+	var root := get_tree().current_scene
+	if root == null:
+		root = get_parent()
+	root.add_child(current_device_window)
+
 	# Только потом передаем устройство и открываем
 	current_device_window.open_for(device)
 	current_device_window.popup_centered(Vector2i(850, 670))

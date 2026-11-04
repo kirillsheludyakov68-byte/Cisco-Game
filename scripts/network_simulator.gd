@@ -4,7 +4,8 @@ extends Node
 enum CableType {
 	STRAIGHT,   # прямой (PC↔Switch, Switch↔Router)
 	CROSSOVER,  # кроссовер (PC↔PC, Switch↔Switch, Router↔Router)
-	WIRELESS    # беспроводной (к Wi-Fi точке)
+	WIRELESS,   # беспроводной (к Wi-Fi точке)
+	FIBER       # оптоволокно
 }
 
 # Список всех устройств уровня
@@ -16,6 +17,7 @@ var connections: Array = []
 # Сигналы
 signal devices_changed
 signal connections_changed
+signal connection_activated(connection)
 
 func register_device(device) -> void:
 	if device not in devices:
@@ -27,8 +29,14 @@ func unregister_device(device) -> void:
 	devices_changed.emit()
 
 func add_connection(connection) -> void:
-	connections.append(connection)
-	connections_changed.emit()
+	if connection not in connections:
+		connections.append(connection)
+		if connection.has_signal("connection_activated"):
+			connection.connection_activated.connect(_on_connection_activated.bind(connection))
+		connections_changed.emit()
+
+func _on_connection_activated(connection) -> void:
+	connection_activated.emit(connection)
 
 func remove_connection(connection) -> void:
 	connections.erase(connection)
@@ -44,17 +52,33 @@ func clear() -> void:
 # Найти связь между двумя устройствами (если есть)
 func find_connection(a, b):
 	for c in connections:
+		if not is_instance_valid(c):
+			continue
 		if (c.from_device == a and c.to_device == b) or \
 		   (c.from_device == b and c.to_device == a):
 			return c
 	return null
 
+# Найти уже активную связь (беспроводная связь появляется не сразу)
+func find_active_connection(a, b):
+	var c = find_connection(a, b)
+	if c == null:
+		return null
+	if c.has_method("is_active") and not c.is_active():
+		return null
+	return c
+
 # Проверить: можно ли соединить эти два устройства?
 # Возвращает Dictionary: {ok: bool, reason: String}
 func can_connect(a, b) -> Dictionary:
+	if a == null or b == null or not is_instance_valid(a) or not is_instance_valid(b):
+		return {"ok": false, "reason": "Устройство недоступно"}
 	if a == b:
 		return {"ok": false, "reason": "Нельзя соединить устройство с самим собой"}
-	if find_connection(a, b) != null:
+	var existing = find_connection(a, b)
+	if existing != null:
+		if existing.has_method("is_connecting") and existing.is_connecting():
+			return {"ok": false, "reason": "Соединение уже устанавливается"}
 		return {"ok": false, "reason": "Уже соединены"}
 	if a.has_method("is_network_ready") and not a.is_network_ready():
 		return {"ok": false, "reason": "Сетевой интерфейс первого устройства недоступен или отключён"}
@@ -134,6 +158,9 @@ func are_devices_connected(a: Device, b: Device) -> bool:
 			return true
 		for connection in connections:
 			if connection == null or not is_instance_valid(connection):
+				continue
+			# Связь, которая ещё устанавливается (wireless), пока не считается путём.
+			if connection.has_method("is_active") and not connection.is_active():
 				continue
 			var next = null
 			if connection.from_device == current:

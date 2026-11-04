@@ -19,6 +19,10 @@ func _load_level(path: String) -> void:
 		return
 	
 	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		push_error("Не удалось открыть файл уровня: " + path)
+		return
+
 	var json_text := file.get_as_text()
 	file.close()
 	
@@ -49,8 +53,12 @@ func _spawn_device(data: Dictionary) -> void:
 	device.ip_address = data.get("ip", "")
 	device.subnet_mask = data.get("mask", "255.255.255.0")
 	
-	_apply_textures(device)
-	device.device_type = data.get("type", "PC")
+	# ВАЖНО: сначала задаём текстуры, потом тип.
+	# Сеттер device_type вызовет _apply_texture_by_type()
+	# и применит нужную текстуру к спрайту.
+	var device_type: String = data.get("type", "PC")
+	_apply_textures(device, device_type)
+	device.device_type = device_type
 	if data.has("power"):
 		device.set_initial_power(bool(data.get("power")))
 	
@@ -61,11 +69,20 @@ func _spawn_device(data: Dictionary) -> void:
 	var id: String = data.get("id", "")
 	devices_by_id[id] = device
 
-func _apply_textures(device: Device) -> void:
-	device.texture_pc = load("res://assets/PC.svg")
-	device.texture_switch = load("res://assets/Switch.svg")
-	device.texture_router = load("res://assets/Router.svg")
-	device.texture_ap = load("res://assets/AccessPoint.svg")
+func _apply_textures(device: Device, device_type: String) -> void:
+	# Загружаем только текстуру нужного типа, чтобы не требовать
+	# несуществующие ассеты для устройств, которых нет на уровне.
+	match device_type:
+		"PC":
+			device.texture_pc = load("res://assets/PC.svg")
+		"Switch":
+			device.texture_switch = load("res://assets/Switch.svg")
+		"Router":
+			if ResourceLoader.exists("res://assets/Router.svg"):
+				device.texture_router = load("res://assets/Router.svg")
+		"AccessPoint":
+			if ResourceLoader.exists("res://assets/AccessPoint.svg"):
+				device.texture_ap = load("res://assets/AccessPoint.svg")
 
 func _apply_module_presets(presets: Dictionary) -> void:
 	for device_id in presets:
@@ -89,12 +106,15 @@ func _apply_module_presets(presets: Dictionary) -> void:
 		dev.set_initial_module(module_name)
 
 
+# Формат связи:
+# { "from": "pc1", "to": "ap1", "cable": "straight|crossover|wireless|fiber", "delay": 6.0 }
+# delay используется только для wireless; по умолчанию 6 секунд.
 func _spawn_connection(data: Dictionary) -> void:
 	var from_id: String = data.get("from", "")
 	var to_id: String = data.get("to", "")
 	var cable_name: String = data.get("cable", "straight")
 	
-	if not from_id in devices_by_id or not to_id in devices_by_id:
+	if not devices_by_id.has(from_id) or not devices_by_id.has(to_id):
 		push_warning("Не найдены устройства для связи: " + from_id + " → " + to_id)
 		return
 	
@@ -106,10 +126,12 @@ func _spawn_connection(data: Dictionary) -> void:
 		"straight":  cable_type = NetworkSimulator.CableType.STRAIGHT
 		"crossover": cable_type = NetworkSimulator.CableType.CROSSOVER
 		"wireless":  cable_type = NetworkSimulator.CableType.WIRELESS
+		"fiber":     cable_type = NetworkSimulator.CableType.FIBER
 	
+	var delay: float = float(data.get("delay", -1.0))
 	var conn = CONNECTION_SCENE.instantiate()
 	add_child(conn)
-	conn.setup(from_dev, to_dev, cable_type)
+	conn.setup(from_dev, to_dev, cable_type, delay)
 	NetworkSimulator.add_connection(conn)
 
 func _on_device_clicked(device: Device) -> void:
