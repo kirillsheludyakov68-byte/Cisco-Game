@@ -98,21 +98,24 @@ func _draw() -> void:
 			if _device == null or not is_instance_valid(_device):
 				hide_hint()
 				return
-			target_center = _device.get_global_transform_with_canvas().origin
+			target_center = _to_local_canvas(_device.get_global_transform_with_canvas().origin)
 			ring_radius = 52.0
 		"control":
 			if _control == null or not is_instance_valid(_control) or not _control.is_visible_in_tree():
 				hide_hint()
 				return
-			var control_rect := _control.get_global_rect()
+			var control_rect := _to_local_rect(_control.get_global_rect())
 			target_center = control_rect.get_center()
 			ring_radius = maxf(24.0, minf(control_rect.size.x, control_rect.size.y) * 0.5 + 8.0)
 		"point":
-			target_center = get_viewport().get_canvas_transform() * _world_point
+			target_center = _to_local_canvas(
+				get_viewport().get_canvas_transform() * _world_point
+			)
 			ring_radius = 30.0
 		"rect":
-			target_center = _rect.get_center()
-			ring_radius = maxf(24.0, minf(_rect.size.x, _rect.size.y) * 0.5 + 8.0)
+			var target_rect := _to_local_rect(_rect)
+			target_center = target_rect.get_center()
+			ring_radius = maxf(24.0, minf(target_rect.size.x, target_rect.size.y) * 0.5 + 8.0)
 		_:
 			return
 
@@ -123,6 +126,19 @@ func _draw() -> void:
 	_draw_arrow(target_center, ring_radius, pulse)
 
 
+# Все цели приходят в координатах canvas/viewport. Переводим их
+# в локальные координаты стрелки, чтобы она не смещалась при
+# масштабировании и не указывала на собственный угол.
+func _to_local_canvas(point: Vector2) -> Vector2:
+	return get_global_transform_with_canvas().affine_inverse() * point
+
+
+func _to_local_rect(rect: Rect2) -> Rect2:
+	var top_left := _to_local_canvas(rect.position)
+	var bottom_right := _to_local_canvas(rect.end)
+	return Rect2(top_left, bottom_right - top_left).abs()
+
+
 func _draw_arrow(target_center: Vector2, ring_radius: float, pulse: float) -> void:
 	var bob := sin(_time * 5.0) * 5.0
 	var tip: Vector2
@@ -131,8 +147,9 @@ func _draw_arrow(target_center: Vector2, ring_radius: float, pulse: float) -> vo
 
 	# У верхней кромки экрана/окна вертикальная стрелка обрезалась бы.
 	# В этом случае рисуем горизонтальную стрелку сбоку.
-	if target_center.y < ring_radius + 92.0:
-		var direction := 1.0 if target_center.x < size.x * 0.65 else -1.0
+	var near_top := target_center.y < ring_radius + 92.0
+	if near_top:
+		var direction := 1.0 if target_center.x < size.x * 0.5 else -1.0
 		tip = target_center + Vector2(direction * (ring_radius + 10.0), 0.0)
 		tail = tip + Vector2(direction * 52.0, 0.0)
 		head = PackedVector2Array([
@@ -148,6 +165,14 @@ func _draw_arrow(target_center: Vector2, ring_radius: float, pulse: float) -> vo
 			tip + Vector2(-14.0, -17.0),
 			tip + Vector2(14.0, -17.0),
 		])
+
+	# Не даём хвосту и наконечнику уехать за пределы экрана/окна.
+	var margin := 8.0
+	var bounds := Rect2(Vector2(margin, margin), size - Vector2(margin * 2.0, margin * 2.0))
+	tip = tip.clamp(bounds.position, bounds.end)
+	tail = tail.clamp(bounds.position, bounds.end)
+	for index in head.size():
+		head[index] = head[index].clamp(bounds.position, bounds.end)
 
 	# Тёмная подложка делает стрелку читаемой на светлом фоне.
 	draw_line(tail, tip, ARROW_OUTLINE, 9.0, true)

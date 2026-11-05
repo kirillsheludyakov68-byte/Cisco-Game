@@ -581,11 +581,13 @@ func show_hint_target(target: Dictionary) -> void:
 		"world":
 			var device = target.get("device")
 			if device is Node2D and is_instance_valid(device):
+				_focus_main_window()
 				task_panel.show_world_hint(device)
 		"cable_button":
 			if cable_panel != null:
 				var button = cable_panel.get_cable_button(int(target.get("cable", -1)))
 				if button != null:
+					_focus_main_window()
 					task_panel.show_control_hint(button)
 		"connection":
 			var connection = target.get("connection")
@@ -596,17 +598,35 @@ func show_hint_target(target: Dictionary) -> void:
 					var point: Vector2 = (
 						from_device.global_position + to_device.global_position
 					) * 0.5
+					_focus_main_window()
 					task_panel.show_world_point(point)
 		"window":
 			var window = target.get("window")
 			var node = target.get("node")
 			if window != null and is_instance_valid(window) and node is Control:
+				_focus_hint_window(window)
 				window.show_hint_node(node)
 		"window_rect":
 			var window = target.get("window")
 			var rect: Rect2 = target.get("rect", Rect2())
 			if window != null and is_instance_valid(window):
+				_focus_hint_window(window)
 				window.show_hint_rect(rect)
+
+
+func _focus_main_window() -> void:
+	var main_window := get_window()
+	if main_window != null and is_instance_valid(main_window):
+		main_window.grab_focus()
+
+
+# Окно с подсказкой должно оказаться поверх остальных окон устройства.
+func _focus_hint_window(window: Window) -> void:
+	if window == null or not is_instance_valid(window):
+		return
+	if window.has_method("move_to_foreground"):
+		window.move_to_foreground()
+	window.grab_focus()
 
 
 func hide_device_window_hint() -> void:
