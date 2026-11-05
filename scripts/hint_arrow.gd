@@ -141,33 +141,36 @@ func _to_local_rect(rect: Rect2) -> Rect2:
 
 func _draw_arrow(target_center: Vector2, ring_radius: float, pulse: float) -> void:
 	var bob := sin(_time * 5.0) * 5.0
+	var gap := 10.0
+	var length := 52.0
+	var margin := 8.0
+	var above_space := target_center.y - ring_radius - gap
+	var below_space := size.y - target_center.y - ring_radius - gap
+	# Стрелка всегда вертикальная. Если сверху не хватает места,
+	# подходим снизу и направляем остриё вверх — на цель.
+	var min_length := 36.0
+	var from_above := above_space >= min_length or below_space < min_length
 	var tip: Vector2
 	var tail: Vector2
 	var head: PackedVector2Array
-
-	# У верхней кромки экрана/окна вертикальная стрелка обрезалась бы.
-	# В этом случае рисуем горизонтальную стрелку сбоку.
-	var near_top := target_center.y < ring_radius + 92.0
-	if near_top:
-		var direction := 1.0 if target_center.x < size.x * 0.5 else -1.0
-		tip = target_center + Vector2(direction * (ring_radius + 10.0), 0.0)
-		tail = tip + Vector2(direction * 52.0, 0.0)
-		head = PackedVector2Array([
-			tip,
-			tip + Vector2(-direction * 17.0, -13.0),
-			tip + Vector2(-direction * 17.0, 13.0),
-		])
-	else:
-		tip = target_center + Vector2(0.0, -ring_radius - 10.0 + bob)
-		tail = tip + Vector2(0.0, -52.0)
+	if from_above:
+		tip = target_center + Vector2(0.0, -ring_radius - gap + bob)
+		tail = tip + Vector2(0.0, -length)
 		head = PackedVector2Array([
 			tip,
 			tip + Vector2(-14.0, -17.0),
 			tip + Vector2(14.0, -17.0),
 		])
+	else:
+		tip = target_center + Vector2(0.0, ring_radius + gap - bob)
+		tail = tip + Vector2(0.0, length)
+		head = PackedVector2Array([
+			tip,
+			tip + Vector2(-14.0, 17.0),
+			tip + Vector2(14.0, 17.0),
+		])
 
 	# Не даём хвосту и наконечнику уехать за пределы экрана/окна.
-	var margin := 8.0
 	var bounds := Rect2(Vector2(margin, margin), size - Vector2(margin * 2.0, margin * 2.0))
 	tip = tip.clamp(bounds.position, bounds.end)
 	tail = tail.clamp(bounds.position, bounds.end)

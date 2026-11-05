@@ -475,14 +475,11 @@ func _hint_for_power(objective: Dictionary) -> Dictionary:
 		)
 
 	if want_on and dev.device_type == "Switch" and dev.is_booting:
-		if window == null:
-			return _hint(
-				"Switch1 загружается. Подождите около 10 секунд.",
-				_world_target(dev)
-			)
+		# Во время загрузки подсказка только текстовая: стрелка и
+		# кольцо здесь отвлекают и не помогают игроку.
 		return _hint(
-			"Switch1 загружается. Подождите около 10 секунд.",
-			_window_node_target(window, window.device_image)
+			"%s загружается. Подождите около 10 секунд." % dev.device_name,
+			{}
 		)
 
 	return _hint("Состояние питания уже верное.", _world_target(dev))
@@ -572,10 +569,12 @@ func _open_window(device: Device) -> DeviceWindow:
 
 
 func show_hint_target(target: Dictionary) -> void:
-	if task_panel == null or target.is_empty():
+	if task_panel == null:
 		return
 	task_panel.hide_hint_arrow()
 	hide_device_window_hint()
+	if target.is_empty():
+		return
 
 	match str(target.get("kind", "")):
 		"world":
