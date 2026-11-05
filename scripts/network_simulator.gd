@@ -89,6 +89,11 @@ signal connection_activated(connection)
 # вызывают ping_ipv4() напрямую и сигнал не создают.
 signal ping_checked(source, target_address, ok)
 
+# Command Prompt сообщает уровню о реальной команде ping через этот метод.
+# Сигнал остаётся публичным для других слушателей.
+func notify_ping_checked(source, target_address: String, ok: bool) -> void:
+	ping_checked.emit(source, target_address, ok)
+
 func register_device(device) -> void:
 	if device not in devices:
 		devices.append(device)

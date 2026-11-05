@@ -204,7 +204,7 @@ func _on_device_boot_state_changed(_is_booting: bool) -> void:
 	_on_level_state_changed()
 
 
-func _on_device_modules_applied(_device: Device, _module_name: String) -> void:
+func _on_device_modules_applied(_changed_device: Device, _module_name: String) -> void:
 	_on_level_state_changed()
 
 

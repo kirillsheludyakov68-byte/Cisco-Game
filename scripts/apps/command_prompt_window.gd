@@ -63,10 +63,10 @@ func _reset_terminal() -> void:
 
 
 func _prompt_text() -> String:
-	var name := "PC"
+	var prompt_name := "PC"
 	if device != null:
-		name = device.device_name
-	return name + ">"
+		prompt_name = device.device_name
+	return prompt_name + ">"
 
 
 func _on_command_submitted(text: String) -> void:
@@ -165,7 +165,10 @@ func _run_ping(args: PackedStringArray) -> void:
 		_append_line("Не удалось проверить " + target + ": " + str(result.get("reason", "неизвестная ошибка")))
 
 	# Уровень слушает этот сигнал, чтобы отметить шаг задания.
-	simulator.ping_checked.emit(device, target, ok)
+	if simulator.has_method("notify_ping_checked"):
+		simulator.notify_ping_checked(device, target, ok)
+	else:
+		simulator.ping_checked.emit(device, target, ok)
 
 
 func _append_line(text: String) -> void:
