@@ -12,7 +12,7 @@ var devices_by_id: Dictionary = {}
 var level_title := "Задание"
 var level_description := ""
 var objectives: Array = []
-var hints_available := 3
+var hints_available := -1
 
 # Пинг считается выполненным только после реальной команды в Command Prompt.
 # При изменении питания/кабеля шаг перепроверяется через ping_ipv4().
@@ -44,7 +44,7 @@ func _load_level(path: String) -> void:
 
 	level_title = str(data.get("title", "Задание"))
 	level_description = str(data.get("description", ""))
-	hints_available = int(data.get("hints", 3))
+	hints_available = int(data.get("hints", -1))
 	var raw_objectives = data.get("objectives", [])
 	if raw_objectives is Array:
 		objectives = (raw_objectives as Array).duplicate(true)

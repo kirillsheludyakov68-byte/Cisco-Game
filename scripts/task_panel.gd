@@ -24,7 +24,7 @@ class_name TaskPanel
 
 var level: Node = null
 var objectives: Array = []
-var hints_available: int = 3
+var hints_available: int = -1
 
 var _rows: Array[RichTextLabel] = []
 var _last_states: Array[bool] = []
