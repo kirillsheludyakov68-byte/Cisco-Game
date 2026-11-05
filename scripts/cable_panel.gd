@@ -26,6 +26,7 @@ func _ready() -> void:
 	_register_button(NetworkSimulator.CableType.CROSSOVER, $PanelContainer/HBoxContainer/ButtonCrossover)
 	_register_button(NetworkSimulator.CableType.WIRELESS, $PanelContainer/HBoxContainer/ButtonWireless)
 	_register_button(NetworkSimulator.CableType.FIBER, $PanelContainer/HBoxContainer/ButtonFiber)
+	_clear_cable_cursor()
 
 	# Создаём временную линию, но скрываем её
 	rubber_line = Line2D.new()
@@ -60,6 +61,7 @@ func _on_cable_button_pressed(cable_type: int) -> void:
 		selected_cable = -1
 		_cancel_connection()
 		_clear_button_selection()
+		_clear_cable_cursor()
 		return
 
 	# Визуально оставляем нажатой только одну кнопку.
@@ -71,7 +73,40 @@ func _select(cable_type: int) -> void:
 	selected_cable = cable_type
 	# Если уже начали соединение — сбросим
 	_cancel_connection()
+	if rubber_line != null:
+		rubber_line.default_color = _cable_color(cable_type)
+	_apply_cable_cursor(cable_type)
 	cable_selected.emit(cable_type)
+
+
+# Пока кабель выбран, вместо обычного курсора показываем его иконку.
+# Это делает режим прокладки заметным: игрок «держит» кабель в руке.
+func _apply_cable_cursor(cable_type: int) -> void:
+	var button := _cable_buttons.get(cable_type) as Button
+	if button == null or button.icon == null:
+		_clear_cable_cursor()
+		return
+	var icon_size := button.icon.get_size()
+	Input.set_custom_mouse_cursor(
+		button.icon,
+		Input.CURSOR_ARROW,
+		icon_size * 0.5
+	)
+
+
+func _clear_cable_cursor() -> void:
+	Input.set_custom_mouse_cursor(null)
+
+
+func _cable_color(cable_type: int) -> Color:
+	match cable_type:
+		NetworkSimulator.CableType.CROSSOVER:
+			return Color(0.9, 0.5, 0.1)
+		NetworkSimulator.CableType.FIBER:
+			return Color(0.9, 0.08, 0.08)
+		NetworkSimulator.CableType.WIRELESS:
+			return Color(0.08, 0.08, 0.08)
+	return Color(0.1, 0.1, 0.1)
 
 func _cancel_connection() -> void:
 	first_device = null
@@ -128,6 +163,7 @@ func handle_device_click(device: Device) -> void:
 		# После соединения выключаем режим (Вариант A)
 		selected_cable = -1
 		_clear_button_selection()
+		_clear_cable_cursor()
 
 func _create_connection(a: Device, b: Device, cable_type: int) -> void:
 	var scene := load("res://scenes/Connection.tscn")
@@ -170,3 +206,7 @@ func _reset_all_highlights() -> void:
 	for d in NetworkSimulator.devices:
 		if is_instance_valid(d):
 			d.reset_highlight()
+
+
+func _exit_tree() -> void:
+	_clear_cable_cursor()
