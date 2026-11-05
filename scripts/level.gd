@@ -1,5 +1,7 @@
 extends Node2D
 
+signal level_completed(level_id: String, score: int, result: Dictionary)
+
 const DEVICE_SCENE := preload("res://scenes/Device.tscn")
 const CONNECTION_SCENE := preload("res://scenes/Connection.tscn")
 
@@ -11,6 +13,7 @@ const CONNECTION_SCENE := preload("res://scenes/Connection.tscn")
 var devices_by_id: Dictionary = {}
 var level_title := "Задание"
 var level_description := ""
+var level_id := ""
 var objectives: Array = []
 var hints_available := -1
 
@@ -18,8 +21,13 @@ var hints_available := -1
 # При изменении питания/кабеля шаг перепроверяется через ping_ipv4().
 var _ping_succeeded := false
 
+var _level_started_msec := 0
+var _completion_recorded := false
+var _score_config: Dictionary = {}
+
 
 func _ready() -> void:
+	_level_started_msec = Time.get_ticks_msec()
 	NetworkSimulator.clear()
 	_load_level(level_path)
 
@@ -44,7 +52,15 @@ func _load_level(path: String) -> void:
 
 	level_title = str(data.get("title", "Задание"))
 	level_description = str(data.get("description", ""))
+	var raw_level_id = data.get("id", "")
+	if raw_level_id is float and raw_level_id == floor(raw_level_id):
+		level_id = str(int(raw_level_id))
+	else:
+		level_id = str(raw_level_id)
 	hints_available = int(data.get("hints", -1))
+	var score_data = data.get("score", {})
+	if score_data is Dictionary:
+		_score_config = score_data
 	var raw_objectives = data.get("objectives", [])
 	if raw_objectives is Array:
 		objectives = (raw_objectives as Array).duplicate(true)
@@ -234,6 +250,49 @@ func _refresh_objectives() -> void:
 	for objective in objectives:
 		states.append(evaluate_objective(objective))
 	task_panel.set_states(states)
+
+	var all_done := not states.is_empty()
+	for state in states:
+		if not state:
+			all_done = false
+			break
+
+	if all_done and not _completion_recorded:
+		_completion_recorded = true
+		_finish_level()
+
+
+func _finish_level() -> void:
+	var elapsed := float(Time.get_ticks_msec() - _level_started_msec) / 1000.0
+	var hints_used := 0
+	if task_panel != null and task_panel.has_method("get_hints_used"):
+		hints_used = task_panel.get_hints_used()
+
+	var score := _calculate_score(elapsed, hints_used)
+	var result := ProgressManager.record_completion(
+		level_id,
+		score,
+		{"time": elapsed, "hints_used": hints_used}
+	)
+
+	if task_panel != null and task_panel.has_method("show_score_result"):
+		task_panel.show_score_result(score, result)
+	level_completed.emit(level_id, score, result)
+
+
+func _calculate_score(elapsed: float, hints_used: int) -> int:
+	var base := int(_score_config.get("base", 100))
+	var par_time := float(_score_config.get("par_time", 120.0))
+	var max_time_bonus := int(_score_config.get("time_bonus", 50))
+	var hint_penalty := int(_score_config.get("hint_penalty", 10))
+	var min_score := int(_score_config.get("min", 25))
+
+	var time_bonus := 0
+	if par_time > 0.0:
+		var ratio := clampf((par_time - elapsed) / par_time, 0.0, 1.0)
+		time_bonus = int(round(ratio * float(max_time_bonus)))
+
+	return maxi(min_score, base + time_bonus - hints_used * hint_penalty)
 
 
 func evaluate_objective(objective: Dictionary) -> bool:

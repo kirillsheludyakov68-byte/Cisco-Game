@@ -17,6 +17,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 NetworkSimulator="*uid://ciw4m62jmu76w"
+ProgressManager="*res://scripts/progress_manager.gd"
 
 [display]
 

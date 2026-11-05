@@ -3,6 +3,13 @@
   "title": "Первое соединение",
   "description": "Цель: с PC2 успешно выполнить ping 192.168.1.1 и получить ответ.",
   "hints": -1,
+  "score": {
+    "base": 100,
+    "par_time": 120,
+    "time_bonus": 50,
+    "hint_penalty": 10,
+    "min": 25
+  },
   "devices": [
 	{
 	  "id": "pc1",

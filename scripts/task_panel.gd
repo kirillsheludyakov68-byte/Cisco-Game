@@ -7,6 +7,7 @@ class_name TaskPanel
 @onready var task_card: PanelContainer = $TaskCard
 @onready var header: HBoxContainer = $TaskCard/Margin/VBox/Header
 @onready var title_label: Label = $TaskCard/Margin/VBox/Header/TitleLabel
+@onready var score_label: Label = $TaskCard/Margin/VBox/Header/ScoreLabel
 @onready var completion_badge: Label = $TaskCard/Margin/VBox/Header/CompletionBadge
 @onready var collapse_button: Button = $TaskCard/Margin/VBox/Header/CollapseButton
 @onready var content: VBoxContainer = $TaskCard/Margin/VBox/Content
@@ -25,6 +26,7 @@ class_name TaskPanel
 var level: Node = null
 var objectives: Array = []
 var hints_available: int = -1
+var hints_used: int = 0
 
 var _rows: Array[RichTextLabel] = []
 var _last_states: Array[bool] = []
@@ -48,6 +50,9 @@ func _ready() -> void:
 	completion_badge.visible = false
 	arrow.hide_hint()
 	_update_hint_button()
+	if not ProgressManager.total_score_changed.is_connected(_on_total_score_changed):
+		ProgressManager.total_score_changed.connect(_on_total_score_changed)
+	_update_score_label()
 
 	get_viewport().size_changed.connect(_on_viewport_resized)
 	call_deferred("_center_task_card")
@@ -65,6 +70,7 @@ func setup(
 	description_label.text = description
 	objectives = objectives_value.duplicate(true)
 	hints_available = hints_value
+	hints_used = 0
 	_build_rows()
 	_last_states.clear()
 	_completed = false
@@ -246,6 +252,7 @@ func _on_hint_pressed() -> void:
 		_show_hint_text("Подсказки закончились.")
 		return
 
+	hints_used += 1
 	if hints_available > 0:
 		hints_available -= 1
 	_update_hint_button()
@@ -290,6 +297,33 @@ func _update_hint_button() -> void:
 		hint_count_label.add_theme_color_override("font_color", Color(0, 0, 0, 1))
 		lamp_button.disabled = false
 		lamp_button.modulate = Color(1, 1, 1, 1)
+
+
+func get_hints_used() -> int:
+	return hints_used
+
+
+func _on_total_score_changed(_total: int) -> void:
+	_update_score_label()
+
+
+func _update_score_label() -> void:
+	if score_label != null:
+		score_label.text = "Очки: %d" % ProgressManager.get_total_score()
+
+
+func show_score_result(score: int, result: Dictionary) -> void:
+	var total := int(result.get("total", 0))
+	var best := int(result.get("best_score", score))
+	var text := ""
+	if bool(result.get("is_new_best", false)):
+		text = "✅ Задание выполнено! +%d очков. Всего: %d. Новый рекорд!" % [score, total]
+	else:
+		text = "✅ Задание выполнено! Результат: %d очков. Лучший: %d. Всего: %d." % [
+			score, best, total
+		]
+	completion_label.text = text
+	completion_label.visible = true
 
 
 func show_world_hint(device: Node2D) -> void:
