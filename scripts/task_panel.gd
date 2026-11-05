@@ -17,7 +17,6 @@ class_name TaskPanel
 @onready var completion_label: Label = $TaskCard/Margin/VBox/Content/CompletionLabel
 
 @onready var arrow: HintArrow = $HintArrow
-@onready var hint_widget: Control = $HintWidget
 @onready var lamp_button: Button = $HintWidget/VBox/Header/LampButton
 @onready var hint_count_label: Label = $HintWidget/VBox/Header/CountLabel
 @onready var hint_panel: PanelContainer = $HintWidget/VBox/HintPanel
@@ -31,6 +30,7 @@ var _rows: Array[RichTextLabel] = []
 var _last_states: Array[bool] = []
 var _revealed_steps := 0
 var _completed := false
+var _completion_message_visible := false
 var _collapsed := false
 var _dragging := false
 var _drag_offset := Vector2.ZERO
@@ -98,6 +98,13 @@ func set_states(states: Array) -> void:
 	completion_label.visible = _completed
 	if _completed:
 		_show_hint_text("Все шаги выполнены. Задание завершено!")
+		_completion_message_visible = true
+	elif _completion_message_visible:
+		# Задание откатилось (например, выключили коммутатор) —
+		# убираем устаревшее сообщение о завершении.
+		_completion_message_visible = false
+		hint_label.text = ""
+		hint_panel.visible = false
 	_update_hint_button()
 
 	# Если игрок что-то сделал, старая стрелка уже не актуальна.
@@ -255,6 +262,7 @@ func _on_hint_pressed() -> void:
 
 
 func _show_hint_text(text: String) -> void:
+	_completion_message_visible = false
 	hint_label.text = text
 	hint_panel.visible = not text.is_empty()
 
