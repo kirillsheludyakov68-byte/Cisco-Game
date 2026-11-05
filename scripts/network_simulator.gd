@@ -215,7 +215,7 @@ func can_connect(a, b, cable_type: int = CableType.STRAIGHT) -> Dictionary:
 		return {
 			"ok": false,
 			"reason": "Неверный кабель: %s ↔ %s нельзя соединять %s кабелем." % [
-				a.device_name, b.device_name, cable_type_label(cable_type)
+				a.device_name, b.device_name, cable_type_instrumental(cable_type)
 			],
 		}
 
