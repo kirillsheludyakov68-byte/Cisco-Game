@@ -624,8 +624,7 @@ func _focus_main_window() -> void:
 func _focus_hint_window(window: Window) -> void:
 	if window == null or not is_instance_valid(window):
 		return
-	if window.has_method("move_to_foreground"):
-		window.move_to_foreground()
+	# grab_focus() одновременно поднимает окно поверх остальных.
 	window.grab_focus()
 
 
