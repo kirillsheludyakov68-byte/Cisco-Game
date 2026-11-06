@@ -215,7 +215,15 @@ func _build_profile_dialog() -> void:
 func _refresh_continue_state() -> void:
 	if continue_button == null:
 		return
-	continue_button.disabled = not ProgressManager.has_profiles()
+	var has_profiles := ProgressManager.has_profiles()
+	continue_button.disabled = not has_profiles
+	MenuStyles.apply_button(
+		continue_button,
+		"primary" if has_profiles else "secondary",
+		30,
+		28,
+		18
+	)
 
 
 func _on_new_game_pressed() -> void:
