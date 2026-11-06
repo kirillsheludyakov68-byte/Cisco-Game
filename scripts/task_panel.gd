@@ -9,6 +9,7 @@ class_name TaskPanel
 @onready var title_label: Label = $TaskCard/Margin/VBox/Header/TitleLabel
 @onready var score_label: Label = $TaskCard/Margin/VBox/Header/ScoreLabel
 @onready var completion_badge: Label = $TaskCard/Margin/VBox/Header/CompletionBadge
+@onready var menu_button: Button = $TaskCard/Margin/VBox/Header/MenuButton
 @onready var collapse_button: Button = $TaskCard/Margin/VBox/Header/CollapseButton
 @onready var content: VBoxContainer = $TaskCard/Margin/VBox/Content
 @onready var description_label: Label = $TaskCard/Margin/VBox/Content/DescriptionLabel
@@ -42,6 +43,8 @@ var _user_moved := false
 func _ready() -> void:
 	header.gui_input.connect(_on_header_gui_input)
 	collapse_button.pressed.connect(_toggle_collapsed)
+	menu_button.pressed.connect(_on_menu_pressed)
+	MenuStyles.apply_button(menu_button, "secondary", 13, 10, 10)
 	reveal_step_button.pressed.connect(_reveal_next_step)
 	lamp_button.pressed.connect(_on_hint_pressed)
 
@@ -206,6 +209,10 @@ func _toggle_collapsed() -> void:
 	content.visible = not _collapsed
 	collapse_button.text = "▸" if _collapsed else "▾"
 	call_deferred("_clamp_task_card")
+
+
+func _on_menu_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/LevelSelect.tscn")
 
 
 func _center_task_card() -> void:

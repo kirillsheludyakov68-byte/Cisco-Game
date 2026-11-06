@@ -122,6 +122,12 @@ theme_override_colors/font_color = Color(0.12, 0.48, 0.2, 1)
 theme_override_font_sizes/font_size = 16
 text = "✅"
 
+[node name="MenuButton" type="Button" parent="TaskCard/Margin/VBox/Header"]
+custom_minimum_size = Vector2(70, 30)
+layout_mode = 2
+focus_mode = 0
+text = "Меню"
+
 [node name="CollapseButton" type="Button" parent="TaskCard/Margin/VBox/Header"]
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
