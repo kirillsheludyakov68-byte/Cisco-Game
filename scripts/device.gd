@@ -10,6 +10,8 @@ var is_powered_on: bool = true:
 		if is_powered_on == value:
 			return
 		is_powered_on = value
+		if not value:
+			reset_command_prompt_session()
 		_refresh_active_module()
 		if device_type == "Switch" and not _suppress_power_boot:
 			if value:
@@ -77,6 +79,12 @@ var _pending_ipv4: String = ""
 var _pending_mask: String = "255.255.255.0"
 var _pending_ipv6: String = ""
 var _pending_ipv6_prefix: int = 64
+
+# Состояние Command Prompt, которое переживает закрытие окна ПК.
+# Сбрасывается только при выключении устройства.
+var command_prompt_output: String = ""
+var command_prompt_input: String = ""
+var command_prompt_initialized: bool = false
 
 # Совместимость со старыми данными уровня: ip/mask принадлежат первому интерфейсу.
 var ip_address: String:
@@ -598,6 +606,14 @@ func _generate_mac(index: int) -> String:
 
 func set_power(on: bool) -> void:
 	is_powered_on = on
+
+
+# Очищает сессию командной строки. Вызывается при выключении питания,
+# чтобы после включения ПК консоль начиналась с чистого листа.
+func reset_command_prompt_session() -> void:
+	command_prompt_output = ""
+	command_prompt_input = ""
+	command_prompt_initialized = false
 
 
 # Начальное состояние из уровня: без запуска загрузки и без записи

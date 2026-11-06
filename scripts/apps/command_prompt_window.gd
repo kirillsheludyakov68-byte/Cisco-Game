@@ -25,10 +25,23 @@ func _ready() -> void:
 
 
 func setup(device_value: Device) -> void:
+	if device != null and is_instance_valid(device) \
+			and device.power_changed.is_connected(_on_device_power_changed):
+		device.power_changed.disconnect(_on_device_power_changed)
 	device = device_value
-	_reset_terminal()
+	if device != null and is_instance_valid(device) \
+			and not device.power_changed.is_connected(_on_device_power_changed):
+		device.power_changed.connect(_on_device_power_changed)
+	_restore_session()
 	if device != null:
 		input.grab_focus()
+
+
+func _exit_tree() -> void:
+	_save_session()
+	if device != null and is_instance_valid(device) \
+			and device.power_changed.is_connected(_on_device_power_changed):
+		device.power_changed.disconnect(_on_device_power_changed)
 
 
 func activate() -> void:
@@ -37,8 +50,8 @@ func activate() -> void:
 
 
 func commit_pending() -> void:
-	# В командной строке нет отложенных настроек: всё выполняется сразу.
-	pass
+	# Сохраняем ввод и вывод, чтобы они пережили закрытие окна ПК.
+	_save_session()
 
 
 func _apply_styles() -> void:
@@ -60,10 +73,54 @@ func _apply_styles() -> void:
 
 func _reset_terminal() -> void:
 	output.text = ""
+	input.clear()
 	prompt_label.text = _prompt_text()
 	_append_line("Command Prompt — локальная модель сети.")
 	_append_line("Введите help, чтобы увидеть доступные команды.")
 	_append_line("")
+	if device != null and is_instance_valid(device):
+		device.command_prompt_initialized = true
+	_save_session()
+
+
+func _restore_session() -> void:
+	if device == null or not is_instance_valid(device):
+		_reset_terminal()
+		return
+	if not device.is_powered_on:
+		_clear_terminal_view()
+		return
+	if not device.command_prompt_initialized:
+		_reset_terminal()
+		return
+	prompt_label.text = _prompt_text()
+	output.text = device.command_prompt_output
+	input.text = device.command_prompt_input
+	input.caret_column = input.text.length()
+
+
+func _clear_terminal_view() -> void:
+	output.text = ""
+	input.clear()
+	prompt_label.text = _prompt_text()
+
+
+func _save_session() -> void:
+	if device == null or not is_instance_valid(device):
+		return
+	if not device.is_powered_on or not device.command_prompt_initialized:
+		return
+	if not is_instance_valid(output) or not is_instance_valid(input):
+		return
+	device.command_prompt_output = output.get_parsed_text()
+	device.command_prompt_input = input.text
+
+
+func _on_device_power_changed(is_on: bool) -> void:
+	if is_on:
+		_reset_terminal()
+	else:
+		_clear_terminal_view()
 
 
 func _prompt_text() -> String:
