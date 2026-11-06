@@ -274,28 +274,121 @@ func _is_operational(device) -> bool:
 	return bool(device.is_powered_on)
 
 
+# Рассчитать маршрут ping для Command Prompt и анимации пакета.
+# Возвращает { success, path, error_msg, ... }. В path лежат устройства
+# от источника до цели. При ошибке path обрезается до проблемного
+# устройства, чтобы пакет мог долететь именно до него и взорваться.
+func calculate_ping_route(source: Device, target_address: String) -> Dictionary:
+	var path: Array = []
+	if source == null or not is_instance_valid(source):
+		return _route_result(false, path, "Устройство недоступно.")
+	path = [source]
+
+	if not NetworkValidation.is_valid_ipv4(target_address):
+		return _route_result(false, path, "Некорректный IPv4-адрес.")
+	if not _is_operational(source):
+		return _route_result(false, path, "Устройство выключено или ещё загружается.")
+
+	var source_interface := _find_source_ipv4_interface(source)
+	if source_interface == null:
+		return _route_result(false, path, "У текущего устройства нет включённого IPv4-интерфейса.")
+	if not NetworkValidation.is_valid_ipv4(source_interface.ipv4_address):
+		return _route_result(false, path, "У исходного интерфейса некорректный IPv4-адрес.")
+	if not NetworkValidation.is_valid_subnet_mask(source_interface.subnet_mask):
+		return _route_result(false, path, "У исходного интерфейса не задана корректная маска подсети.")
+
+	var target_info := _find_target_interface(target_address)
+	if target_info.is_empty():
+		return _route_result(false, path, "Хост с таким IPv4-адресом не найден.")
+
+	var target_device: Device = target_info.get("device") as Device
+	var target_interface: DeviceInterface = target_info.get("interface") as DeviceInterface
+	var extra := {
+		"source_interface": source_interface,
+		"target_device": target_device,
+		"target_interface": target_interface,
+	}
+	if target_device == source:
+		return _route_result(
+			false,
+			path,
+			"Адрес принадлежит самому устройству; проверка loopback не реализована.",
+			extra
+		)
+
+	var physical_path := _find_route_path(source, target_device, false)
+	if physical_path.is_empty():
+		return _route_result(
+			false,
+			path,
+			"Нет пути между устройствами в текущей топологии.",
+			extra
+		)
+
+	if not _is_operational(target_device):
+		return _route_result(false, physical_path, _device_operational_error(target_device), extra)
+	if target_interface == null or not target_interface.enabled:
+		return _route_result(
+			false,
+			physical_path,
+			"Интерфейс %s на %s выключен." % [
+				target_interface.interface_name if target_interface != null else "IPv4",
+				target_device.device_name,
+			],
+			extra
+		)
+
+	var mask := NetworkValidation.ipv4_to_int(source_interface.subnet_mask)
+	if mask == 0 and source_interface.subnet_mask.is_empty():
+		return _route_result(false, physical_path, "У исходного интерфейса не задана маска подсети.", extra)
+	var source_ip := NetworkValidation.ipv4_to_int(source_interface.ipv4_address)
+	var target_ip := NetworkValidation.ipv4_to_int(target_address)
+	if (source_ip & mask) != (target_ip & mask):
+		return _route_result(false, physical_path, "Адрес назначения находится в другой подсети.", extra)
+
+	# Сначала ищем полностью рабочий путь. Если он есть, не нужно
+	# останавливаться на выключенном устройстве в альтернативной ветке.
+	var valid_path := _find_route_path(source, target_device, true)
+	if not valid_path.is_empty():
+		return _route_result(true, valid_path, "", extra)
+
+	# Рабочего пути нет: ищем физический путь и сообщаем о первой проблеме.
+	var validation := _validate_route_path(physical_path)
+	if not bool(validation.get("ok", false)):
+		var error_index := int(validation.get("index", 0))
+		var error_path := physical_path.slice(0, error_index + 1)
+		var error_extra := extra.duplicate()
+		if not error_path.is_empty():
+			error_extra["error_device"] = error_path.back()
+		return _route_result(
+			false,
+			error_path,
+			str(validation.get("message", "Маршрут недоступен.")),
+			error_extra
+		)
+
+	return _route_result(false, physical_path, "Не удалось построить рабочий маршрут.", extra)
+
+
 # Ограниченная проверка IPv4-доступности для Command Prompt.
 # Это не ICMP: успех означает, что адрес принадлежит включённому интерфейсу,
 # между устройствами есть путь по текущей топологии и адреса входят в одну
 # подсеть. Маршрутизация и ARP в симуляторе пока не реализованы.
 func ping_ipv4(source: Device, target_address: String) -> Dictionary:
-	if source == null or not is_instance_valid(source):
-		return {"ok": false, "reason": "Устройство недоступно."}
-	if not NetworkValidation.is_valid_ipv4(target_address):
-		return {"ok": false, "reason": "Некорректный IPv4-адрес."}
-	if not _is_operational(source):
-		return {"ok": false, "reason": "Устройство выключено или ещё загружается."}
+	var route := calculate_ping_route(source, target_address)
+	return {
+		"ok": bool(route.get("success", false)),
+		"reason": str(route.get("error_msg", "")),
+		"source_interface": route.get("source_interface"),
+		"target_device": route.get("target_device"),
+		"target_interface": route.get("target_interface"),
+		"path": route.get("path", []),
+		"error_device": route.get("error_device"),
+	}
 
-	var source_interface := _find_source_ipv4_interface(source)
-	if source_interface == null:
-		return {"ok": false, "reason": "У текущего устройства нет включённого IPv4-интерфейса."}
-	if not NetworkValidation.is_valid_ipv4(source_interface.ipv4_address):
-		return {"ok": false, "reason": "У исходного интерфейса некорректный IPv4-адрес."}
-	if not NetworkValidation.is_valid_subnet_mask(source_interface.subnet_mask):
-		return {"ok": false, "reason": "У исходного интерфейса не задана корректная маска подсети."}
 
-	var target_device: Device = null
-	var target_interface: DeviceInterface = null
+func _find_target_interface(target_address: String) -> Dictionary:
+	var fallback: Dictionary = {}
 	for candidate in devices:
 		if candidate == null or not is_instance_valid(candidate):
 			continue
@@ -303,39 +396,156 @@ func ping_ipv4(source: Device, target_address: String) -> Dictionary:
 			continue
 		for interface_name in candidate.get_interface_names():
 			var candidate_interface: DeviceInterface = candidate.get_interface(interface_name)
-			if candidate_interface == null or not candidate_interface.enabled:
+			if candidate_interface == null or candidate_interface.ipv4_address != target_address:
 				continue
-			if candidate_interface.ipv4_address == target_address:
-				target_device = candidate
-				target_interface = candidate_interface
-				break
-		if target_device != null:
+			var entry := {"device": candidate, "interface": candidate_interface}
+			# Включённый интерфейс рабочего устройства важнее выключенного:
+			# так мы находим реальную цель, даже если тот же адрес сохранён
+			# на другом, уже отключённом интерфейсе.
+			if candidate_interface.enabled and _is_operational(candidate):
+				return entry
+			if fallback.is_empty():
+				fallback = entry
+	return fallback
+
+
+# BFS по топологии. only_valid=true учитывает питание, активность кабеля,
+# совместимость кабеля и наличие нужных интерфейсов. only_valid=false нужен,
+# чтобы найти физический путь и показать, где именно он ломается.
+func _find_route_path(start: Device, goal: Device, only_valid: bool) -> Array:
+	if start == null or goal == null or not is_instance_valid(start) or not is_instance_valid(goal):
+		return []
+	if start == goal:
+		return [start]
+
+	var queue: Array = [start]
+	var parents: Dictionary = {start: null}
+	while not queue.is_empty():
+		var current = queue.pop_front()
+		if current == goal:
 			break
+		for connection in connections:
+			if connection == null or not is_instance_valid(connection):
+				continue
+			var next = null
+			if connection.from_device == current:
+				next = connection.to_device
+			elif connection.to_device == current:
+				next = connection.from_device
+			if next == null or not is_instance_valid(next) or parents.has(next):
+				continue
+			if only_valid:
+				if not _is_operational(next):
+					continue
+				if connection.has_method("is_active") and not connection.is_active():
+					continue
+				if not _connection_interface_error(current, next, int(connection.cable_type)).is_empty():
+					continue
+			parents[next] = current
+			queue.append(next)
 
-	if target_device == null or target_interface == null:
-		return {"ok": false, "reason": "Хост с таким IPv4-адресом не найден."}
-	if target_device == source:
-		return {"ok": false, "reason": "Адрес принадлежит самому устройству; проверка loopback не реализована."}
-	if not _is_operational(target_device):
-		return {"ok": false, "reason": "Хост с таким IPv4-адресом выключен или ещё загружается."}
-	if not are_devices_connected(source, target_device):
-		return {"ok": false, "reason": "Нет пути между устройствами в текущей топологии."}
+	if not parents.has(goal):
+		return []
+	var path: Array = []
+	var node = goal
+	while node != null:
+		path.push_front(node)
+		node = parents.get(node, null)
+	return path
 
-	var mask := NetworkValidation.ipv4_to_int(source_interface.subnet_mask)
-	if mask == 0 and source_interface.subnet_mask.is_empty():
-		return {"ok": false, "reason": "У исходного интерфейса не задана маска подсети."}
-	var source_ip := NetworkValidation.ipv4_to_int(source_interface.ipv4_address)
-	var target_ip := NetworkValidation.ipv4_to_int(target_address)
-	if (source_ip & mask) != (target_ip & mask):
-		return {"ok": false, "reason": "Адрес назначения находится в другой подсети."}
 
-	return {
-		"ok": true,
-		"reason": "",
-		"source_interface": source_interface,
-		"target_device": target_device,
-		"target_interface": target_interface,
+func _validate_route_path(path: Array) -> Dictionary:
+	if path.size() < 2:
+		return {"ok": true}
+
+	for index in range(path.size() - 1):
+		var a: Device = path[index]
+		var b: Device = path[index + 1]
+		if not _is_operational(b):
+			return {
+				"ok": false,
+				"index": index + 1,
+				"message": _device_operational_error(b),
+			}
+		var connection = find_connection(a, b)
+		if connection == null:
+			return {
+				"ok": false,
+				"index": index,
+				"message": "Нет кабеля между %s и %s." % [a.device_name, b.device_name],
+			}
+		if connection.has_method("is_active") and not connection.is_active():
+			return {
+				"ok": false,
+				"index": index,
+				"message": "Соединение %s ↔ %s ещё устанавливается." % [a.device_name, b.device_name],
+			}
+		var interface_error := _connection_interface_error(a, b, int(connection.cable_type))
+		if not interface_error.is_empty():
+			return {
+				"ok": false,
+				"index": index,
+				"message": interface_error,
+			}
+	return {"ok": true}
+
+
+func _connection_interface_error(a: Device, b: Device, cable_type: int) -> String:
+	var cable_name := cable_type_name(cable_type)
+	if cable_name.is_empty():
+		return "Неизвестный тип кабеля."
+	var pair_rules: Dictionary = CABLE_RULES.get(_pair_key(a, b), {})
+	if pair_rules.is_empty() or not bool(pair_rules.get(cable_name, false)):
+		return "Неверный кабель между %s и %s." % [a.device_name, b.device_name]
+
+	var kind := ""
+	match cable_type:
+		CableType.STRAIGHT, CableType.CROSSOVER:
+			kind = "ethernet"
+		CableType.FIBER:
+			kind = "fiber"
+		CableType.WIRELESS:
+			kind = "wireless"
+	if kind.is_empty():
+		return "Неизвестный тип кабеля."
+	if not _has_enabled_interface_kind(a, kind):
+		return _missing_port_message(a, kind)
+	if not _has_enabled_interface_kind(b, kind):
+		return _missing_port_message(b, kind)
+	return ""
+
+
+func _missing_port_message(device: Device, kind: String) -> String:
+	if kind == "wireless":
+		return "Беспроводной интерфейс на %s выключен или отсутствует." % device.device_name
+	var port_name := "Fiber" if kind == "fiber" else "Ethernet"
+	if device.device_type == "Switch":
+		return "Порт %s на коммутаторе %s выключен или отсутствует." % [port_name, device.device_name]
+	return "Порт %s на %s выключен или отсутствует." % [port_name, device.device_name]
+
+
+func _device_operational_error(device: Device) -> String:
+	if device.device_type == "Switch" and device.is_booting:
+		return "Коммутатор %s загружается." % device.device_name
+	return "Устройство %s выключено." % device.device_name
+
+
+func _route_result(
+	success: bool,
+	path: Array,
+	error_msg: String,
+	extra: Dictionary = {}
+) -> Dictionary:
+	var result := {
+		"success": success,
+		"path": path,
+		"error_msg": error_msg,
 	}
+	for key in extra.keys():
+		result[key] = extra[key]
+	if not success and not result.has("error_device") and not path.is_empty():
+		result["error_device"] = path.back()
+	return result
 
 
 func are_devices_connected(a: Device, b: Device) -> bool:
