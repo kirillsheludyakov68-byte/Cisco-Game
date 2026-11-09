@@ -13,6 +13,7 @@
 [ext_resource type="PackedScene" path="res://scenes/SwitchPhysicalOverlay.tscn" id="11_switch"]
 [ext_resource type="PackedScene" path="res://scenes/SwitchCLIPage.tscn" id="12_cli"]
 [ext_resource type="Script" path="res://scripts/hint_arrow.gd" id="13_hint"]
+[ext_resource type="PackedScene" path="res://scenes/ServerServicesPage.tscn" id="14_services"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_y1kbd"]
 bg_color = Color(0.9411765, 0.9411765, 0.9411765, 1)
@@ -162,6 +163,11 @@ text = "CLI"
 [node name="TabDesktop" type="Button" parent="WindowRoot/TabBar" unique_id=745327592]
 layout_mode = 2
 text = "Desktop"
+
+[node name="TabServices" type="Button" parent="WindowRoot/TabBar" unique_id=745327593]
+visible = false
+layout_mode = 2
+text = "Services"
 
 [node name="MainPanel" type="PanelContainer" parent="." unique_id=390358281]
 anchors_preset = 8
@@ -324,6 +330,18 @@ visible = false
 layout_mode = 2
 
 [node name="DesktopPage" parent="MainPanel/ContentPanel/PageDesktop" instance=ExtResource("10_desktop")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PageServices" type="Control" parent="MainPanel/ContentPanel"]
+visible = false
+layout_mode = 2
+
+[node name="ServerServicesPage" parent="MainPanel/ContentPanel/PageServices" instance=ExtResource("14_services")]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0

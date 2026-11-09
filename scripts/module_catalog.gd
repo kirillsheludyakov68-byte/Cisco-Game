@@ -14,6 +14,14 @@ const PT_SWITCH_NM_1FGE := "PT-SWITCH-NM-1FGE"
 
 const SWITCH_SLOT_COUNT := 10
 
+# Устройства, которые используют съёмные модули PT-HOST-NM-*.
+const HOST_MODULE_DEVICE_TYPES: Array[String] = [
+	"PC",
+	"Laptop",
+	"Tablet",
+	"Printer",
+]
+
 const MODULES: Array[String] = [
 	WMP300N,
 	PT_HOST_NM_1AM,
@@ -41,8 +49,8 @@ const DEFAULT_SWITCH_MODULES := {
 const ICON_PATHS := {
 	WMP300N: "res://assets/modules/wmp300n.jpg",
 	PT_HOST_NM_1AM: "res://assets/modules/pt-host-nm-1am.jpg",
-	PT_HOST_NM_1CE: "res://assets/modules/pt-host-nm-1ce.jpg",
-	PT_HOST_NM_1W: "res://assets/modules/pt-host-nm-1w.jpg",
+	PT_HOST_NM_1CE: "res://assets/modules/pt-host-nm-1ce.png",
+	PT_HOST_NM_1W: "res://assets/modules/pt-host-nm-1w.png",
 	PT_SWITCH_NM_1CE: "res://assets/Switch/modules/gPTSwitchNM-1CE.png",
 	PT_SWITCH_NM_1CFE: "res://assets/Switch/modules/gPTSwitchNM-1CFE.png",
 	PT_SWITCH_NM_1FGE: "res://assets/Switch/modules/gPTSwitchNM-1FGE.png",
@@ -121,6 +129,27 @@ const BUILTIN_INTERFACES := {
 			"name": "FastEthernet0",
 			"kind": "ethernet",
 		},
+		{
+			"name": "Wireless0",
+			"kind": "wireless",
+			"bandwidth_mbps": 11,
+			"ipv4_mode": "static",
+			"ipv6_mode": "static",
+		},
+	],
+	"Hub": [
+		{
+			"name": "Ethernet0",
+			"kind": "ethernet",
+			"bandwidth_mbps": 10,
+		},
+	],
+	"Server": [
+		{
+			"name": "Ethernet0",
+			"kind": "ethernet",
+			"bandwidth_mbps": 1000,
+		},
 	],
 }
 
@@ -133,15 +162,18 @@ static func has_switch_module(module_name: String) -> bool:
 	return SWITCH_MODULES.has(module_name)
 
 
+static func uses_host_modules(device_type: String) -> bool:
+	return HOST_MODULE_DEVICE_TYPES.has(device_type)
+
+
 static func get_modules_for_device(device_type: String) -> Array[String]:
 	var result: Array[String] = []
-	match device_type:
-		"PC":
-			for module_name in MODULES:
-				result.append(module_name)
-		"Switch":
-			for module_name in SWITCH_MODULES:
-				result.append(module_name)
+	if uses_host_modules(device_type):
+		for module_name in MODULES:
+			result.append(module_name)
+	elif device_type == "Switch":
+		for module_name in SWITCH_MODULES:
+			result.append(module_name)
 	return result
 
 

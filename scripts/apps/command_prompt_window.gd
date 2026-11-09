@@ -169,7 +169,7 @@ func _print_help() -> void:
 	_append_line("Доступные команды:")
 	_append_line("  help                 — список команд")
 	_append_line("  ipconfig             — параметры сетевых интерфейсов")
-	_append_line("  ping <IPv4>          — проверка доступности по топологии")
+	_append_line("  ping <IPv4|имя>      — проверка доступности по топологии")
 	_append_line("  cls | clear          — очистить экран")
 	_append_line("")
 	_append_line("Ping не эмулирует ICMP, ARP и маршрутизацию.")
@@ -218,8 +218,8 @@ func _run_ping(args: PackedStringArray) -> void:
 		return
 
 	var target := args[0].strip_edges()
-	if not NetworkValidation.is_valid_ipv4(target):
-		_append_line("Некорректный IPv4-адрес: " + target)
+	if target.is_empty():
+		_append_line("Использование: ping <IPv4|имя>")
 		_finish_ping_output()
 		return
 
@@ -229,11 +229,30 @@ func _run_ping(args: PackedStringArray) -> void:
 		_finish_ping_output()
 		return
 
+	var resolved_address := target
+	if not NetworkValidation.is_valid_ipv4(target):
+		var resolved: Dictionary = simulator.resolve_hostname(device, target)
+		if not bool(resolved.get("ok", false)):
+			_append_line(
+				"Ping request could not find host %s. Please check the name and try again." % target
+			)
+			_append_line("[Ошибка] " + str(resolved.get("error", "Не удалось разрешить имя.")))
+			_finish_ping_output()
+			return
+		resolved_address = str(resolved.get("address", ""))
+		if not NetworkValidation.is_valid_ipv4(resolved_address):
+			_append_line("DNS вернул некорректный IPv4-адрес для " + target)
+			_finish_ping_output()
+			return
+
 	_ping_in_progress = true
 	input.editable = false
-	_append_line("Pinging %s with 32 bytes of data:" % target)
+	var address_suffix := ""
+	if resolved_address != target:
+		address_suffix = " [%s]" % resolved_address
+	_append_line("Pinging %s%s with 32 bytes of data:" % [target, address_suffix])
 
-	var route: Dictionary = simulator.calculate_ping_route(device, target)
+	var route: Dictionary = simulator.calculate_ping_route(device, resolved_address)
 	print("[Ping] Маршрут: %s" % _route_debug_text(route))
 
 	# Прячем все открытые окна устройств, но не главное окно игры.
@@ -256,7 +275,7 @@ func _run_ping(args: PackedStringArray) -> void:
 	if cancelled:
 		_append_line("[Прервано] Проверка ping остановлена.")
 	elif success:
-		_append_line("Reply from %s: bytes=32 time=1ms TTL=128" % target)
+		_append_line("Reply from %s: bytes=32 time=1ms TTL=128" % resolved_address)
 	else:
 		_append_line(_ping_failure_line(error_msg))
 		if not error_msg.is_empty():

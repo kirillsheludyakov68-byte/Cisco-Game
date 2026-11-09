@@ -26,5 +26,16 @@ static func get_page_scene(source_module: String) -> PackedScene:
 	return FALLBACK_PAGE
 
 
+# Встроенный беспроводной интерфейс точки доступа использует ту же
+# страницу SSID/безопасности, что и WMP300N.
+static func get_page_scene_for_interface(
+	source_module: String,
+	interface_kind: String
+) -> PackedScene:
+	if source_module.is_empty() and interface_kind == "wireless":
+		return MODULE_PAGES[ModuleCatalog.WMP300N]
+	return get_page_scene(source_module)
+
+
 static func has_module_page(module_name: String) -> bool:
 	return MODULE_PAGES.has(module_name)

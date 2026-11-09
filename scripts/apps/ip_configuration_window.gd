@@ -77,6 +77,10 @@ func refresh() -> void:
 	if not is_inside_tree():
 		return
 
+	var simulator = get_node_or_null("/root/NetworkSimulator")
+	if simulator != null and simulator.has_method("refresh_dhcp_leases"):
+		simulator.refresh_dhcp_leases()
+
 	_updating = true
 	_populate_interfaces()
 	_sync_controls()
@@ -282,10 +286,25 @@ func _on_ipv4_mode_toggled(pressed: bool, mode: String) -> void:
 	_updating = true
 	device.set_interface_ipv4_mode(network_interface.interface_name, mode)
 	device.set_ipv4_mode(mode)
+	if mode == NetworkSettings.IPV4_DHCP:
+		var simulator = get_node_or_null("/root/NetworkSimulator")
+		if simulator != null and simulator.has_method("refresh_dhcp_leases"):
+			simulator.refresh_dhcp_leases()
 	_sync_controls()
 	_updating = false
 	if mode == NetworkSettings.IPV4_DHCP:
-		_set_status("Режим IPv4: DHCP. Автоматическое получение адреса в симуляторе не выполняется; сохранённые поля не являются арендой.", false, false)
+		if NetworkValidation.is_valid_ipv4(network_interface.ipv4_address):
+			_set_status(
+				"Режим IPv4: DHCP. Получен адрес %s." % network_interface.ipv4_address,
+				false,
+				true
+			)
+		else:
+			_set_status(
+				"Режим IPv4: DHCP. Ожидание аренды от DHCP-сервера.",
+				false,
+				false
+			)
 	else:
 		_set_status("Режим IPv4: Static.", false, true)
 

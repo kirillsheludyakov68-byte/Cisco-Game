@@ -1,0 +1,183 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/server_services_page.gd" id="1_page"]
+
+[node name="ServerServicesPage" type="PanelContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_page")
+
+[node name="Root" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 9
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 9
+theme_override_constants/margin_bottom = 9
+
+[node name="VBox" type="VBoxContainer" parent="Root"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="HeaderPanel" type="PanelContainer" parent="Root/VBox"]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+
+[node name="HeaderLabel" type="Label" parent="Root/VBox/HeaderPanel"]
+layout_mode = 2
+text = "Services"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StatusLabel" type="Label" parent="Root/VBox"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+text = "DNS: выключена. DHCP: выключена."
+
+[node name="BodyScroll" type="ScrollContainer" parent="Root/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Body" type="VBoxContainer" parent="Root/VBox/BodyScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="DnsPanel" type="PanelContainer" parent="Root/VBox/BodyScroll/Body"]
+layout_mode = 2
+
+[node name="DnsMargin" type="MarginContainer" parent="Root/VBox/BodyScroll/Body/DnsPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 7
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="DnsVBox" type="VBoxContainer" parent="Root/VBox/BodyScroll/Body/DnsPanel/DnsMargin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="DnsTitle" type="Label" parent="Root/VBox/BodyScroll/Body/DnsPanel/DnsMargin/DnsVBox"]
+layout_mode = 2
+text = "DNS Service"
+
+[node name="DnsToggle" type="CheckBox" parent="Root/VBox/BodyScroll/Body/DnsPanel/DnsMargin/DnsVBox"]
+layout_mode = 2
+text = "On"
+
+[node name="DnsFields" type="GridContainer" parent="Root/VBox/BodyScroll/Body/DnsPanel/DnsMargin/DnsVBox"]
+layout_mode = 2
+columns = 2
+
+[node name="DnsNameLabel" type="Label" parent="Root/VBox/BodyScroll/Body/DnsPanel/DnsMargin/DnsVBox/DnsFields"]
+layout_mode = 2
+text = "Name"
+
+[node name="DnsNameEdit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/DnsPanel/DnsMargin/DnsVBox/DnsFields"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "server"
+
+[node name="DnsAddressLabel" type="Label" parent="Root/VBox/BodyScroll/Body/DnsPanel/DnsMargin/DnsVBox/DnsFields"]
+layout_mode = 2
+text = "Address"
+
+[node name="DnsAddressEdit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/DnsPanel/DnsMargin/DnsVBox/DnsFields"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "192.168.9.1"
+
+[node name="DnsAddButton" type="Button" parent="Root/VBox/BodyScroll/Body/DnsPanel/DnsMargin/DnsVBox"]
+layout_mode = 2
+text = "Add Record"
+
+[node name="DnsRecordsTitle" type="Label" parent="Root/VBox/BodyScroll/Body/DnsPanel/DnsMargin/DnsVBox"]
+layout_mode = 2
+text = "Resource Records"
+
+[node name="DnsRecords" type="VBoxContainer" parent="Root/VBox/BodyScroll/Body/DnsPanel/DnsMargin/DnsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="DhcpPanel" type="PanelContainer" parent="Root/VBox/BodyScroll/Body"]
+layout_mode = 2
+
+[node name="DhcpMargin" type="MarginContainer" parent="Root/VBox/BodyScroll/Body/DhcpPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 7
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="DhcpVBox" type="VBoxContainer" parent="Root/VBox/BodyScroll/Body/DhcpPanel/DhcpMargin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="DhcpTitle" type="Label" parent="Root/VBox/BodyScroll/Body/DhcpPanel/DhcpMargin/DhcpVBox"]
+layout_mode = 2
+text = "DHCP Service"
+
+[node name="DhcpToggle" type="CheckBox" parent="Root/VBox/BodyScroll/Body/DhcpPanel/DhcpMargin/DhcpVBox"]
+layout_mode = 2
+text = "On"
+
+[node name="DhcpFields" type="GridContainer" parent="Root/VBox/BodyScroll/Body/DhcpPanel/DhcpMargin/DhcpVBox"]
+layout_mode = 2
+columns = 2
+
+[node name="DhcpStartLabel" type="Label" parent="Root/VBox/BodyScroll/Body/DhcpPanel/DhcpMargin/DhcpVBox/DhcpFields"]
+layout_mode = 2
+text = "Start IP"
+
+[node name="DhcpStartEdit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/DhcpPanel/DhcpMargin/DhcpVBox/DhcpFields"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "192.168.9.3"
+
+[node name="DhcpMaskLabel" type="Label" parent="Root/VBox/BodyScroll/Body/DhcpPanel/DhcpMargin/DhcpVBox/DhcpFields"]
+layout_mode = 2
+text = "Subnet Mask"
+
+[node name="DhcpMaskEdit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/DhcpPanel/DhcpMargin/DhcpVBox/DhcpFields"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "255.255.255.0"
+
+[node name="DhcpGatewayLabel" type="Label" parent="Root/VBox/BodyScroll/Body/DhcpPanel/DhcpMargin/DhcpVBox/DhcpFields"]
+layout_mode = 2
+text = "Default Gateway"
+
+[node name="DhcpGatewayEdit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/DhcpPanel/DhcpMargin/DhcpVBox/DhcpFields"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "192.168.9.1"
+
+[node name="DhcpDnsLabel" type="Label" parent="Root/VBox/BodyScroll/Body/DhcpPanel/DhcpMargin/DhcpVBox/DhcpFields"]
+layout_mode = 2
+text = "DNS Server"
+
+[node name="DhcpDnsEdit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/DhcpPanel/DhcpMargin/DhcpVBox/DhcpFields"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "192.168.9.1"
+
+[node name="DhcpMaxUsersLabel" type="Label" parent="Root/VBox/BodyScroll/Body/DhcpPanel/DhcpMargin/DhcpVBox/DhcpFields"]
+layout_mode = 2
+text = "Maximum Users"
+
+[node name="DhcpMaxUsersEdit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/DhcpPanel/DhcpMargin/DhcpVBox/DhcpFields"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "10"
+
+[node name="DhcpSaveButton" type="Button" parent="Root/VBox/BodyScroll/Body/DhcpPanel/DhcpMargin/DhcpVBox"]
+layout_mode = 2
+text = "Save Settings"
+
+[node name="HintLabel" type="Label" parent="Root/VBox"]
+layout_mode = 2
+autowrap_mode = 2
+text = "DNS сопоставляет имена IPv4-адресам. DHCP выдаёт адреса клиентам автоматически."

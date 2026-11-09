@@ -8,6 +8,9 @@ enum CableType {
 	FIBER       # оптоволокно
 }
 
+# Устройства, которые подключаются к сети как оконечные узлы.
+const END_DEVICE_TYPES: Array[String] = ["PC", "Laptop", "Tablet", "Printer", "Server"]
+
 # Таблица совместимости: тип устройства + тип устройства -> допустимые кабели.
 # Ключ пары строится по алфавиту, поэтому порядок кликов не важен.
 # Значения: straight, crossover, wireless, fiber.
@@ -80,6 +83,9 @@ var devices: Array = []
 # Список всех связей уровня
 var connections: Array = []
 
+# Выданные DHCP-адреса: { instance_id клиента: IPv4 }.
+var _dhcp_leases: Dictionary = {}
+
 # Сигналы
 signal devices_changed
 signal connections_changed
@@ -121,8 +127,165 @@ func remove_connection(connection) -> void:
 func clear() -> void:
 	devices.clear()
 	connections.clear()
+	_dhcp_leases.clear()
 	devices_changed.emit()
 	connections_changed.emit()
+
+
+# Выдать DHCP-адреса всем клиентам, которые находятся в режиме DHCP
+# и имеют рабочий путь до включённого DHCP-сервера.
+func refresh_dhcp_leases() -> void:
+	var servers: Array = []
+	for candidate in devices:
+		if candidate == null or not is_instance_valid(candidate):
+			continue
+		if str(candidate.device_type) != "Server":
+			continue
+		if not candidate.dhcp_service_enabled or not _is_operational(candidate):
+			continue
+		servers.append(candidate)
+
+	for client in devices:
+		if client == null or not is_instance_valid(client):
+			continue
+		for interface_name in client.get_interface_names():
+			var network_interface: DeviceInterface = client.get_interface(interface_name)
+			if network_interface == null or network_interface.ipv4_mode != NetworkSettings.IPV4_DHCP:
+				continue
+			if not _is_operational(client):
+				network_interface.ipv4_address = ""
+				continue
+
+			var server = _find_dhcp_server(client, servers)
+			if server == null:
+				network_interface.ipv4_address = ""
+				continue
+
+			var lease := _get_or_assign_dhcp_lease(client, network_interface, server)
+			if lease.is_empty():
+				network_interface.ipv4_address = ""
+				continue
+			network_interface.ipv4_address = lease
+			network_interface.subnet_mask = server.dhcp_subnet_mask
+			client.network_settings.gateway_ipv4 = server.dhcp_gateway
+			client.network_settings.dns_ipv4 = server.dhcp_dns
+
+
+func _find_dhcp_server(client, servers: Array):
+	for server in servers:
+		if _find_route_path(client, server, true).is_empty():
+			continue
+		return server
+	return null
+
+
+func _get_or_assign_dhcp_lease(
+	client: Device,
+	own_interface: DeviceInterface,
+	server: Device
+) -> String:
+	var pool: Array[String] = server.get_dhcp_pool()
+	if pool.is_empty():
+		return ""
+
+	var client_id: int = client.get_instance_id()
+	var existing := str(_dhcp_leases.get(client_id, ""))
+	var used := _collect_used_ipv4(client, own_interface)
+	if not existing.is_empty() and pool.has(existing) and not used.has(existing):
+		return existing
+
+	for candidate in pool:
+		if used.has(candidate):
+			continue
+		_dhcp_leases[client_id] = candidate
+		return candidate
+	return ""
+
+
+func _collect_used_ipv4(client, own_interface: DeviceInterface) -> Dictionary:
+	var used: Dictionary = {}
+	for candidate in devices:
+		if candidate == null or not is_instance_valid(candidate):
+			continue
+		for interface_name in candidate.get_interface_names():
+			var network_interface: DeviceInterface = candidate.get_interface(interface_name)
+			if network_interface == null or network_interface == own_interface:
+				continue
+			if not network_interface.ipv4_address.is_empty():
+				used[network_interface.ipv4_address] = true
+	return used
+
+
+# Разрешение имени через включённый DNS-сервер. Это математическая
+# проверка записей и доступности сервера, а не имитация DNS-пакетов.
+func resolve_hostname(source: Device, target: String) -> Dictionary:
+	var text := target.strip_edges()
+	if NetworkValidation.is_valid_ipv4(text):
+		return {"ok": true, "address": text}
+	if source == null or not is_instance_valid(source):
+		return {"ok": false, "error": "Устройство недоступно."}
+	if text.is_empty():
+		return {"ok": false, "error": "Не задано имя хоста."}
+
+	refresh_dhcp_leases()
+	var source_dns := source.network_settings.dns_ipv4.strip_edges()
+	if source_dns.is_empty():
+		return {"ok": false, "error": "У устройства не задан DNS-сервер."}
+
+	var dns_server_found := false
+	for candidate in devices:
+		if candidate == null or not is_instance_valid(candidate):
+			continue
+		if str(candidate.device_type) != "Server":
+			continue
+		if not candidate.dns_service_enabled or not _is_operational(candidate):
+			continue
+		var server_ip: String = candidate.get_primary_ipv4_address()
+		if server_ip != source_dns:
+			continue
+		dns_server_found = true
+		var key := text.to_lower()
+		if not candidate.dns_records.has(key):
+			continue
+		if _find_route_path(source, candidate, true).is_empty():
+			return {
+				"ok": false,
+				"error": "DNS-сервер %s недоступен." % candidate.device_name,
+			}
+		return {
+			"ok": true,
+			"address": str(candidate.dns_records[key]),
+			"server": candidate,
+		}
+
+	if not dns_server_found:
+		return {
+			"ok": false,
+			"error": "DNS-сервер %s не найден или выключен." % source_dns,
+		}
+	return {
+		"ok": false,
+		"error": "Не удалось разрешить имя %s. Проверьте DNS-записи." % text,
+	}
+
+
+func ping_host(source: Device, target: String) -> Dictionary:
+	var resolved := resolve_hostname(source, target)
+	if not bool(resolved.get("ok", false)):
+		return {
+			"ok": false,
+			"reason": str(resolved.get("error", "Не удалось разрешить имя.")),
+			"address": "",
+			"target": target,
+			"path": [source] if source != null else [],
+			"error_device": source,
+		}
+	var address := str(resolved.get("address", ""))
+	var result := ping_ipv4(source, address)
+	result["address"] = address
+	result["target"] = target
+	return result
+
 
 # Найти связь между двумя устройствами (если есть)
 func find_connection(a, b):
@@ -188,6 +351,69 @@ func _pair_key(a, b) -> String:
 	return "%s|%s" % [types[0], types[1]]
 
 
+func _get_pair_rules(a, b) -> Dictionary:
+	var key := _pair_key(a, b)
+	if CABLE_RULES.has(key):
+		return CABLE_RULES[key]
+	return _default_pair_rules(str(a.device_type), str(b.device_type))
+
+
+# Правила для новых типов устройств. Явные записи CABLE_RULES имеют приоритет.
+func _default_pair_rules(type_a: String, type_b: String) -> Dictionary:
+	var rules := {
+		"straight": false,
+		"crossover": false,
+		"wireless": false,
+		"fiber": false,
+	}
+	var has_hub := type_a == "Hub" or type_b == "Hub"
+	var has_ap := type_a == "AccessPoint" or type_b == "AccessPoint"
+	var has_switch := type_a == "Switch" or type_b == "Switch"
+	var has_router := type_a == "Router" or type_b == "Router"
+	var a_end := END_DEVICE_TYPES.has(type_a)
+	var b_end := END_DEVICE_TYPES.has(type_b)
+
+	if has_hub:
+		# Для учебной топологии разрешаем и прямой, и кроссовер между хабами:
+		# современные порты Auto-MDI/X работают в обоих случаях.
+		rules["straight"] = true
+		rules["crossover"] = type_a == "Hub" and type_b == "Hub"
+		return rules
+
+	if has_ap:
+		var other := type_b if type_a == "AccessPoint" else type_a
+		if other in ["PC", "Laptop", "Tablet"]:
+			rules["wireless"] = true
+		elif other == "AccessPoint":
+			rules["crossover"] = true
+		else:
+			rules["straight"] = true
+		return rules
+
+	if has_switch:
+		var other := type_b if type_a == "Switch" else type_a
+		if END_DEVICE_TYPES.has(other):
+			rules["straight"] = true
+		elif other == "Router":
+			rules["straight"] = true
+			rules["fiber"] = true
+		elif other == "Switch":
+			rules["crossover"] = true
+		return rules
+
+	if has_router:
+		var other := type_b if type_a == "Router" else type_a
+		if END_DEVICE_TYPES.has(other) or other == "Router":
+			rules["crossover"] = true
+		return rules
+
+	if a_end and b_end:
+		rules["crossover"] = true
+		return rules
+
+	return {}
+
+
 # Проверить: можно ли соединить эти два устройства выбранным кабелем?
 # Возвращает Dictionary: {ok: bool, reason: String}.
 # Проверка двухуровневая:
@@ -208,7 +434,7 @@ func can_connect(a, b, cable_type: int = CableType.STRAIGHT) -> Dictionary:
 	if cable_name.is_empty():
 		return {"ok": false, "reason": "Неизвестный тип кабеля"}
 
-	var pair_rules: Dictionary = CABLE_RULES.get(_pair_key(a, b), {})
+	var pair_rules: Dictionary = _get_pair_rules(a, b)
 	if pair_rules.is_empty():
 		return {
 			"ok": false,
@@ -274,6 +500,62 @@ func _is_operational(device) -> bool:
 	return bool(device.is_powered_on)
 
 
+func wireless_link_error(a, b) -> String:
+	return _wireless_security_error(a, b)
+
+
+func is_wireless_link_secure(a, b) -> bool:
+	return _wireless_security_error(a, b).is_empty()
+
+
+func _wireless_security_error(a, b) -> String:
+	var ap = null
+	var client = null
+	if a != null and str(a.device_type) == "AccessPoint":
+		ap = a
+		client = b
+	elif b != null and str(b.device_type) == "AccessPoint":
+		ap = b
+		client = a
+	if ap == null or client == null:
+		return "Беспроводное соединение должно идти через точку доступа."
+
+	var ap_interface := _get_wireless_interface(ap)
+	var client_interface := _get_wireless_interface(client)
+	if ap_interface == null:
+		return "На точке доступа %s нет включённого беспроводного интерфейса." % ap.device_name
+	if client_interface == null:
+		return "У %s нет включённого беспроводного интерфейса." % client.device_name
+
+	var ap_wireless: WirelessSettings = ap_interface.wireless
+	var client_wireless: WirelessSettings = client_interface.wireless
+	var ap_ssid := ap_wireless.ssid.strip_edges()
+	var client_ssid := client_wireless.ssid.strip_edges()
+	if ap_ssid.is_empty() or client_ssid.is_empty():
+		return "Не задан SSID беспроводной сети."
+	if ap_ssid != client_ssid:
+		return "SSID точки доступа и клиента не совпадают."
+	if ap_wireless.authentication_mode != WirelessSettings.AUTH_WPA2_PSK \
+			or client_wireless.authentication_mode != WirelessSettings.AUTH_WPA2_PSK:
+		return "Для беспроводной сети нужна аутентификация WPA2-PSK."
+	if ap_wireless.encryption_type != WirelessSettings.ENCRYPTION_AES \
+			or client_wireless.encryption_type != WirelessSettings.ENCRYPTION_AES:
+		return "Для WPA2-PSK нужно шифрование AES."
+	if ap_wireless.psk_passphrase.is_empty() or client_wireless.psk_passphrase.is_empty():
+		return "Не задан пароль WPA2-PSK."
+	if ap_wireless.psk_passphrase != client_wireless.psk_passphrase:
+		return "Пароли WPA2-PSK точки доступа и клиента не совпадают."
+	return ""
+
+
+func _get_wireless_interface(device) -> DeviceInterface:
+	if device == null or not is_instance_valid(device):
+		return null
+	if device.has_method("get_wireless_interface"):
+		return device.get_wireless_interface(true)
+	return null
+
+
 # Рассчитать маршрут ping для Command Prompt и анимации пакета.
 # Возвращает { success, path, error_msg, ... }. В path лежат устройства
 # от источника до цели. При ошибке path обрезается до проблемного
@@ -283,6 +565,10 @@ func calculate_ping_route(source: Device, target_address: String) -> Dictionary:
 	if source == null or not is_instance_valid(source):
 		return _route_result(false, path, "Устройство недоступно.")
 	path = [source]
+
+	# Перед проверкой адреса обновляем DHCP-аренды: клиент мог только что
+	# включить DHCP или сервер мог изменить пул.
+	refresh_dhcp_leases()
 
 	if not NetworkValidation.is_valid_ipv4(target_address):
 		return _route_result(false, path, "Некорректный IPv4-адрес.")
@@ -494,7 +780,7 @@ func _connection_interface_error(a: Device, b: Device, cable_type: int) -> Strin
 	var cable_name := cable_type_name(cable_type)
 	if cable_name.is_empty():
 		return "Неизвестный тип кабеля."
-	var pair_rules: Dictionary = CABLE_RULES.get(_pair_key(a, b), {})
+	var pair_rules: Dictionary = _get_pair_rules(a, b)
 	if pair_rules.is_empty() or not bool(pair_rules.get(cable_name, false)):
 		return "Неверный кабель между %s и %s." % [a.device_name, b.device_name]
 
@@ -512,6 +798,10 @@ func _connection_interface_error(a: Device, b: Device, cable_type: int) -> Strin
 		return _missing_port_message(a, kind)
 	if not _has_enabled_interface_kind(b, kind):
 		return _missing_port_message(b, kind)
+	if cable_type == CableType.WIRELESS:
+		var security_error := _wireless_security_error(a, b)
+		if not security_error.is_empty():
+			return security_error
 	return ""
 
 

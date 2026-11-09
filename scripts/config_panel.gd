@@ -204,7 +204,7 @@ func _display_interface(iface: DeviceInterface) -> void:
 	if settings_page.has_method("set_selected_interface"):
 		settings_page.set_selected_interface(selected_interface_name)
 
-	_ensure_interface_page(iface.source_module)
+	_ensure_interface_page(iface)
 	if _interface_page != null and _interface_page.has_method("setup"):
 		_interface_page.setup(device, iface, iface.source_module)
 
@@ -222,12 +222,24 @@ func _on_interface_selected_from_settings(interface_name: String) -> void:
 			_display_interface(iface)
 
 
+# Публичный переход к интерфейсу нужен подсказкам уровня.
+func show_interface(interface_name: String) -> void:
+	_show_interface(interface_name)
+
+
+func get_interface_page() -> Control:
+	return _interface_page
+
+
 func _on_interfaces_changed() -> void:
 	refresh_interfaces()
 
 
-func _ensure_interface_page(source_module: String) -> void:
-	var page_scene := ConfigPageRegistry.get_page_scene(source_module)
+func _ensure_interface_page(iface: DeviceInterface) -> void:
+	var page_scene := ConfigPageRegistry.get_page_scene_for_interface(
+		iface.source_module,
+		iface.interface_kind
+	)
 	if page_scene == null:
 		return
 

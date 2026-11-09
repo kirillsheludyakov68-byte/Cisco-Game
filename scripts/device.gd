@@ -13,6 +13,7 @@ var is_powered_on: bool = true:
 		if not value:
 			reset_command_prompt_session()
 		_refresh_active_module()
+		_apply_texture_by_type()
 		if device_type == "Switch" and not _suppress_power_boot:
 			if value:
 				_start_switch_boot()
@@ -73,6 +74,19 @@ var _suppress_power_boot: bool = false
 var interfaces: Array[DeviceInterface] = []
 var network_settings: NetworkSettings = NetworkSettings.new()
 
+# --- Службы сервера ---
+# DNS: { "имя": "IPv4-адрес" }.
+var dns_service_enabled: bool = false
+var dns_records: Dictionary = {}
+
+# DHCP-пул. Адреса выдаются математически, без имитации DHCP-пакетов.
+var dhcp_service_enabled: bool = false
+var dhcp_start_ip: String = ""
+var dhcp_subnet_mask: String = "255.255.255.0"
+var dhcp_gateway: String = ""
+var dhcp_dns: String = ""
+var dhcp_max_users: int = 0
+
 # Резервные значения для данных старого уровня, пока у устройства нет
 # подходящего интерфейса (например, ПК без установленного модуля).
 var _pending_ipv4: String = ""
@@ -117,6 +131,15 @@ var subnet_mask: String:
 @export var texture_switch: Texture2D
 @export var texture_router: Texture2D
 @export var texture_ap: Texture2D
+@export var texture_hub: Texture2D
+@export var texture_server_on: Texture2D
+@export var texture_server_off: Texture2D
+@export var texture_printer_on: Texture2D
+@export var texture_printer_off: Texture2D
+@export var texture_laptop_on: Texture2D
+@export var texture_laptop_off: Texture2D
+@export var texture_tablet_on: Texture2D
+@export var texture_tablet_off: Texture2D
 
 signal device_clicked(device: Device)
 signal power_changed(is_on: bool)
@@ -163,6 +186,20 @@ func _apply_texture_by_type() -> void:
 			if texture_router: sprite.texture = texture_router
 		"AccessPoint":
 			if texture_ap: sprite.texture = texture_ap
+		"Hub":
+			if texture_hub: sprite.texture = texture_hub
+		"Server":
+			var server_texture := texture_server_on if is_powered_on else texture_server_off
+			if server_texture: sprite.texture = server_texture
+		"Printer":
+			var printer_texture := texture_printer_on if is_powered_on else texture_printer_off
+			if printer_texture: sprite.texture = printer_texture
+		"Laptop":
+			var laptop_texture := texture_laptop_on if is_powered_on else texture_laptop_off
+			if laptop_texture: sprite.texture = laptop_texture
+		"Tablet":
+			var tablet_texture := texture_tablet_on if is_powered_on else texture_tablet_off
+			if tablet_texture: sprite.texture = tablet_texture
 
 func _fit_sprite_to_collision() -> void:
 	if not sprite or not sprite.texture:
@@ -443,9 +480,105 @@ func set_ipv6_gateway_dns(gateway: String, dns: String) -> void:
 	configuration_changed.emit()
 
 
+func get_wireless_interface(require_enabled: bool = true) -> DeviceInterface:
+	for iface in interfaces:
+		if iface.interface_kind == "wireless" and (iface.enabled or not require_enabled):
+			return iface
+	return null
+
+
+func get_primary_ipv4_address() -> String:
+	for iface in interfaces:
+		if not iface.ipv4_address.is_empty():
+			return iface.ipv4_address
+	return ""
+
+
+func set_dns_service(enabled: bool) -> void:
+	if dns_service_enabled == enabled:
+		return
+	dns_service_enabled = enabled
+	configuration_changed.emit()
+
+
+func add_dns_record(record_name: String, address: String) -> bool:
+	var key := record_name.strip_edges().to_lower()
+	if key.is_empty() or key.length() > 63:
+		return false
+	if not NetworkValidation.is_valid_ipv4(address):
+		return false
+	dns_records[key] = address.strip_edges()
+	configuration_changed.emit()
+	return true
+
+
+func remove_dns_record(record_name: String) -> bool:
+	var key := record_name.strip_edges().to_lower()
+	if not dns_records.has(key):
+		return false
+	dns_records.erase(key)
+	configuration_changed.emit()
+	return true
+
+
+func set_dhcp_service(enabled: bool) -> void:
+	if dhcp_service_enabled == enabled:
+		return
+	dhcp_service_enabled = enabled
+	configuration_changed.emit()
+
+
+func set_dhcp_config(values: Dictionary) -> bool:
+	var start_ip := str(values.get("start_ip", dhcp_start_ip)).strip_edges()
+	var mask := str(values.get("subnet_mask", dhcp_subnet_mask)).strip_edges()
+	var gateway := str(values.get("gateway", dhcp_gateway)).strip_edges()
+	var dns := str(values.get("dns", dhcp_dns)).strip_edges()
+	var max_users := int(values.get("max_users", dhcp_max_users))
+
+	if not NetworkValidation.is_valid_ipv4(start_ip):
+		return false
+	if not NetworkValidation.is_valid_subnet_mask(mask):
+		return false
+	if not gateway.is_empty() and not NetworkValidation.is_valid_ipv4(gateway):
+		return false
+	if not dns.is_empty() and not NetworkValidation.is_valid_ipv4(dns):
+		return false
+	if max_users < 1 or max_users > 254:
+		return false
+
+	dhcp_start_ip = start_ip
+	dhcp_subnet_mask = mask
+	dhcp_gateway = gateway
+	dhcp_dns = dns
+	dhcp_max_users = max_users
+	configuration_changed.emit()
+	return true
+
+
+func get_dhcp_pool() -> Array[String]:
+	var pool: Array[String] = []
+	if not NetworkValidation.is_valid_ipv4(dhcp_start_ip):
+		return pool
+	if not NetworkValidation.is_valid_subnet_mask(dhcp_subnet_mask):
+		return pool
+	if dhcp_max_users < 1:
+		return pool
+
+	var start_value := NetworkValidation.ipv4_to_int(dhcp_start_ip)
+	var mask_value := NetworkValidation.ipv4_to_int(dhcp_subnet_mask)
+	var network_value := start_value & mask_value
+	var broadcast_value := network_value | ((~mask_value) & 0xFFFFFFFF)
+	for offset in range(dhcp_max_users):
+		var candidate := start_value + offset
+		if candidate >= broadcast_value:
+			break
+		pool.append(NetworkValidation.ipv4_from_int(candidate))
+	return pool
+
+
 func _sync_interfaces_from_module() -> void:
 	var specs: Array[Dictionary] = []
-	if device_type == "PC":
+	if ModuleCatalog.uses_host_modules(device_type):
 		specs = ModuleCatalog.get_network_interfaces(installed_module)
 		for spec in specs:
 			spec["source_module"] = installed_module
@@ -545,8 +678,8 @@ func _sync_interfaces_from_module() -> void:
 
 		if old_interface != null:
 			_copy_interface_state(old_interface, network_interface)
-		elif index == 0 and device_type == "PC":
-			# ПК сохраняет IP первого интерфейса при смене/переустановке модуля.
+		elif index == 0 and ModuleCatalog.uses_host_modules(device_type):
+			# Host-устройство сохраняет IP первого интерфейса при смене модуля.
 			network_interface.ipv4_address = _pending_ipv4
 			network_interface.subnet_mask = _pending_mask
 			network_interface.ipv6_address = _pending_ipv6

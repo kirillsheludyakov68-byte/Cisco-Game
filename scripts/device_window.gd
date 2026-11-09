@@ -23,11 +23,13 @@ const ZOOM_SCROLL_BAR_WIDTH := 14.0
 @onready var tab_config: Button = $WindowRoot/TabBar/TabConfig
 @onready var tab_cli: Button = $WindowRoot/TabBar/TabCLI
 @onready var tab_desktop: Button = $WindowRoot/TabBar/TabDesktop
+@onready var tab_services: Button = $WindowRoot/TabBar/TabServices
 
 @onready var page_physical: Control = $MainPanel/ContentPanel/PagePhysical
 @onready var page_config: Control = $MainPanel/ContentPanel/PageConfig
 @onready var page_cli: Control = $MainPanel/ContentPanel/PageCLI
 @onready var page_desktop: Control = $MainPanel/ContentPanel/PageDesktop
+@onready var page_services: Control = $MainPanel/ContentPanel/PageServices
 
 @onready var modules_panel: ModulesPanel = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ModulesPanel
 @onready var module_slot: ModuleSlot = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/ModuleSlot
@@ -36,6 +38,7 @@ const ZOOM_SCROLL_BAR_WIDTH := 14.0
 @onready var config_panel: ConfigPanel = $MainPanel/ContentPanel/PageConfig/ConfigPanel
 @onready var cli_page: SwitchCLIPage = $MainPanel/ContentPanel/PageCLI/SwitchCLIPage
 @onready var desktop_page: DesktopPage = $MainPanel/ContentPanel/PageDesktop/DesktopPage
+@onready var services_page: ServerServicesPage = $MainPanel/ContentPanel/PageServices/ServerServicesPage
 @onready var error_dialog: ErrorDialog = $ErrorDialog
 @onready var hint_overlay: HintArrow = $HintOverlay
 
@@ -71,6 +74,7 @@ func _ready() -> void:
 	tab_config.pressed.connect(_on_tab_config)
 	tab_cli.pressed.connect(_on_tab_cli)
 	tab_desktop.pressed.connect(_on_tab_desktop)
+	tab_services.pressed.connect(_on_tab_services)
 
 	zoom_in_button.pressed.connect(_on_zoom_in_pressed)
 	original_size_button.pressed.connect(_on_original_size_pressed)
@@ -99,7 +103,9 @@ func _ready() -> void:
 
 	tab_cli.visible = false
 	tab_desktop.visible = true
+	tab_services.visible = false
 	page_cli.visible = false
+	page_services.visible = false
 	_show_page("physical")
 
 
@@ -118,27 +124,49 @@ func open_for(dev: Device) -> void:
 		device.boot_finished.connect(_on_device_boot_finished)
 
 	var is_switch := dev.device_type == "Switch"
-	tab_desktop.visible = not is_switch
-	tab_cli.visible = is_switch
+	var has_config := dev.device_type != "Hub"
+	var has_cli := is_switch
+	var has_desktop := dev.device_type in ["PC", "Laptop", "Tablet"]
+	var has_services := dev.device_type == "Server"
+	var has_host_module := ModuleCatalog.uses_host_modules(dev.device_type)
+	var has_modules := has_host_module or is_switch
+
+	tab_config.visible = has_config
+	tab_cli.visible = has_cli
+	tab_desktop.visible = has_desktop
+	tab_services.visible = has_services
 	page_desktop.visible = false
 	page_cli.visible = false
+	page_services.visible = false
 
-	# Слот модулей есть только у ПК, у коммутатора — десять отдельных слотов.
-	module_slot.visible = not is_switch
+	# Слот модулей есть только у host-устройств, у коммутатора — десять слотов.
+	module_slot.visible = has_host_module
 	switch_overlay.visible = is_switch
-	module_slot.setup(dev, self)
+	modules_panel.visible = has_modules
+	if module_info != null:
+		module_info.visible = has_modules
+
+	if has_host_module:
+		module_slot.setup(dev, self)
 	if is_switch:
 		switch_overlay.setup(dev, self)
-	modules_panel.setup(dev, self)
+	if has_modules:
+		modules_panel.setup(dev, self)
 	_update_device_image()
 	_update_device_base_rect()
 	_reset_zoom()
-	_update_module_info()
-	config_panel.setup(dev)
-	if is_switch:
+	if has_modules:
+		_update_module_info()
+	if has_config:
+		config_panel.setup(dev)
+	if has_cli:
 		cli_page.setup(dev)
-	else:
+	if has_desktop:
 		desktop_page.setup(dev)
+	if has_services:
+		services_page.setup(dev)
+	else:
+		services_page.setup(null)
 	_show_page("physical")
 
 
@@ -158,7 +186,7 @@ func _on_device_name_changed(new_name: String) -> void:
 
 
 func _on_device_view_resized() -> void:
-	if device == null or device.device_type != "Switch":
+	if device == null or device.device_type == "PC":
 		return
 	# После первого расчёта раскладки область просмотра может измениться.
 	# Пересчитываем размер картинки, чтобы она точно вписалась в окно.
@@ -171,15 +199,19 @@ func _on_device_power_changed(is_on: bool) -> void:
 	hide_hint()
 	if not is_on:
 		_dismiss_boot_warning()
-		if page_config.visible or page_cli.visible:
+		if page_config.visible or page_cli.visible or page_desktop.visible or page_services.visible:
 			_show_page("physical")
 	_update_device_image()
 	_update_device_base_rect()
 	_apply_zoom()
-	module_slot.refresh()
+	if module_slot.visible:
+		module_slot.refresh()
 	if switch_overlay.visible:
 		switch_overlay.refresh()
-	cli_page.refresh()
+	if cli_page.visible:
+		cli_page.refresh()
+	if services_page != null:
+		services_page.refresh()
 	if is_on and page_config.visible:
 		config_panel.refresh()
 
@@ -293,11 +325,22 @@ func _on_tab_desktop() -> void:
 	_show_page("desktop")
 
 
+func _on_tab_services() -> void:
+	_show_page("services")
+
+
 func _show_page(page: String) -> void:
 	if device != null:
-		if device.device_type == "Switch" and page == "desktop":
-			page = "physical"
-		elif device.device_type != "Switch" and page == "cli":
+		var allowed := page == "physical"
+		if page == "config" and device.device_type != "Hub":
+			allowed = true
+		if page == "cli" and device.device_type == "Switch":
+			allowed = true
+		if page == "desktop" and device.device_type in ["PC", "Laptop", "Tablet"]:
+			allowed = true
+		if page == "services" and device.device_type == "Server":
+			allowed = true
+		if not allowed:
 			page = "physical"
 
 	hide_hint()
@@ -310,15 +353,19 @@ func _show_page(page: String) -> void:
 	var was_config_visible := page_config.visible
 	var was_cli_visible := page_cli.visible
 	var was_desktop_visible := page_desktop.visible
+	var was_services_visible := page_services.visible
 	if was_config_visible and page != "config":
 		config_panel.commit_pending()
 	if was_desktop_visible and page != "desktop" and desktop_page != null:
 		desktop_page.commit_pending_windows()
+	if was_services_visible and page != "services" and services_page != null:
+		services_page.commit_pending()
 
 	page_physical.visible = (page == "physical")
 	page_config.visible = (page == "config")
 	page_cli.visible = (page == "cli")
 	page_desktop.visible = (page == "desktop")
+	page_services.visible = (page == "services")
 
 	if page == "config" and not was_config_visible and config_panel != null:
 		# IP Configuration на Desktop пишет в ту же модель DeviceInterface,
@@ -328,6 +375,8 @@ func _show_page(page: String) -> void:
 		cli_page.on_activated()
 	if page == "desktop" and not was_desktop_visible and desktop_page != null:
 		desktop_page.on_activated()
+	if page == "services" and not was_services_visible and services_page != null:
+		services_page.refresh()
 
 	# Во время загрузки коммутатора вкладку Config/CLI открыть можно,
 	# чтобы увидеть процесс загрузки, но модальное предупреждение
@@ -342,6 +391,8 @@ func _on_close_requested() -> void:
 		config_panel.commit_pending()
 	if desktop_page != null:
 		desktop_page.commit_pending_windows()
+	if services_page != null:
+		services_page.commit_pending()
 	queue_free()
 
 
@@ -350,26 +401,51 @@ func _update_device_image() -> void:
 		return
 
 	switch_overlay.visible = device.device_type == "Switch"
-	if device.device_type == "PC":
-		if device.is_powered_on:
-			device_image.texture = load("res://assets/devices/PC_on.png")
-		else:
-			device_image.texture = load("res://assets/devices/PC_off.png")
-	elif device.device_type == "Switch":
-		# Базовая текстура коммутатора; поверх неё показывается
-		# кнопка питания в состоянии PowerOn.png или PowerOff.png.
-		device_image.texture = load("res://assets/Switch/iPTRealSwitch.png")
-		switch_overlay.setup(device, self)
-		switch_overlay.refresh()
-	elif device.device_type == "Router":
-		device_image.texture = load("res://assets/devices/Router.png")
+	match device.device_type:
+		"PC":
+			if device.is_powered_on:
+				device_image.texture = load("res://assets/devices/PC_on.png")
+			else:
+				device_image.texture = load("res://assets/devices/PC_off.png")
+		"Switch":
+			# Базовая текстура коммутатора; поверх неё показывается
+			# кнопка питания в состоянии PowerOn.png или PowerOff.png.
+			device_image.texture = load("res://assets/Switch/iPTRealSwitch.png")
+			switch_overlay.setup(device, self)
+			switch_overlay.refresh()
+		"Router":
+			device_image.texture = load("res://assets/Router.svg")
+		"AccessPoint":
+			device_image.texture = load("res://assets/devices/AccessPoint.png")
+		"Hub":
+			device_image.texture = load("res://assets/devices/Hub.png")
+		"Server":
+			device_image.texture = load(
+				"res://assets/devices/Server_on.png" if device.is_powered_on
+				else "res://assets/devices/Server_off.png"
+			)
+		"Printer":
+			device_image.texture = load(
+				"res://assets/devices/Printer_on.png" if device.is_powered_on
+				else "res://assets/devices/Printer_off.png"
+			)
+		"Laptop":
+			device_image.texture = load(
+				"res://assets/devices/Laptop_on.png" if device.is_powered_on
+				else "res://assets/devices/Laptop_off.png"
+			)
+		"Tablet":
+			device_image.texture = load(
+				"res://assets/devices/Tablet_on.png" if device.is_powered_on
+				else "res://assets/devices/Tablet_off.png"
+			)
 
 
 func _update_device_base_rect() -> void:
 	if device_image == null or device_image.texture == null:
 		return
 
-	if device != null and device.device_type == "Switch":
+	if device != null and device.device_type != "PC":
 		var texture_size := device_image.texture.get_size()
 		var view_size := device_view.size
 		if view_size.x <= 1.0 or view_size.y <= 1.0:
@@ -379,7 +455,7 @@ func _update_device_base_rect() -> void:
 			view_size.y / maxf(texture_size.y, 1.0)
 		)
 		var fitted_size := texture_size * maxf(fit_scale, 0.01)
-		# Левый верхний угол коммутатора совпадает с левым верхним
+		# Левый верхний угол устройства совпадает с левым верхним
 		# углом области просмотра.
 		_device_base_rect = Rect2(Vector2.ZERO, fitted_size)
 	else:
@@ -596,18 +672,40 @@ func _on_device_image_gui_input(event: InputEvent) -> void:
 
 	# У коммутатора кнопку питания обрабатывает SwitchPhysicalOverlay,
 	# чтобы её зона точно совпадала с PowerOn.png.
-	if device == null or device.device_type != "PC":
+	if device == null or device.device_type == "Switch":
 		return
 
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		# Огромная зона для теста, чтобы точно попасть
-		# (X, Y, Ширина, Высота) - потом подгонишь под кнопку
-		var button_rect = Rect2(132, 118, 14, 21)
+		var button_rect := _get_power_base_rect()
+		if button_rect.size == Vector2.ZERO:
+			return
 
 		# Координаты события локальные для уже масштабированной картинки.
 		var base_position: Vector2 = event.position / _zoom_scale
 		if button_rect.has_point(base_position):
 			device.set_power(not device.is_powered_on)
+
+
+func _get_power_base_rect() -> Rect2:
+	if device == null or _device_base_rect.size == Vector2.ZERO:
+		return Rect2()
+	if device.device_type == "PC":
+		return Rect2(132, 118, 14, 21)
+
+	var size := _device_base_rect.size
+	if device.device_type in ["Server", "Printer", "Laptop", "Tablet"]:
+		return Rect2(
+			size.x * 0.62,
+			size.y * 0.18,
+			maxf(18.0, size.x * 0.14),
+			maxf(18.0, size.y * 0.12)
+		)
+	return Rect2(
+		size.x * 0.86,
+		size.y * 0.08,
+		maxf(18.0, size.x * 0.08),
+		maxf(18.0, size.y * 0.10)
+	)
 
 
 # --- Модули: вызываются из ModuleSlot и ModulesPanel ---
@@ -705,6 +803,14 @@ func show_hint_tab(page: String) -> void:
 			show_hint_node(tab_cli)
 		"desktop":
 			show_hint_node(tab_desktop)
+		"services":
+			show_hint_node(tab_services)
+
+
+func show_config_interface(interface_name: String) -> void:
+	_show_page("config")
+	if config_panel != null:
+		config_panel.show_interface(interface_name)
 
 
 func show_hint_module() -> void:
@@ -754,8 +860,10 @@ func get_power_hint_rect() -> Rect2:
 		if switch_overlay != null and switch_overlay.power_area != null:
 			return switch_overlay.power_area.get_global_rect()
 		return Rect2()
-	if device.device_type == "PC" and device_image != null:
-		var base_rect := Rect2(132, 118, 14, 21)
+	if device_image != null:
+		var base_rect := _get_power_base_rect()
+		if base_rect.size == Vector2.ZERO:
+			return Rect2()
 		var image_rect := device_image.get_global_rect()
 		return Rect2(
 			image_rect.position + base_rect.position * _zoom_scale,

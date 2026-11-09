@@ -18,8 +18,8 @@ var objectives: Array = []
 var hints_available := -1
 
 # Пинг считается выполненным только после реальной команды в Command Prompt.
-# При изменении питания/кабеля шаг перепроверяется через ping_ipv4().
-var _ping_succeeded := false
+# Ключ — "id_источника|цель", цель может быть IPv4-адресом или именем.
+var _ping_results: Dictionary = {}
 
 var _level_started_msec := 0
 var _completion_recorded := false
@@ -73,6 +73,9 @@ func _load_level(path: String) -> void:
 	if presets is Dictionary:
 		_apply_module_presets(presets)
 
+	# Сеть применяем после модулей: интерфейсы уже должны существовать.
+	_apply_network_configs(data.get("devices", []))
+
 	for conn_data in data.get("connections", []):
 		_spawn_connection(conn_data)
 
@@ -122,8 +125,23 @@ func _apply_textures(device: Device, device_type: String) -> void:
 			if ResourceLoader.exists("res://assets/Router.svg"):
 				device.texture_router = load("res://assets/Router.svg")
 		"AccessPoint":
-			if ResourceLoader.exists("res://assets/AccessPoint.svg"):
-				device.texture_ap = load("res://assets/AccessPoint.svg")
+			if ResourceLoader.exists("res://assets/devices/AccessPoint.png"):
+				device.texture_ap = load("res://assets/devices/AccessPoint.png")
+		"Hub":
+			if ResourceLoader.exists("res://assets/devices/Hub.png"):
+				device.texture_hub = load("res://assets/devices/Hub.png")
+		"Server":
+			device.texture_server_on = load("res://assets/devices/Server_on.png")
+			device.texture_server_off = load("res://assets/devices/Server_off.png")
+		"Printer":
+			device.texture_printer_on = load("res://assets/devices/Printer_on.png")
+			device.texture_printer_off = load("res://assets/devices/Printer_off.png")
+		"Laptop":
+			device.texture_laptop_on = load("res://assets/devices/Laptop_on.png")
+			device.texture_laptop_off = load("res://assets/devices/Laptop_off.png")
+		"Tablet":
+			device.texture_tablet_on = load("res://assets/devices/Tablet_on.png")
+			device.texture_tablet_off = load("res://assets/devices/Tablet_off.png")
 
 
 func _apply_module_presets(presets: Dictionary) -> void:
@@ -146,6 +164,37 @@ func _apply_module_presets(presets: Dictionary) -> void:
 
 		var dev: Device = devices_by_id[device_id]
 		dev.set_initial_module(module_name)
+
+
+func _apply_network_configs(device_data: Array) -> void:
+	for raw_data in device_data:
+		if not raw_data is Dictionary:
+			continue
+		var data: Dictionary = raw_data
+		var dev := _device(str(data.get("id", "")))
+		if dev == null:
+			continue
+		var network_interface := dev.get_primary_interface()
+		if network_interface == null:
+			continue
+
+		var ip_mode := str(data.get("ip_mode", ""))
+		if ip_mode == "dhcp":
+			dev.set_interface_ipv4_mode(network_interface.interface_name, NetworkSettings.IPV4_DHCP)
+			dev.set_ipv4_mode(NetworkSettings.IPV4_DHCP)
+			network_interface.ipv4_address = ""
+		elif ip_mode == "static" or data.has("ip"):
+			dev.set_interface_ipv4_mode(network_interface.interface_name, NetworkSettings.IPV4_STATIC)
+			dev.set_ipv4_mode(NetworkSettings.IPV4_STATIC)
+			var ip := str(data.get("ip", ""))
+			var mask := str(data.get("mask", "255.255.255.0"))
+			if not ip.is_empty():
+				dev.set_interface_ipv4_config(network_interface.interface_name, ip, mask)
+
+		var gateway := str(data.get("gateway", ""))
+		var dns := str(data.get("dns", ""))
+		if not gateway.is_empty() or not dns.is_empty():
+			dev.set_ipv4_gateway_dns(gateway, dns)
 
 
 # Формат связи:
@@ -229,15 +278,10 @@ func _on_connection_activated(_connection) -> void:
 
 
 func _on_ping_checked(source, target_address, ok) -> void:
-	var ping_objective := _get_ping_objective()
-	if ping_objective.is_empty():
+	var source_id := _device_id(source)
+	if source_id.is_empty():
 		return
-	var source_device := _device(str(ping_objective.get("from", "")))
-	if source_device == null or source != source_device:
-		return
-	if str(target_address) != str(ping_objective.get("target", "")):
-		return
-	_ping_succeeded = bool(ok)
+	_ping_results[_ping_key(source_id, str(target_address))] = bool(ok)
 	_refresh_objectives()
 
 
@@ -246,6 +290,7 @@ func _on_ping_checked(source, target_address, ok) -> void:
 func _refresh_objectives() -> void:
 	if task_panel == null:
 		return
+	NetworkSimulator.refresh_dhcp_leases()
 	var states: Array[bool] = []
 	for objective in objectives:
 		states.append(evaluate_objective(objective))
@@ -319,13 +364,17 @@ func evaluate_objective(objective: Dictionary) -> bool:
 				return false
 			if connection.has_method("is_active") and not connection.is_active():
 				return false
-			if not _connection_matches_cable(connection, str(objective.get("cable", "straight"))):
+			var cable_name := str(objective.get("cable", "straight"))
+			if not _connection_matches_cable(connection, cable_name):
 				return false
 			var required_kind := str(objective.get("interface_kind", "ethernet"))
 			if not required_kind.is_empty():
 				if not from_device.has_enabled_interface_kind(required_kind):
 					return false
 				if not to_device.has_enabled_interface_kind(required_kind):
+					return false
+			if cable_name == "wireless":
+				if not NetworkSimulator.is_wireless_link_secure(from_device, to_device):
 					return false
 			return true
 
@@ -341,14 +390,84 @@ func evaluate_objective(objective: Dictionary) -> bool:
 					return false
 			return true
 
-		"ping":
-			if not _ping_succeeded:
+		"static_ip":
+			var static_device := _device(str(objective.get("device", "")))
+			if static_device == null:
 				return false
+			var interface_name := str(objective.get("interface", ""))
+			var network_interface := (
+				static_device.get_interface(interface_name)
+				if not interface_name.is_empty()
+				else static_device.get_primary_interface()
+			)
+			if network_interface == null:
+				return false
+			if network_interface.ipv4_mode != NetworkSettings.IPV4_STATIC:
+				return false
+			var required_ip := str(objective.get("ip", ""))
+			var required_mask := str(objective.get("mask", "255.255.255.0"))
+			return (
+				network_interface.ipv4_address == required_ip
+				and network_interface.subnet_mask == required_mask
+			)
+
+		"dns_record":
+			var dns_device := _device(str(objective.get("device", "")))
+			if dns_device == null or not dns_device.dns_service_enabled:
+				return false
+			var record_name := str(objective.get("name", "")).to_lower()
+			var record_address := str(objective.get("address", ""))
+			return str(dns_device.dns_records.get(record_name, "")) == record_address
+
+		"dhcp_config":
+			var dhcp_device := _device(str(objective.get("device", "")))
+			if dhcp_device == null or not dhcp_device.dhcp_service_enabled:
+				return false
+			var required_start := str(objective.get("start_ip", dhcp_device.dhcp_start_ip))
+			var required_mask := str(
+				objective.get("mask", objective.get("subnet_mask", dhcp_device.dhcp_subnet_mask))
+			)
+			var required_gateway := str(objective.get("gateway", dhcp_device.dhcp_gateway))
+			var required_dns := str(objective.get("dns", dhcp_device.dhcp_dns))
+			if dhcp_device.dhcp_start_ip != required_start:
+				return false
+			if dhcp_device.dhcp_subnet_mask != required_mask:
+				return false
+			if dhcp_device.dhcp_gateway != required_gateway:
+				return false
+			if dhcp_device.dhcp_dns != required_dns:
+				return false
+			var required_users := int(objective.get("users", -1))
+			if required_users >= 0 and dhcp_device.dhcp_max_users != required_users:
+				return false
+			return true
+
+		"dhcp_lease":
+			var lease_devices = objective.get("devices", [])
+			if not lease_devices is Array or (lease_devices as Array).is_empty():
+				return false
+			for device_id in lease_devices:
+				var lease_device := _device(str(device_id))
+				if lease_device == null or not lease_device.is_operational():
+					return false
+				var lease_interface := lease_device.get_primary_interface()
+				if lease_interface == null:
+					return false
+				if lease_interface.ipv4_mode != NetworkSettings.IPV4_DHCP:
+					return false
+				if not NetworkValidation.is_valid_ipv4(lease_interface.ipv4_address):
+					return false
+			return true
+
+		"ping":
 			var ping_source := _device(str(objective.get("from", "")))
 			var target_address := str(objective.get("target", ""))
 			if ping_source == null or target_address.is_empty():
 				return false
-			var result: Dictionary = NetworkSimulator.ping_ipv4(ping_source, target_address)
+			var key := _ping_key(_device_id(ping_source), target_address)
+			if not bool(_ping_results.get(key, false)):
+				return false
+			var result: Dictionary = NetworkSimulator.ping_host(ping_source, target_address)
 			return bool(result.get("ok", false))
 	return false
 
@@ -380,11 +499,17 @@ func _device(device_id: String) -> Device:
 	return null
 
 
-func _get_ping_objective() -> Dictionary:
-	for objective in objectives:
-		if objective is Dictionary and str(objective.get("type", "")) == "ping":
-			return objective
-	return {}
+func _device_id(device: Device) -> String:
+	if device == null:
+		return ""
+	for device_id in devices_by_id:
+		if devices_by_id[device_id] == device:
+			return str(device_id)
+	return ""
+
+
+func _ping_key(source_id: String, target: String) -> String:
+	return "%s|%s" % [source_id, target.strip_edges()]
 
 
 # --- Подсказки ---
@@ -407,6 +532,14 @@ func _hint_for_objective(objective: Dictionary) -> Dictionary:
 			return _hint_for_connection(objective)
 		"power":
 			return _hint_for_power(objective)
+		"static_ip":
+			return _hint_for_static_ip(objective)
+		"dns_record":
+			return _hint_for_dns_record(objective)
+		"dhcp_config":
+			return _hint_for_dhcp_config(objective)
+		"dhcp_lease":
+			return _hint_for_dhcp_lease(objective)
 		"ping":
 			return _hint_for_ping(objective)
 	return {"text": "Выполните следующий шаг задания.", "target": {}}
@@ -470,6 +603,11 @@ func _hint_for_connection(objective: Dictionary) -> Dictionary:
 	if from_device == null or to_device == null:
 		return _hint("Устройства для этого шага не найдены.", {})
 
+	var cable_name := str(objective.get("cable", "straight"))
+	if cable_name == "wireless" \
+			and not NetworkSimulator.is_wireless_link_secure(from_device, to_device):
+		return _hint_for_wireless_security(objective, from_device, to_device)
+
 	var existing = NetworkSimulator.find_connection(from_device, to_device)
 	if existing != null:
 		if existing.has_method("is_connecting") and existing.is_connecting():
@@ -477,14 +615,21 @@ func _hint_for_connection(objective: Dictionary) -> Dictionary:
 				"Дождитесь установления беспроводного соединения.",
 				_world_target(to_device)
 			)
+		if not _connection_matches_cable(existing, cable_name):
+			return _hint(
+				"Удалите неверный кабель: кликните по линии между %s и %s." % [
+					from_device.device_name, to_device.device_name
+				],
+				{"kind": "connection", "connection": existing}
+			)
+		if cable_name == "wireless" \
+				and not NetworkSimulator.is_wireless_link_secure(from_device, to_device):
+			return _hint_for_wireless_security(objective, from_device, to_device)
 		return _hint(
-			"Удалите неверный кабель: кликните по линии между %s и %s." % [
-				from_device.device_name, to_device.device_name
-			],
-			{"kind": "connection", "connection": existing}
+			"Соединение уже установлено. Проверьте, что оба устройства включены.",
+			_world_target(to_device)
 		)
 
-	var cable_name := str(objective.get("cable", "straight"))
 	var cable_type := _cable_type_from_name(cable_name)
 	if cable_type < 0:
 		cable_type = NetworkSimulator.CableType.STRAIGHT
@@ -512,6 +657,243 @@ func _hint_for_connection(objective: Dictionary) -> Dictionary:
 		"Начните соединение с %s: кликните по нему." % from_device.device_name,
 		_world_target(from_device)
 	)
+
+
+func _hint_for_wireless_security(
+	_objective: Dictionary,
+	from_device: Device,
+	to_device: Device
+) -> Dictionary:
+	var ap: Device = from_device if from_device.device_type == "AccessPoint" else to_device
+	if ap == null or ap.device_type != "AccessPoint":
+		return _hint("Для беспроводного соединения нужна точка доступа.", {})
+	var client: Device = to_device if ap == from_device else from_device
+	if not ap.is_powered_on:
+		return _hint("Включите точку доступа %s." % ap.device_name, _world_target(ap))
+
+	var fix_device := _wireless_device_to_fix(ap, client)
+	var window = _open_window(fix_device)
+	if window == null:
+		return _hint(
+			"Кликните по %s, чтобы открыть окно устройства." % fix_device.device_name,
+			_world_target(fix_device)
+		)
+	if not fix_device.is_powered_on:
+		return _hint(
+			"Включите %s." % fix_device.device_name,
+			_window_rect_target(window, window.get_power_hint_rect())
+		)
+	if not window.page_config.visible:
+		return _hint(
+			"Перейдите на вкладку Config.",
+			_window_node_target(window, window.tab_config)
+		)
+
+	var wireless_interface := fix_device.get_wireless_interface(false)
+	var interface_name := (
+		wireless_interface.interface_name if wireless_interface != null else "Wireless0"
+	)
+	window.show_config_interface(interface_name)
+	var page = window.config_panel.get_interface_page()
+	return _hint(
+		"Настройте SSID, WPA2-PSK и AES на %s. SSID и пароль должны совпадать у точки доступа и клиента." % fix_device.device_name,
+		_window_node_target(window, page if page != null else window.config_panel)
+	)
+
+
+func _wireless_device_to_fix(ap: Device, client: Device) -> Device:
+	var ap_interface := ap.get_wireless_interface(false)
+	if ap_interface == null:
+		return ap
+	var wireless := ap_interface.wireless
+	if wireless.ssid.strip_edges().is_empty() \
+			or wireless.authentication_mode != WirelessSettings.AUTH_WPA2_PSK \
+			or wireless.encryption_type != WirelessSettings.ENCRYPTION_AES \
+			or wireless.psk_passphrase.is_empty():
+		return ap
+	return client
+
+
+func _hint_for_static_ip(objective: Dictionary) -> Dictionary:
+	var dev := _device(str(objective.get("device", "")))
+	if dev == null:
+		return _hint("Устройство для этого шага не найдено.", {})
+	var interface_name := str(objective.get("interface", ""))
+	var network_interface := (
+		dev.get_interface(interface_name) if not interface_name.is_empty() else dev.get_primary_interface()
+	)
+	if network_interface == null:
+		return _hint("У устройства нет подходящего интерфейса.", _world_target(dev))
+
+	var window = _open_window(dev)
+	if window == null:
+		return _hint(
+			"Кликните по %s, чтобы открыть окно устройства." % dev.device_name,
+			_world_target(dev)
+		)
+	if not dev.is_powered_on:
+		return _hint(
+			"Включите %s." % dev.device_name,
+			_window_rect_target(window, window.get_power_hint_rect())
+		)
+	if not window.page_config.visible:
+		return _hint("Перейдите на вкладку Config.", _window_node_target(window, window.tab_config))
+
+	window.show_config_interface(network_interface.interface_name)
+	var page = window.config_panel.get_interface_page()
+	return _hint(
+		"Укажите статический IPv4-адрес %s и маску %s." % [
+			str(objective.get("ip", "")), str(objective.get("mask", "255.255.255.0"))
+		],
+		_window_node_target(window, page if page != null else window.config_panel)
+	)
+
+
+func _hint_for_dns_record(objective: Dictionary) -> Dictionary:
+	var dev := _device(str(objective.get("device", "")))
+	if dev == null:
+		return _hint("Сервер для этого шага не найден.", {})
+	var window = _open_window(dev)
+	if window == null:
+		return _hint(
+			"Кликните по %s, чтобы открыть окно сервера." % dev.device_name,
+			_world_target(dev)
+		)
+	if not dev.is_powered_on:
+		return _hint(
+			"Включите %s." % dev.device_name,
+			_window_rect_target(window, window.get_power_hint_rect())
+		)
+	if not window.page_services.visible:
+		return _hint(
+			"Перейдите на вкладку Services.",
+			_window_node_target(window, window.tab_services)
+		)
+	var target_node: Control = (
+		window.services_page.dns_name_edit if window.services_page != null else window.services_page
+	)
+	return _hint(
+		"Включите DNS и добавьте запись %s → %s." % [
+			str(objective.get("name", "")), str(objective.get("address", ""))
+		],
+		_window_node_target(window, target_node)
+	)
+
+
+func _hint_for_dhcp_config(objective: Dictionary) -> Dictionary:
+	var dev := _device(str(objective.get("device", "")))
+	if dev == null:
+		return _hint("Сервер для этого шага не найден.", {})
+	var window = _open_window(dev)
+	if window == null:
+		return _hint(
+			"Кликните по %s, чтобы открыть окно сервера." % dev.device_name,
+			_world_target(dev)
+		)
+	if not dev.is_powered_on:
+		return _hint(
+			"Включите %s." % dev.device_name,
+			_window_rect_target(window, window.get_power_hint_rect())
+		)
+	if not window.page_services.visible:
+		return _hint(
+			"Перейдите на вкладку Services.",
+			_window_node_target(window, window.tab_services)
+		)
+	var target_node: Control = (
+		window.services_page.dhcp_start_edit if window.services_page != null else window.services_page
+	)
+	return _hint(
+		"Включите DHCP: Start IP %s, маска %s, шлюз %s, DNS %s, Maximum Users %s." % [
+			str(objective.get("start_ip", "")),
+			str(objective.get("mask", "255.255.255.0")),
+			str(objective.get("gateway", "")),
+			str(objective.get("dns", "")),
+			str(objective.get("users", "")),
+		],
+		_window_node_target(window, target_node)
+	)
+
+
+func _hint_for_dhcp_lease(objective: Dictionary) -> Dictionary:
+	var lease_devices = objective.get("devices", [])
+	var first_failed: Device = null
+	if lease_devices is Array:
+		for device_id in lease_devices:
+			var candidate := _device(str(device_id))
+			if candidate == null:
+				continue
+			var candidate_interface := candidate.get_primary_interface()
+			if not candidate.is_operational() \
+					or candidate_interface == null \
+					or candidate_interface.ipv4_mode != NetworkSettings.IPV4_DHCP \
+					or not NetworkValidation.is_valid_ipv4(candidate_interface.ipv4_address):
+				first_failed = candidate
+				break
+	if first_failed == null:
+		return _hint("Все клиенты уже получили адреса по DHCP.", {})
+
+	var server := _find_configured_dhcp_server()
+	if server == null or server.get_dhcp_pool().is_empty():
+		if server == null:
+			for candidate in devices_by_id.values():
+				if candidate is Device and candidate.device_type == "Server":
+					server = candidate
+					break
+		if server != null:
+			var server_window = _open_window(server)
+			if server_window == null:
+				return _hint(
+					"Кликните по %s, чтобы открыть окно сервера." % server.device_name,
+					_world_target(server)
+				)
+			if not server_window.page_services.visible:
+				return _hint(
+					"Перейдите на вкладку Services.",
+					_window_node_target(server_window, server_window.tab_services)
+				)
+			var server_target: Control = (
+				server_window.services_page.dhcp_start_edit
+				if server_window.services_page != null
+				else server_window.services_page
+			)
+			return _hint(
+				"Включите DHCP и настройте пул адресов.",
+				_window_node_target(server_window, server_target)
+			)
+
+	var window = _open_window(first_failed)
+	if window == null:
+		return _hint(
+			"Кликните по %s, чтобы открыть окно устройства." % first_failed.device_name,
+			_world_target(first_failed)
+		)
+	if not first_failed.is_powered_on:
+		return _hint(
+			"Включите %s." % first_failed.device_name,
+			_window_rect_target(window, window.get_power_hint_rect())
+		)
+	if not window.page_config.visible:
+		return _hint("Перейдите на вкладку Config.", _window_node_target(window, window.tab_config))
+
+	var failed_interface := first_failed.get_primary_interface()
+	if failed_interface != null:
+		window.show_config_interface(failed_interface.interface_name)
+	var page = window.config_panel.get_interface_page()
+	return _hint(
+		"Проверьте, что интерфейс в режиме DHCP и что есть рабочий путь до DHCP-сервера.",
+		_window_node_target(window, page if page != null else window.config_panel)
+	)
+
+
+func _find_configured_dhcp_server() -> Device:
+	for candidate in devices_by_id.values():
+		if candidate is Device \
+				and candidate.device_type == "Server" \
+				and candidate.dhcp_service_enabled \
+				and candidate.is_operational():
+			return candidate
+	return null
 
 
 func _hint_for_power(objective: Dictionary) -> Dictionary:
@@ -550,16 +932,17 @@ func _hint_for_ping(objective: Dictionary) -> Dictionary:
 	if dev == null:
 		return _hint("Устройство для ping не найдено.", {})
 
-	if _ping_succeeded:
-		var result: Dictionary = NetworkSimulator.ping_ipv4(dev, target_address)
-		if not bool(result.get("ok", false)):
-			var switch_device := _device("sw1")
-			if switch_device == null:
-				switch_device = dev
-			return _hint(
-				"Связь потеряна. Проверьте питание Switch1 и PC2, затем повторите ping.",
-				_world_target(switch_device)
-			)
+	var key := _ping_key(_device_id(dev), target_address)
+	var attempted := _ping_results.has(key)
+	if attempted and not bool(_ping_results.get(key, false)):
+		if not NetworkValidation.is_valid_ipv4(target_address):
+			var resolved := NetworkSimulator.resolve_hostname(dev, target_address)
+			if not bool(resolved.get("ok", false)):
+				return _hint_for_dns_failure(dev, target_address)
+		return _hint(
+			"Пакет не прошёл. Проверьте питание, кабели и адреса, затем повторите ping %s." % target_address,
+			_world_target(dev)
+		)
 
 	var window = _open_window(dev)
 	if window == null:
@@ -596,6 +979,54 @@ func _hint_for_ping(objective: Dictionary) -> Dictionary:
 		"Введите ping %s в Command Prompt." % target_address,
 		_window_node_target(window, command_prompt)
 	)
+
+
+func _hint_for_dns_failure(dev: Device, target: String) -> Dictionary:
+	var server := _find_configured_dns_server()
+	if server == null:
+		for candidate in devices_by_id.values():
+			if candidate is Device and candidate.device_type == "Server":
+				server = candidate
+				break
+	if server == null:
+		return _hint(
+			"Настройте DNS-сервер, DNS-записи и DNS-сервер в DHCP, затем повторите ping %s." % target,
+			_world_target(dev)
+		)
+
+	var window = _open_window(server)
+	if window == null:
+		return _hint(
+			"Кликните по %s, чтобы открыть окно сервера." % server.device_name,
+			_world_target(server)
+		)
+	if not server.is_powered_on:
+		return _hint(
+			"Включите %s." % server.device_name,
+			_window_rect_target(window, window.get_power_hint_rect())
+		)
+	if not window.page_services.visible:
+		return _hint(
+			"Перейдите на вкладку Services.",
+			_window_node_target(window, window.tab_services)
+		)
+	var target_node: Control = (
+		window.services_page.dns_name_edit if window.services_page != null else window.services_page
+	)
+	return _hint(
+		"Проверьте службу DNS, запись %s и DNS-сервер, выдаваемый DHCP." % target,
+		_window_node_target(window, target_node)
+	)
+
+
+func _find_configured_dns_server() -> Device:
+	for candidate in devices_by_id.values():
+		if candidate is Device \
+				and candidate.device_type == "Server" \
+				and candidate.dns_service_enabled \
+				and candidate.is_operational():
+			return candidate
+	return null
 
 
 func _hint(text: String, target: Dictionary) -> Dictionary:
