@@ -158,13 +158,6 @@ const BUILTIN_INTERFACES := {
 			"ipv6_mode": "static",
 		},
 	],
-	"Hub": [
-		{
-			"name": "Ethernet0",
-			"kind": "ethernet",
-			"bandwidth_mbps": 10,
-		},
-	],
 	"Server": [
 		{
 			"name": "Ethernet0",
