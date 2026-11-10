@@ -21,7 +21,7 @@ const SLOT_RECTS: Array[Rect2] = [
 	Rect2(270, 85, 55, 66),
 ]
 
-const POWER_RECT := Rect2(375, 48, 30, 55)
+const POWER_RECT := Rect2(377, 47, 30, 55)
 
 @onready var slots_layer: Control = $SlotsLayer
 @onready var power_area: Control = $PowerArea

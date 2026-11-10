@@ -177,6 +177,9 @@ func _ensure_slot_defaults() -> void:
 func _apply_texture_by_type() -> void:
 	if not sprite:
 		return
+	# У SVG-иконок могут быть прозрачные поля. Смещение выравнивает
+	# визуальный центр рисунка по точке подключения кабелей.
+	sprite.offset = Vector2.ZERO
 	match device_type:
 		"PC":
 			if texture_pc: sprite.texture = texture_pc
@@ -187,7 +190,9 @@ func _apply_texture_by_type() -> void:
 		"AccessPoint":
 			if texture_ap: sprite.texture = texture_ap
 		"Hub":
-			if texture_hub: sprite.texture = texture_hub
+			if texture_hub:
+				sprite.texture = texture_hub
+				sprite.offset = _get_texture_content_offset(texture_hub)
 		"Server":
 			var server_texture := texture_server_on if is_powered_on else texture_server_off
 			if server_texture: sprite.texture = server_texture
@@ -200,6 +205,21 @@ func _apply_texture_by_type() -> void:
 		"Tablet":
 			var tablet_texture := texture_tablet_on if is_powered_on else texture_tablet_off
 			if tablet_texture: sprite.texture = tablet_texture
+
+
+func _get_texture_content_offset(texture: Texture2D) -> Vector2:
+	if texture == null:
+		return Vector2.ZERO
+	var image := texture.get_image()
+	if image == null:
+		return Vector2.ZERO
+	var used := image.get_used_rect()
+	if used.size == Vector2i.ZERO:
+		return Vector2.ZERO
+	var texture_center := Vector2(image.get_size()) / 2.0
+	var content_center := Vector2(used.position) + Vector2(used.size) / 2.0
+	return texture_center - content_center
+
 
 func _fit_sprite_to_collision() -> void:
 	if not sprite or not sprite.texture:

@@ -129,9 +129,8 @@ func _apply_textures(device: Device, device_type: String) -> void:
 			if ResourceLoader.exists("res://assets/fix levl2/AccessPoint.svg"):
 				device.texture_ap = load("res://assets/fix levl2/AccessPoint.svg")
 		"Hub":
-			# Hub.png обрезан по краям рисунка, поэтому кабели сходятся
-			# точно в визуальном центре корпуса.
-			device.texture_hub = load("res://assets/devices/Hub.png")
+			if ResourceLoader.exists("res://assets/fix levl2/Hub.svg"):
+				device.texture_hub = load("res://assets/fix levl2/Hub.svg")
 		"Server":
 			device.texture_server_on = load("res://assets/fix levl2/Server.svg")
 			device.texture_server_off = load("res://assets/devices/Server_off.png")

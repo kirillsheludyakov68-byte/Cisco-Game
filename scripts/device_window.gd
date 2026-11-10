@@ -16,6 +16,7 @@ const ERROR_POWERED_OFF := "Устройство должно быть вклю�
 const ERROR_BOOTING := "Коммутатор загружается. Пожалуйста, подождите."
 
 const ZOOM_STEP := 1.2
+const HUB_BASE_SCALE := 1.0 / (ZOOM_STEP * ZOOM_STEP * ZOOM_STEP)
 const ZOOM_MIN := 0.25
 const ZOOM_MAX := 3.0
 const ZOOM_SCROLL_STEP := 48.0
@@ -163,7 +164,7 @@ func open_for(dev: Device) -> void:
 		modules_panel.setup(dev, self)
 	_update_device_image()
 	_update_device_base_rect()
-	_reset_zoom()
+	_reset_zoom_for_device()
 	if has_modules:
 		_update_module_info()
 	if has_config:
@@ -496,6 +497,18 @@ func _setup_zoom() -> void:
 
 func _reset_zoom() -> void:
 	_zoom_scale = 1.0
+	_zoom_pan = Vector2.ZERO
+	_apply_zoom()
+
+
+func _get_initial_zoom_scale() -> float:
+	if device != null and device.device_type == "Hub":
+		return HUB_BASE_SCALE
+	return 1.0
+
+
+func _reset_zoom_for_device() -> void:
+	_zoom_scale = _get_initial_zoom_scale()
 	_zoom_pan = Vector2.ZERO
 	_apply_zoom()
 
