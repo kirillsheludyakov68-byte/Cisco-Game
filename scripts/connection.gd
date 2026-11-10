@@ -21,6 +21,10 @@ var to_device: Node2D
 # Тип кабеля (из NetworkSimulator.CableType)
 var cable_type: int = NetworkSimulator.CableType.STRAIGHT
 
+# Физически выбранные порты: источник → цель.
+var source_interface: String = ""
+var target_interface: String = ""
+
 var _wireless_delay := DEFAULT_WIRELESS_DELAY
 var _wireless_elapsed := 0.0
 var _active := true
@@ -50,10 +54,19 @@ func _process(delta: float) -> void:
 	# а беспроводная связь плавно "прорастает".
 	_redraw()
 
-func setup(a: Node2D, b: Node2D, type: int, wireless_delay: float = -1.0) -> void:
+func setup(
+	a: Node2D,
+	b: Node2D,
+	type: int,
+	wireless_delay: float = -1.0,
+	source_interface_name: String = "",
+	target_interface_name: String = ""
+) -> void:
 	from_device = a
 	to_device = b
 	cable_type = type
+	source_interface = source_interface_name
+	target_interface = target_interface_name
 	_wireless_elapsed = 0.0
 	_active = true
 	_wireless_delay = 0.0

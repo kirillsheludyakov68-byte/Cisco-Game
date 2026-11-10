@@ -1,6 +1,7 @@
 extends CanvasLayer
 
 const ERROR_DIALOG_SCENE := preload("res://scenes/ErrorDialog.tscn")
+const CONNECTOR_DIALOG_SCENE := preload("res://scenes/ConnectorSelectDialog.tscn")
 
 # Какой кабель выбран (или -1, если ничего)
 var selected_cable: int = -1
@@ -18,6 +19,10 @@ var _cable_buttons: Dictionary = {}
 var current_device_window: DeviceWindow = null
 
 var _error_dialog: ErrorDialog = null
+var _connector_dialog: ConnectorSelectDialog = null
+var _connector_dialog_side: String = ""
+var _source_interface: String = ""
+var _pending_target_device: Device = null
 
 signal cable_selected(cable_type: int)
 
@@ -43,6 +48,12 @@ func _ready() -> void:
 	_error_dialog = ERROR_DIALOG_SCENE.instantiate() as ErrorDialog
 	if _error_dialog != null:
 		error_layer.add_child(_error_dialog)
+
+	_connector_dialog = CONNECTOR_DIALOG_SCENE.instantiate() as ConnectorSelectDialog
+	if _connector_dialog != null:
+		error_layer.add_child(_connector_dialog)
+		_connector_dialog.connector_selected.connect(_on_connector_selected)
+		_connector_dialog.cancelled.connect(_on_connector_dialog_cancelled)
 
 func _register_button(cable_type: int, button: Button) -> void:
 	_cable_buttons[cable_type] = button
@@ -139,33 +150,143 @@ func handle_device_click(device: Device) -> void:
 		_cancel_connection()
 
 	if first_device == null:
-		# Первый клик — начинаем тянуть
+		# Первый клик — начинаем тянуть: сначала выбираем источник кабеля.
 		first_device = device
 		rubber_line.visible = true
-	else:
-		# Второй клик — пытаемся соединить
-		if first_device == device:
-			# Кликнули на то же устройство — отмена
-			_cancel_connection()
-			return
+		_open_source_connector_picker(device)
+		return
 
-		var check := NetworkSimulator.can_connect(first_device, device, selected_cable)
-		if not check.ok:
-			print("Нельзя соединить: ", check.reason)
-			if _error_dialog != null:
-				_error_dialog.show_error(str(check.reason))
-			_cancel_connection()
-			return
-
-		# Создаём связь
-		_create_connection(first_device, device, selected_cable)
+	# Второй клик — выбираем порт на принимающем устройстве.
+	if first_device == device:
+		# Кликнули на то же устройство — отмена
 		_cancel_connection()
-		# После соединения выключаем режим (Вариант A)
-		selected_cable = -1
-		_clear_button_selection()
-		_clear_cable_cursor()
+		return
 
-func _create_connection(a: Device, b: Device, cable_type: int) -> void:
+	_pending_target_device = device
+	_open_target_connector_picker(device)
+
+
+func _open_source_connector_picker(device: Device) -> void:
+	if device == null or not is_instance_valid(device):
+		_cancel_connection()
+		return
+
+	var candidates: Array = _connector_dialog.get_connector_candidates(device, int(selected_cable))
+	if candidates.is_empty():
+		_error_dialog.show_error(_missing_connector_message(device, int(selected_cable)))
+		_cancel_connection()
+		return
+
+	_connector_dialog_side = "source"
+	_connector_dialog.setup(
+		device,
+		device,
+		null,
+		int(selected_cable),
+		"Выберите разъём",
+		"Куда вставить кабель от %s?" % device.device_name
+	)
+
+
+func _open_target_connector_picker(device: Device) -> void:
+	if first_device == null or not is_instance_valid(first_device):
+		_cancel_connection()
+		return
+
+	var candidates: Array = _connector_dialog.get_connector_candidates(device, int(selected_cable))
+	if candidates.is_empty():
+		_error_dialog.show_error(_missing_connector_message(device, int(selected_cable)))
+		_cancel_connection()
+		return
+
+	_pending_target_device = device
+	_connector_dialog_side = "target"
+	_connector_dialog.setup(
+		device,
+		first_device,
+		device,
+		int(selected_cable),
+		"Выберите разъём",
+		"Куда вставить кабель к %s?" % device.device_name
+	)
+
+
+func _on_connector_selected(interface_name: String) -> void:
+	var side := _connector_dialog_side
+	_connector_dialog_side = ""
+	if _connector_dialog != null:
+		_connector_dialog.visible = false
+
+	if side == "source":
+		if device_is_valid(first_device):
+			_source_interface = interface_name
+		return
+
+	if side == "target":
+		var source := first_device
+		var target := _pending_target_device
+		if source == null or target == null or not is_instance_valid(source) or not is_instance_valid(target):
+			_cancel_connection()
+			return
+		_finish_connection(source, target, int(selected_cable), _source_interface, interface_name)
+
+
+func _on_connector_dialog_cancelled() -> void:
+	_connector_dialog_side = ""
+	if _connector_dialog != null:
+		_connector_dialog.visible = false
+	_cancel_connection()
+
+
+func _finish_connection(
+	source: Device,
+	target: Device,
+	cable_type: int,
+	source_interface: String,
+	target_interface: String
+) -> void:
+	var check := NetworkSimulator.can_connect(source, target, cable_type)
+	if not check.ok:
+		if _error_dialog != null:
+			_error_dialog.show_error(str(check.reason))
+		_cancel_connection()
+		return
+
+	_create_connection(source, target, cable_type, source_interface, target_interface)
+
+
+func device_is_valid(device: Device) -> bool:
+	return device != null and is_instance_valid(device)
+
+
+func _missing_connector_message(device: Device, cable_type: int) -> String:
+	var kind := _cable_interface_kind(cable_type)
+	var port_name := "Fiber"
+	if kind == "ethernet":
+		port_name = "Ethernet"
+	if kind == "wireless":
+		port_name = "wireless"
+	return "У %s нет доступного %s-разъёма для выбранного кабеля." % [device.device_name, port_name]
+
+
+func _cable_interface_kind(cable_type: int) -> String:
+	match cable_type:
+		NetworkSimulator.CableType.STRAIGHT, NetworkSimulator.CableType.CROSSOVER:
+			return "ethernet"
+		NetworkSimulator.CableType.FIBER:
+			return "fiber"
+		NetworkSimulator.CableType.WIRELESS:
+			return "wireless"
+	return ""
+
+
+func _create_connection(
+	a: Device,
+	b: Device,
+	cable_type: int,
+	source_interface: String = "",
+	target_interface: String = ""
+) -> void:
 	var scene := load("res://scenes/Connection.tscn")
 	var conn = scene.instantiate()
 	# Добавляем в тот же родитель, где лежат устройства (в уровень).
@@ -173,9 +294,13 @@ func _create_connection(a: Device, b: Device, cable_type: int) -> void:
 	if parent == null:
 		parent = get_tree().current_scene
 	parent.add_child(conn)
-	conn.setup(a, b, cable_type)
+	conn.setup(a, b, cable_type, -1.0, source_interface, target_interface)
 	NetworkSimulator.add_connection(conn)
 	print("Соединено: ", a.device_name, " ↔ ", b.device_name)
+	# После соединения выключаем режим (Вариант A)
+	selected_cable = -1
+	_clear_button_selection()
+	_clear_cable_cursor()
 
 func _clear_button_selection() -> void:
 	for button in _cable_buttons.values():
