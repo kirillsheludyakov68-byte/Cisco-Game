@@ -414,14 +414,14 @@ func _update_device_image() -> void:
 			switch_overlay.setup(device, self)
 			switch_overlay.refresh()
 		"Router":
-			device_image.texture = load("res://assets/Router.svg")
+			device_image.texture = load("res://assets/fix levl2/Router.svg")
 		"AccessPoint":
-			device_image.texture = load("res://assets/devices/AccessPoint.png")
+			device_image.texture = load("res://assets/fix levl2/AccessPoint.svg")
 		"Hub":
-			device_image.texture = load("res://assets/devices/Hub.png")
+			device_image.texture = load("res://assets/fix levl2/Hub.svg")
 		"Server":
 			device_image.texture = load(
-				"res://assets/devices/Server_on.png" if device.is_powered_on
+				"res://assets/fix levl2/Server.svg" if device.is_powered_on
 				else "res://assets/devices/Server_off.png"
 			)
 		"Printer":
@@ -431,12 +431,12 @@ func _update_device_image() -> void:
 			)
 		"Laptop":
 			device_image.texture = load(
-				"res://assets/devices/Laptop_on.png" if device.is_powered_on
+				"res://assets/fix levl2/Laptop.svg" if device.is_powered_on
 				else "res://assets/devices/Laptop_off.png"
 			)
 		"Tablet":
 			device_image.texture = load(
-				"res://assets/devices/Tablet_on.png" if device.is_powered_on
+				"res://assets/fix levl2/Tablet PC-PT.svg" if device.is_powered_on
 				else "res://assets/devices/Tablet_off.png"
 			)
 

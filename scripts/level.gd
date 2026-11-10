@@ -122,25 +122,25 @@ func _apply_textures(device: Device, device_type: String) -> void:
 		"Switch":
 			device.texture_switch = load("res://assets/Switch.svg")
 		"Router":
-			if ResourceLoader.exists("res://assets/Router.svg"):
-				device.texture_router = load("res://assets/Router.svg")
+			if ResourceLoader.exists("res://assets/fix levl2/Router.svg"):
+				device.texture_router = load("res://assets/fix levl2/Router.svg")
 		"AccessPoint":
-			if ResourceLoader.exists("res://assets/devices/AccessPoint.png"):
-				device.texture_ap = load("res://assets/devices/AccessPoint.png")
+			if ResourceLoader.exists("res://assets/fix levl2/AccessPoint.svg"):
+				device.texture_ap = load("res://assets/fix levl2/AccessPoint.svg")
 		"Hub":
-			if ResourceLoader.exists("res://assets/devices/Hub.png"):
-				device.texture_hub = load("res://assets/devices/Hub.png")
+			if ResourceLoader.exists("res://assets/fix levl2/Hub.svg"):
+				device.texture_hub = load("res://assets/fix levl2/Hub.svg")
 		"Server":
-			device.texture_server_on = load("res://assets/devices/Server_on.png")
+			device.texture_server_on = load("res://assets/fix levl2/Server.svg")
 			device.texture_server_off = load("res://assets/devices/Server_off.png")
 		"Printer":
 			device.texture_printer_on = load("res://assets/devices/Printer_on.png")
 			device.texture_printer_off = load("res://assets/devices/Printer_off.png")
 		"Laptop":
-			device.texture_laptop_on = load("res://assets/devices/Laptop_on.png")
+			device.texture_laptop_on = load("res://assets/fix levl2/Laptop.svg")
 			device.texture_laptop_off = load("res://assets/devices/Laptop_off.png")
 		"Tablet":
-			device.texture_tablet_on = load("res://assets/devices/Tablet_on.png")
+			device.texture_tablet_on = load("res://assets/fix levl2/Tablet PC-PT.svg")
 			device.texture_tablet_off = load("res://assets/devices/Tablet_off.png")
 
 
