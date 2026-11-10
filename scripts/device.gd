@@ -45,7 +45,7 @@ var active_module: String = ""
 var console: SwitchConsole = SwitchConsole.new()
 var is_booting: bool = false
 
-var _switch_defaults_initialized: bool = false
+var _slot_defaults_initialized: bool = false
 var _boot_generation: int = 0
 var _suppress_power_boot: bool = false
 
@@ -62,8 +62,8 @@ var _suppress_power_boot: bool = false
 	set(value):
 		var previous_type := device_type
 		device_type = value
-		if value == "Switch":
-			_ensure_switch_defaults()
+		if ModuleCatalog.is_slot_device(value):
+			_ensure_slot_defaults()
 		if sprite:
 			_apply_texture_by_type()
 		if collision_shape:
@@ -154,8 +154,8 @@ signal interfaces_changed
 
 
 func _ready() -> void:
-	if device_type == "Switch":
-		_ensure_switch_defaults()
+	if ModuleCatalog.is_slot_device(device_type):
+		_ensure_slot_defaults()
 	_sync_interfaces_from_module()
 	_ensure_mac_addresses()
 	if name_label:
@@ -167,12 +167,12 @@ func _ready() -> void:
 	$ClickArea.mouse_exited.connect(_on_mouse_exited)
 
 
-func _ensure_switch_defaults() -> void:
-	if _switch_defaults_initialized:
+func _ensure_slot_defaults() -> void:
+	if _slot_defaults_initialized:
 		return
-	_switch_defaults_initialized = true
+	_slot_defaults_initialized = true
 	if installed_switch_modules.is_empty():
-		installed_switch_modules = ModuleCatalog.get_default_switch_modules()
+		installed_switch_modules = ModuleCatalog.get_default_slot_modules(device_type)
 
 func _apply_texture_by_type() -> void:
 	if not sprite:
@@ -240,7 +240,7 @@ func reset_highlight() -> void:
 # --- Сетевая конфигурация ---
 
 func get_installed_module(slot_index: int = -1) -> String:
-	if device_type == "Switch":
+	if ModuleCatalog.is_slot_device(device_type):
 		return str(installed_switch_modules.get(slot_index, ""))
 	if slot_index <= 0:
 		return installed_module
@@ -583,13 +583,15 @@ func _sync_interfaces_from_module() -> void:
 		for spec in specs:
 			spec["source_module"] = installed_module
 			spec["slot_index"] = -1
-	elif device_type == "Switch":
+	elif ModuleCatalog.is_slot_device(device_type):
 		var slots: Array = installed_switch_modules.keys()
 		slots.sort()
 		for slot_value in slots:
 			var slot_index := int(slot_value)
 			var module_name := str(installed_switch_modules[slot_value])
-			var spec := ModuleCatalog.get_switch_interface_spec(module_name, slot_index)
+			var spec := ModuleCatalog.get_slot_interface_spec(
+				device_type, module_name, slot_index
+			)
 			if not spec.is_empty():
 				specs.append(spec)
 	else:
@@ -794,15 +796,15 @@ func remove_module() -> Dictionary:
 
 # Поставить модуль в конкретный слот коммутатора.
 func install_module_in_slot(module_name: String, slot_index: int) -> Dictionary:
-	if device_type != "Switch":
+	if not ModuleCatalog.is_slot_device(device_type):
 		return install_module(module_name)
 	if is_powered_on:
 		return {"ok": false, "reason": "power_on_add"}
-	if slot_index < 0 or slot_index >= ModuleCatalog.SWITCH_SLOT_COUNT:
+	if slot_index < 0 or slot_index >= ModuleCatalog.get_slot_count(device_type):
 		return {"ok": false, "reason": "invalid_slot"}
 	if str(installed_switch_modules.get(slot_index, "")) != "":
 		return {"ok": false, "reason": "occupied"}
-	if not ModuleCatalog.has_switch_module(module_name):
+	if not ModuleCatalog.has_slot_module(device_type, module_name):
 		return {"ok": false, "reason": "unknown"}
 
 	installed_switch_modules[slot_index] = module_name
@@ -812,11 +814,11 @@ func install_module_in_slot(module_name: String, slot_index: int) -> Dictionary:
 
 # Извлечь модуль из конкретного слота коммутатора.
 func remove_module_from_slot(slot_index: int) -> Dictionary:
-	if device_type != "Switch":
+	if not ModuleCatalog.is_slot_device(device_type):
 		return remove_module()
 	if is_powered_on:
 		return {"ok": false, "reason": "power_on_remove"}
-	if slot_index < 0 or slot_index >= ModuleCatalog.SWITCH_SLOT_COUNT:
+	if slot_index < 0 or slot_index >= ModuleCatalog.get_slot_count(device_type):
 		return {"ok": false, "reason": "invalid_slot"}
 	if str(installed_switch_modules.get(slot_index, "")) == "":
 		return {"ok": false, "reason": "empty"}
@@ -837,11 +839,11 @@ func set_initial_module(module_name: String) -> void:
 
 
 func set_initial_switch_module(module_name: String, slot_index: int) -> void:
-	if not ModuleCatalog.has_switch_module(module_name):
-		push_warning("Неизвестный модуль коммутатора в уровне: " + module_name)
+	if not ModuleCatalog.has_slot_module(device_type, module_name):
+		push_warning("Неизвестный модуль в уровне: " + module_name)
 		return
-	if slot_index < 0 or slot_index >= ModuleCatalog.SWITCH_SLOT_COUNT:
-		push_warning("Некорректный слот модуля коммутатора: " + str(slot_index))
+	if slot_index < 0 or slot_index >= ModuleCatalog.get_slot_count(device_type):
+		push_warning("Некорректный слот модуля: " + str(slot_index))
 		return
 	installed_switch_modules[slot_index] = module_name
 	_sync_interfaces_from_module()
@@ -1034,7 +1036,7 @@ func _cancel_switch_boot() -> void:
 
 
 func _refresh_active_module() -> void:
-	if device_type == "Switch":
+	if ModuleCatalog.is_slot_device(device_type):
 		active_module = ""
 		return
 	active_module = installed_module if is_powered_on else ""

@@ -12,7 +12,14 @@ const PT_SWITCH_NM_1CE := "PT-SWITCH-NM-1CE"
 const PT_SWITCH_NM_1CFE := "PT-SWITCH-NM-1CFE"
 const PT_SWITCH_NM_1FGE := "PT-SWITCH-NM-1FGE"
 
+const PT_REPEATER_NM_1CE := "PT-REPEATER-NM-1CE"
+const PT_REPEATER_NM_1CFE := "PT-REPEATER-NM-1CFE"
+
 const SWITCH_SLOT_COUNT := 10
+const HUB_SLOT_COUNT := 10
+
+# Устройства с десятью слотами съёмных модулей.
+const SLOT_DEVICE_TYPES: Array[String] = ["Switch", "Hub"]
 
 # Устройства, которые используют съёмные модули PT-HOST-NM-*.
 const HOST_MODULE_DEVICE_TYPES: Array[String] = [
@@ -35,6 +42,12 @@ const SWITCH_MODULES: Array[String] = [
 	PT_SWITCH_NM_1FGE,
 ]
 
+const HUB_MODULES: Array[String] = [
+	PT_REPEATER_NM_1CE,
+	PT_REPEATER_NM_1CFE,
+	PT_SWITCH_NM_1FGE,
+]
+
 # Заводская конфигурация коммутатора: слот 0 — крайний справа, слот 9 — слева.
 # Модули можно извлекать и заменять при выключенном устройстве.
 const DEFAULT_SWITCH_MODULES := {
@@ -46,6 +59,10 @@ const DEFAULT_SWITCH_MODULES := {
 	5: PT_SWITCH_NM_1FGE,
 }
 
+# Хаб собирается из модулей так же, как коммутатор. По умолчанию слоты
+# пусты: порты появляются только после установки модуля.
+const DEFAULT_HUB_MODULES := {}
+
 const ICON_PATHS := {
 	WMP300N: "res://assets/modules/wmp300n.jpg",
 	PT_HOST_NM_1AM: "res://assets/modules/pt-host-nm-1am.jpg",
@@ -54,6 +71,8 @@ const ICON_PATHS := {
 	PT_SWITCH_NM_1CE: "res://assets/Switch/modules/gPTSwitchNM-1CE.png",
 	PT_SWITCH_NM_1CFE: "res://assets/Switch/modules/gPTSwitchNM-1CFE.png",
 	PT_SWITCH_NM_1FGE: "res://assets/Switch/modules/gPTSwitchNM-1FGE.png",
+	PT_REPEATER_NM_1CE: "res://assets/devices/gPTRepeaterNM-1CE.png",
+	PT_REPEATER_NM_1CFE: "res://assets/devices/gPTRepeaterNM-1CFE.png",
 }
 
 const DESCRIPTIONS := {
@@ -64,6 +83,8 @@ const DESCRIPTIONS := {
 	PT_SWITCH_NM_1CE: "Модуль PT-SWITCH-NM-1CE оснащён одним портом Ethernet, который может подключаться к магистральной сети LAN, также поддерживающей либо шесть соединений PRI для объединения линий ISDN, либо 24 синхронных/асинхронных порта.",
 	PT_SWITCH_NM_1CFE: "Модуль PT-SWITCH-NM-1CFE предоставляет один интерфейс Fast Ethernet для работы с медным кабелем. Идеально подходит для широкого спектра приложений локальных сетей. Сетевые модули Fast Ethernet поддерживают множество функций и стандартов. Однопортовые модули обеспечивают автоопределение 10/100BaseTX или 100BaseFX. Версия TX (медь) поддерживает развёртывание VLAN.",
 	PT_SWITCH_NM_1FGE: "Однопортовый сетевой модуль Cisco Gigabit Ethernet (PT-SWITCH-NM-1FGE) обеспечивает оптическое подключение Gigabit Ethernet для доступа к маршрутизаторам. Модуль поддерживается Cisco 2691, Cisco 3660, Cisco 3725 и Cisco 3745. Модуль имеет один слот GBIC для любого стандартного медного или оптического Cisco GBIC.",
+	PT_REPEATER_NM_1CE: "Модуль повторителя PT-REPEATER-NM-1CE добавляет хабу один порт Ethernet 10 Мбит/с для подключения оконечных устройств или другого концентратора.",
+	PT_REPEATER_NM_1CFE: "Модуль повторителя PT-REPEATER-NM-1CFE добавляет хабу один порт Fast Ethernet 100 Мбит/с для подключения оконечных устройств или другого концентратора.",
 }
 
 # Интерфейсы, которые физически предоставляют модули ПК.
@@ -162,6 +183,33 @@ static func has_switch_module(module_name: String) -> bool:
 	return SWITCH_MODULES.has(module_name)
 
 
+static func is_slot_device(device_type: String) -> bool:
+	return SLOT_DEVICE_TYPES.has(device_type)
+
+
+static func get_slot_count(device_type: String) -> int:
+	if device_type == "Hub":
+		return HUB_SLOT_COUNT
+	if device_type == "Switch":
+		return SWITCH_SLOT_COUNT
+	return 0
+
+
+static func get_slot_modules(device_type: String) -> Array[String]:
+	var result: Array[String] = []
+	if device_type == "Switch":
+		for module_name in SWITCH_MODULES:
+			result.append(module_name)
+	elif device_type == "Hub":
+		for module_name in HUB_MODULES:
+			result.append(module_name)
+	return result
+
+
+static func has_slot_module(device_type: String, module_name: String) -> bool:
+	return get_slot_modules(device_type).has(module_name)
+
+
 static func uses_host_modules(device_type: String) -> bool:
 	return HOST_MODULE_DEVICE_TYPES.has(device_type)
 
@@ -171,9 +219,8 @@ static func get_modules_for_device(device_type: String) -> Array[String]:
 	if uses_host_modules(device_type):
 		for module_name in MODULES:
 			result.append(module_name)
-	elif device_type == "Switch":
-		for module_name in SWITCH_MODULES:
-			result.append(module_name)
+	else:
+		result = get_slot_modules(device_type)
 	return result
 
 
@@ -202,14 +249,14 @@ static func get_builtin_interfaces(device_type: String) -> Array[Dictionary]:
 	return result
 
 
-# Имя интерфейса коммутатора: тип модуля + номер слота + /1.
+# Имя интерфейса слота: тип модуля + номер слота + /1.
 # Второй номер всегда 1, потому что каждый модуль имеет один порт.
-static func get_switch_interface_name(module_name: String, slot_index: int) -> String:
+static func get_slot_interface_name(module_name: String, slot_index: int) -> String:
 	var prefix := ""
 	match module_name:
-		PT_SWITCH_NM_1CE:
+		PT_SWITCH_NM_1CE, PT_REPEATER_NM_1CE:
 			prefix = "Ethernet"
-		PT_SWITCH_NM_1CFE:
+		PT_SWITCH_NM_1CFE, PT_REPEATER_NM_1CFE:
 			prefix = "FastEthernet"
 		PT_SWITCH_NM_1FGE:
 			prefix = "GigabitEthernet"
@@ -218,15 +265,25 @@ static func get_switch_interface_name(module_name: String, slot_index: int) -> S
 	return "%s%d/1" % [prefix, slot_index]
 
 
-static func get_switch_interface_spec(module_name: String, slot_index: int) -> Dictionary:
-	var interface_name := get_switch_interface_name(module_name, slot_index)
+static func get_switch_interface_name(module_name: String, slot_index: int) -> String:
+	return get_slot_interface_name(module_name, slot_index)
+
+
+static func get_slot_interface_spec(
+	device_type: String,
+	module_name: String,
+	slot_index: int
+) -> Dictionary:
+	if not has_slot_module(device_type, module_name):
+		return {}
+	var interface_name := get_slot_interface_name(module_name, slot_index)
 	if interface_name.is_empty():
 		return {}
 
 	var bandwidth_mbps := 10
 	var interface_kind := "ethernet"
 	match module_name:
-		PT_SWITCH_NM_1CFE:
+		PT_SWITCH_NM_1CFE, PT_REPEATER_NM_1CFE:
 			bandwidth_mbps = 100
 		PT_SWITCH_NM_1FGE:
 			bandwidth_mbps = 1000
@@ -246,15 +303,19 @@ static func get_switch_interface_spec(module_name: String, slot_index: int) -> D
 	}
 
 
-static func get_switch_bandwidth_options(module_name: String) -> Array[Dictionary]:
+static func get_switch_interface_spec(module_name: String, slot_index: int) -> Dictionary:
+	return get_slot_interface_spec("Switch", module_name, slot_index)
+
+
+static func get_slot_bandwidth_options(module_name: String) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	match module_name:
-		PT_SWITCH_NM_1CE:
+		PT_SWITCH_NM_1CE, PT_REPEATER_NM_1CE:
 			result = [
 				{"label": "10 Mbps", "value": "10mbps"},
 				{"label": "Auto", "value": "auto"},
 			]
-		PT_SWITCH_NM_1CFE:
+		PT_SWITCH_NM_1CFE, PT_REPEATER_NM_1CFE:
 			result = [
 				{"label": "100 Mbps", "value": "100mbps"},
 				{"label": "Auto", "value": "auto"},
@@ -265,6 +326,18 @@ static func get_switch_bandwidth_options(module_name: String) -> Array[Dictionar
 				{"label": "Auto", "value": "auto"},
 			]
 	return result
+
+
+static func get_switch_bandwidth_options(module_name: String) -> Array[Dictionary]:
+	return get_slot_bandwidth_options(module_name)
+
+
+static func get_default_slot_modules(device_type: String) -> Dictionary:
+	if device_type == "Hub":
+		return DEFAULT_HUB_MODULES.duplicate(true)
+	if device_type == "Switch":
+		return DEFAULT_SWITCH_MODULES.duplicate(true)
+	return {}
 
 
 static func get_default_switch_modules() -> Dictionary:

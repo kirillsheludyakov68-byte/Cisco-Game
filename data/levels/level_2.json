@@ -132,6 +132,19 @@
     "pc5": ["PT-HOST-NM-1CE"],
     "pc6": ["PT-HOST-NM-1CE"],
     "printer0": ["PT-HOST-NM-1CE"],
+    "hub1": [
+      "PT-REPEATER-NM-1CE",
+      "PT-REPEATER-NM-1CE",
+      "PT-REPEATER-NM-1CE",
+      "PT-REPEATER-NM-1CE"
+    ],
+    "hub0": [
+      "PT-REPEATER-NM-1CE",
+      "PT-REPEATER-NM-1CE",
+      "PT-REPEATER-NM-1CE",
+      "PT-REPEATER-NM-1CE",
+      "PT-REPEATER-NM-1CE"
+    ],
     "laptop1": ["WMP300N"],
     "laptop2": ["WMP300N"],
     "tablet0": ["WMP300N"],

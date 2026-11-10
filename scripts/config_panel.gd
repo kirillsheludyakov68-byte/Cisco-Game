@@ -12,6 +12,7 @@ const SECTION_INTERFACE := "interface"
 @onready var interface_items: VBoxContainer = $Root/NavPanel/NavScroll/NavList/InterfaceItems
 @onready var global_page: GlobalSettingsPage = $Root/PageStack/GlobalSettingsPage
 @onready var switch_global_page: SwitchGlobalSettingsPage = $Root/PageStack/SwitchGlobalSettingsPage
+@onready var hub_global_page: HubGlobalSettingsPage = $Root/PageStack/HubGlobalSettingsPage
 @onready var interface_page_host: Control = $Root/PageStack/InterfacePageHost
 
 var device: Device = null
@@ -55,6 +56,7 @@ func setup(dev: Device) -> void:
 	if device != null and not device.interfaces.is_empty():
 		selected_interface_name = device.interfaces[0].interface_name
 
+	_apply_device_visibility()
 	_build_interface_nav()
 	var settings_page := _get_settings_page()
 	if settings_page.has_method("setup"):
@@ -104,7 +106,7 @@ func _build_interface_nav() -> void:
 		child.queue_free()
 	_interface_buttons.clear()
 
-	if device != null:
+	if device != null and not _is_hub():
 		for iface in device.interfaces:
 			var button := Button.new()
 			button.text = iface.interface_name
@@ -156,7 +158,13 @@ func _toggle_interface_group() -> void:
 
 func _apply_group_visibility() -> void:
 	global_items.visible = global_expanded
-	interface_items.visible = interface_expanded
+	interface_items.visible = interface_expanded and not _is_hub()
+
+
+func _apply_device_visibility() -> void:
+	var show_interfaces := not _is_hub()
+	interface_header_button.visible = show_interfaces
+	interface_items.visible = show_interfaces and interface_expanded
 
 
 func _on_settings_pressed() -> void:
@@ -169,6 +177,7 @@ func _show_settings() -> void:
 	var settings_page := _get_settings_page()
 	global_page.visible = settings_page == global_page
 	switch_global_page.visible = settings_page == switch_global_page
+	hub_global_page.visible = settings_page == hub_global_page
 	interface_page_host.visible = false
 	settings_button.button_pressed = true
 	if settings_page.has_method("set_selected_interface"):
@@ -210,6 +219,7 @@ func _display_interface(iface: DeviceInterface) -> void:
 
 	global_page.visible = false
 	switch_global_page.visible = false
+	hub_global_page.visible = false
 	interface_page_host.visible = true
 	_update_nav_selection()
 
@@ -276,7 +286,13 @@ func _commit_current_section() -> void:
 func _get_settings_page() -> Control:
 	if device != null and device.device_type == "Switch":
 		return switch_global_page
+	if device != null and device.device_type == "Hub":
+		return hub_global_page
 	return global_page
+
+
+func _is_hub() -> bool:
+	return device != null and device.device_type == "Hub"
 
 
 func _apply_styles() -> void:

@@ -68,7 +68,8 @@ func _load_level(path: String) -> void:
 	for dev_data in data.get("devices", []):
 		_spawn_device(dev_data)
 
-	# Предустановленные модули: { "pc1": ["PT-HOST-NM-1CE"] }
+	# Предустановленные модули: { "pc1": ["PT-HOST-NM-1CE"] }.
+	# Для коммутатора и хаба массив заполняет слоты по порядку.
 	var presets = data.get("module_presets", {})
 	if presets is Dictionary:
 		_apply_module_presets(presets)
@@ -128,13 +129,14 @@ func _apply_textures(device: Device, device_type: String) -> void:
 			if ResourceLoader.exists("res://assets/fix levl2/AccessPoint.svg"):
 				device.texture_ap = load("res://assets/fix levl2/AccessPoint.svg")
 		"Hub":
-			if ResourceLoader.exists("res://assets/fix levl2/Hub.svg"):
-				device.texture_hub = load("res://assets/fix levl2/Hub.svg")
+			# Hub.png обрезан по краям рисунка, поэтому кабели сходятся
+			# точно в визуальном центре корпуса.
+			device.texture_hub = load("res://assets/devices/Hub.png")
 		"Server":
 			device.texture_server_on = load("res://assets/fix levl2/Server.svg")
 			device.texture_server_off = load("res://assets/devices/Server_off.png")
 		"Printer":
-			device.texture_printer_on = load("res://assets/devices/Printer_on.png")
+			device.texture_printer_on = load("res://assets/fix levl2/Printer.svg")
 			device.texture_printer_off = load("res://assets/devices/Printer_off.png")
 		"Laptop":
 			device.texture_laptop_on = load("res://assets/fix levl2/Laptop.svg")
@@ -150,7 +152,13 @@ func _apply_module_presets(presets: Dictionary) -> void:
 			push_warning("module_presets: устройство не найдено: " + str(device_id))
 			continue
 
+		var dev: Device = devices_by_id[device_id]
 		var value = presets[device_id]
+
+		if ModuleCatalog.is_slot_device(dev.device_type):
+			_apply_slot_module_preset(dev, device_id, value)
+			continue
+
 		var module_name := ""
 		if value is String:
 			module_name = value
@@ -162,8 +170,25 @@ func _apply_module_presets(presets: Dictionary) -> void:
 		if module_name == "":
 			continue
 
-		var dev: Device = devices_by_id[device_id]
 		dev.set_initial_module(module_name)
+
+
+func _apply_slot_module_preset(dev: Device, device_id: String, value) -> void:
+	if value is Dictionary:
+		for slot_value in value:
+			dev.set_initial_switch_module(str(value[slot_value]), int(slot_value))
+		return
+
+	if value is String:
+		dev.set_initial_switch_module(value, 0)
+		return
+
+	if not (value is Array):
+		push_warning("module_presets: некорректный список модулей для " + str(device_id))
+		return
+
+	for slot_index in range(value.size()):
+		dev.set_initial_switch_module(str(value[slot_index]), slot_index)
 
 
 func _apply_network_configs(device_data: Array) -> void:

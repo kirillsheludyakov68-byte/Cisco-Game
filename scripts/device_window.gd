@@ -5,6 +5,8 @@ const ERROR_POWER_ADD := "Невозможно добавить модуль, п
 const ERROR_POWER_REMOVE := "Невозможно извлечь модуль, пока компьютер включён."
 const ERROR_POWER_ADD_SWITCH := "Невозможно добавить модуль, пока коммутатор включён."
 const ERROR_POWER_REMOVE_SWITCH := "Невозможно извлечь модуль, пока коммутатор включён."
+const ERROR_POWER_ADD_HUB := "Невозможно добавить модуль, пока хаб включён."
+const ERROR_POWER_REMOVE_HUB := "Невозможно извлечь модуль, пока хаб включён."
 const ERROR_OCCUPIED := "В слоте уже установлен модуль. Сначала извлеките его."
 const ERROR_EMPTY := "В слоте нет модуля."
 const ERROR_UNKNOWN := "Неизвестный модуль."
@@ -34,6 +36,7 @@ const ZOOM_SCROLL_BAR_WIDTH := 14.0
 @onready var modules_panel: ModulesPanel = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ModulesPanel
 @onready var module_slot: ModuleSlot = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/ModuleSlot
 @onready var switch_overlay: SwitchPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/SwitchPhysicalOverlay
+@onready var hub_overlay: HubPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/HubPhysicalOverlay
 @onready var module_info: ModuleInfoPanel = get_node_or_null("MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel") as ModuleInfoPanel
 @onready var config_panel: ConfigPanel = $MainPanel/ContentPanel/PageConfig/ConfigPanel
 @onready var cli_page: SwitchCLIPage = $MainPanel/ContentPanel/PageCLI/SwitchCLIPage
@@ -124,12 +127,14 @@ func open_for(dev: Device) -> void:
 		device.boot_finished.connect(_on_device_boot_finished)
 
 	var is_switch := dev.device_type == "Switch"
-	var has_config := dev.device_type != "Hub"
+	var is_hub := dev.device_type == "Hub"
+	var has_config := true
 	var has_cli := is_switch
 	var has_desktop := dev.device_type in ["PC", "Laptop", "Tablet"]
 	var has_services := dev.device_type == "Server"
 	var has_host_module := ModuleCatalog.uses_host_modules(dev.device_type)
-	var has_modules := has_host_module or is_switch
+	var has_slot_modules := ModuleCatalog.is_slot_device(dev.device_type)
+	var has_modules := has_host_module or has_slot_modules
 
 	tab_config.visible = has_config
 	tab_cli.visible = has_cli
@@ -139,9 +144,11 @@ func open_for(dev: Device) -> void:
 	page_cli.visible = false
 	page_services.visible = false
 
-	# Слот модулей есть только у host-устройств, у коммутатора — десять слотов.
+	# Слот модулей есть только у host-устройств, у коммутатора и хаба —
+	# по десять слотов на физической схеме.
 	module_slot.visible = has_host_module
 	switch_overlay.visible = is_switch
+	hub_overlay.visible = is_hub
 	modules_panel.visible = has_modules
 	if module_info != null:
 		module_info.visible = has_modules
@@ -150,6 +157,8 @@ func open_for(dev: Device) -> void:
 		module_slot.setup(dev, self)
 	if is_switch:
 		switch_overlay.setup(dev, self)
+	if is_hub:
+		hub_overlay.setup(dev, self)
 	if has_modules:
 		modules_panel.setup(dev, self)
 	_update_device_image()
@@ -208,6 +217,8 @@ func _on_device_power_changed(is_on: bool) -> void:
 		module_slot.refresh()
 	if switch_overlay.visible:
 		switch_overlay.refresh()
+	if hub_overlay.visible:
+		hub_overlay.refresh()
 	if cli_page.visible:
 		cli_page.refresh()
 	if services_page != null:
@@ -274,10 +285,11 @@ func _on_device_boot_finished() -> void:
 func _update_module_info() -> void:
 	if device == null:
 		return
-	if device.device_type == "Switch":
-		var module_name := _get_first_installed_switch_module()
-		if module_name.is_empty() and not ModuleCatalog.SWITCH_MODULES.is_empty():
-			module_name = ModuleCatalog.SWITCH_MODULES[0]
+	if ModuleCatalog.is_slot_device(device.device_type):
+		var available := ModuleCatalog.get_slot_modules(device.device_type)
+		var module_name := _get_first_installed_slot_module()
+		if module_name.is_empty() and not available.is_empty():
+			module_name = available[0]
 		_show_module_info(module_name)
 		return
 
@@ -287,10 +299,10 @@ func _update_module_info() -> void:
 		_show_module_info(ModuleCatalog.MODULES[0])
 
 
-func _get_first_installed_switch_module() -> String:
+func _get_first_installed_slot_module() -> String:
 	if device == null:
 		return ""
-	for slot_index in range(ModuleCatalog.SWITCH_SLOT_COUNT):
+	for slot_index in range(ModuleCatalog.get_slot_count(device.device_type)):
 		var module_name := device.get_installed_module(slot_index)
 		if not module_name.is_empty():
 			return module_name
@@ -304,7 +316,7 @@ func _show_module_info(module_name: String) -> void:
 
 
 func show_slot_module_info(slot_index: int) -> void:
-	if device == null or device.device_type != "Switch":
+	if device == null or not ModuleCatalog.is_slot_device(device.device_type):
 		return
 	_show_module_info(device.get_installed_module(slot_index))
 
@@ -332,7 +344,7 @@ func _on_tab_services() -> void:
 func _show_page(page: String) -> void:
 	if device != null:
 		var allowed := page == "physical"
-		if page == "config" and device.device_type != "Hub":
+		if page == "config":
 			allowed = true
 		if page == "cli" and device.device_type == "Switch":
 			allowed = true
@@ -401,6 +413,7 @@ func _update_device_image() -> void:
 		return
 
 	switch_overlay.visible = device.device_type == "Switch"
+	hub_overlay.visible = device.device_type == "Hub"
 	match device.device_type:
 		"PC":
 			if device.is_powered_on:
@@ -418,7 +431,11 @@ func _update_device_image() -> void:
 		"AccessPoint":
 			device_image.texture = load("res://assets/fix levl2/AccessPoint.svg")
 		"Hub":
-			device_image.texture = load("res://assets/fix levl2/Hub.svg")
+			# Hub.png обрезан по краям рисунка, поэтому кабели на уровне
+			# сходятся точно в визуальном центре корпуса.
+			device_image.texture = load("res://assets/devices/Hub.png")
+			hub_overlay.setup(device, self)
+			hub_overlay.refresh()
 		"Server":
 			device_image.texture = load(
 				"res://assets/fix levl2/Server.svg" if device.is_powered_on
@@ -426,7 +443,7 @@ func _update_device_image() -> void:
 			)
 		"Printer":
 			device_image.texture = load(
-				"res://assets/devices/Printer_on.png" if device.is_powered_on
+				"res://assets/fix levl2/Printer.svg" if device.is_powered_on
 				else "res://assets/devices/Printer_off.png"
 			)
 		"Laptop":
@@ -670,9 +687,9 @@ func _on_device_image_gui_input(event: InputEvent) -> void:
 		device_image.accept_event()
 		return
 
-	# У коммутатора кнопку питания обрабатывает SwitchPhysicalOverlay,
+	# У коммутатора и хаба кнопку питания обрабатывает физический оверлей,
 	# чтобы её зона точно совпадала с PowerOn.png.
-	if device == null or device.device_type == "Switch":
+	if device == null or ModuleCatalog.is_slot_device(device.device_type):
 		return
 
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -726,13 +743,16 @@ func try_install_module(module_name: String) -> void:
 func try_install_module_to_slot(module_name: String, slot_index: int) -> void:
 	if device == null:
 		return
-	if device.device_type != "Switch":
+	if not ModuleCatalog.is_slot_device(device.device_type):
 		try_install_module(module_name)
 		return
 
 	var result: Dictionary = device.install_module_in_slot(module_name, slot_index)
 	if result.get("ok", false):
-		switch_overlay.refresh()
+		if switch_overlay.visible:
+			switch_overlay.refresh()
+		if hub_overlay.visible:
+			hub_overlay.refresh()
 		module_slot.refresh()
 		_show_module_info(module_name)
 	else:
@@ -755,13 +775,16 @@ func try_remove_module() -> void:
 func try_remove_module_from_slot(slot_index: int) -> void:
 	if device == null:
 		return
-	if device.device_type != "Switch" or slot_index < 0:
+	if not ModuleCatalog.is_slot_device(device.device_type) or slot_index < 0:
 		try_remove_module()
 		return
 
 	var result: Dictionary = device.remove_module_from_slot(slot_index)
 	if result.get("ok", false):
-		switch_overlay.refresh()
+		if switch_overlay.visible:
+			switch_overlay.refresh()
+		if hub_overlay.visible:
+			hub_overlay.refresh()
 		module_slot.refresh()
 		_update_module_info()
 	else:
@@ -860,6 +883,10 @@ func get_power_hint_rect() -> Rect2:
 		if switch_overlay != null and switch_overlay.power_area != null:
 			return switch_overlay.power_area.get_global_rect()
 		return Rect2()
+	if device.device_type == "Hub":
+		if hub_overlay != null and hub_overlay.power_area != null:
+			return hub_overlay.power_area.get_global_rect()
+		return Rect2()
 	if device_image != null:
 		var base_rect := _get_power_base_rect()
 		if base_rect.size == Vector2.ZERO:
@@ -876,9 +903,19 @@ func _show_module_error(reason: String) -> void:
 	var text := ERROR_DEFAULT
 	match reason:
 		"power_on_add":
-			text = ERROR_POWER_ADD_SWITCH if _is_switch() else ERROR_POWER_ADD
+			if _is_switch():
+				text = ERROR_POWER_ADD_SWITCH
+			elif _is_hub():
+				text = ERROR_POWER_ADD_HUB
+			else:
+				text = ERROR_POWER_ADD
 		"power_on_remove":
-			text = ERROR_POWER_REMOVE_SWITCH if _is_switch() else ERROR_POWER_REMOVE
+			if _is_switch():
+				text = ERROR_POWER_REMOVE_SWITCH
+			elif _is_hub():
+				text = ERROR_POWER_REMOVE_HUB
+			else:
+				text = ERROR_POWER_REMOVE
 		"occupied":
 			text = ERROR_OCCUPIED
 		"empty":
@@ -894,3 +931,7 @@ func _show_module_error(reason: String) -> void:
 
 func _is_switch() -> bool:
 	return device != null and device.device_type == "Switch"
+
+
+func _is_hub() -> bool:
+	return device != null and device.device_type == "Hub"

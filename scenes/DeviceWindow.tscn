@@ -14,6 +14,7 @@
 [ext_resource type="PackedScene" path="res://scenes/SwitchCLIPage.tscn" id="12_cli"]
 [ext_resource type="Script" path="res://scripts/hint_arrow.gd" id="13_hint"]
 [ext_resource type="PackedScene" path="res://scenes/ServerServicesPage.tscn" id="14_services"]
+[ext_resource type="PackedScene" path="res://scenes/HubPhysicalOverlay.tscn" id="15_hub"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_y1kbd"]
 bg_color = Color(0.9411765, 0.9411765, 0.9411765, 1)
@@ -222,6 +223,10 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="SwitchPhysicalOverlay" parent="MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage" instance=ExtResource("11_switch")]
+visible = false
+layout_mode = 1
+
+[node name="HubPhysicalOverlay" parent="MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage" instance=ExtResource("15_hub")]
 visible = false
 layout_mode = 1
 
