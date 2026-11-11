@@ -139,7 +139,6 @@ func _apply_textures(device: Device, device_type: String) -> void:
 			device.texture_printer_off = load("res://assets/devices/Printer_off.png")
 		"Laptop":
 			device.texture_laptop_on = load("res://assets/fix levl2/Laptop.svg")
-			device.texture_laptop_off = load("res://assets/devices/Laptop_off.png")
 		"Tablet":
 			device.texture_tablet_on = load("res://assets/fix levl2/Tablet PC-PT.svg")
 			device.texture_tablet_off = load("res://assets/devices/Tablet_off.png")

@@ -142,7 +142,6 @@ var subnet_mask: String:
 @export var texture_printer_on: Texture2D
 @export var texture_printer_off: Texture2D
 @export var texture_laptop_on: Texture2D
-@export var texture_laptop_off: Texture2D
 @export var texture_tablet_on: Texture2D
 @export var texture_tablet_off: Texture2D
 
@@ -207,8 +206,9 @@ func _apply_texture_by_type() -> void:
 			var printer_texture := texture_printer_on if is_powered_on else texture_printer_off
 			if printer_texture: sprite.texture = printer_texture
 		"Laptop":
-			var laptop_texture := texture_laptop_on if is_powered_on else texture_laptop_off
-			if laptop_texture: sprite.texture = laptop_texture
+			# На главной панели уровня ноутбук всегда показан одной и той же
+			# иконкой; состояние питания отображается только в окне устройства.
+			if texture_laptop_on: sprite.texture = texture_laptop_on
 		"Tablet":
 			var tablet_texture := texture_tablet_on if is_powered_on else texture_tablet_off
 			if tablet_texture: sprite.texture = tablet_texture
