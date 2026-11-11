@@ -145,8 +145,8 @@
       "PT-REPEATER-NM-1CE",
       "PT-REPEATER-NM-1CE"
     ],
-    "laptop1": ["WMP300N"],
-    "laptop2": ["WMP300N"],
+    "laptop1": ["WPC300N"],
+    "laptop2": ["WPC300N"],
     "tablet0": ["WMP300N"],
     "tablet1": ["WMP300N"]
   },

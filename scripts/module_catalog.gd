@@ -8,6 +8,11 @@ const PT_HOST_NM_1CE := "PT-HOST-NM-1CE"
 const PT_HOST_NM_1W := "PT-HOST-NM-1W"
 const WMP300N := "WMP300N"
 
+# Съёмные модули ноутбука.
+const WPC300N := "WPC300N"
+const PT_LAPTOP_NM_1CFE := "PT-LAPTOP-NM-1CFE"
+const PT_LAPTOP_NM_1FGE := "PT-LAPTOP-NM-1FGE"
+
 const PT_SWITCH_NM_1CE := "PT-SWITCH-NM-1CE"
 const PT_SWITCH_NM_1CFE := "PT-SWITCH-NM-1CFE"
 const PT_SWITCH_NM_1FGE := "PT-SWITCH-NM-1FGE"
@@ -21,7 +26,7 @@ const HUB_SLOT_COUNT := 10
 # Устройства с десятью слотами съёмных модулей.
 const SLOT_DEVICE_TYPES: Array[String] = ["Switch", "Hub"]
 
-# Устройства, которые используют съёмные модули PT-HOST-NM-*.
+# Устройства, которые используют съёмные host-модули.
 const HOST_MODULE_DEVICE_TYPES: Array[String] = [
 	"PC",
 	"Laptop",
@@ -34,6 +39,13 @@ const MODULES: Array[String] = [
 	PT_HOST_NM_1AM,
 	PT_HOST_NM_1CE,
 	PT_HOST_NM_1W,
+]
+
+# В ноутбук устанавливаются только эти три модуля.
+const LAPTOP_MODULES: Array[String] = [
+	WPC300N,
+	PT_LAPTOP_NM_1CFE,
+	PT_LAPTOP_NM_1FGE,
 ]
 
 const SWITCH_MODULES: Array[String] = [
@@ -68,6 +80,9 @@ const ICON_PATHS := {
 	PT_HOST_NM_1AM: "res://assets/modules/pt-host-nm-1am.jpg",
 	PT_HOST_NM_1CE: "res://assets/modules/pt-host-nm-1ce.png",
 	PT_HOST_NM_1W: "res://assets/modules/pt-host-nm-1w.png",
+	WPC300N: "res://assets/modules/gPTLaptopNM-1W.png",
+	PT_LAPTOP_NM_1CFE: "res://assets/modules/gPTLaptopNM-1CFE.png",
+	PT_LAPTOP_NM_1FGE: "res://assets/modules/gPTLaptopNM-1FGE.png",
 	PT_SWITCH_NM_1CE: "res://assets/Switch/modules/gPTSwitchNM-1CE.png",
 	PT_SWITCH_NM_1CFE: "res://assets/Switch/modules/gPTSwitchNM-1CFE.png",
 	PT_SWITCH_NM_1FGE: "res://assets/Switch/modules/gPTSwitchNM-1FGE.png",
@@ -80,6 +95,9 @@ const DESCRIPTIONS := {
 	PT_HOST_NM_1AM: "Карта PT-HOST-NM-1AM оснащена двумя разъёмами RJ-11, которые используются для базовых телефонных соединений. WIC-1AM использует один порт для подключения к стандартной телефонной линии, а второй порт можно подключить к обычному аналоговому телефону, пока модем не используется.",
 	PT_HOST_NM_1CE: "Модуль PT-HOST-NM-1CE оснащён одним портом Ethernet, который может подключаться к магистральной сети LAN, также поддерживающей либо шесть соединений PRI для объединения линий ISDN, либо 24 синхронных/асинхронных порта.",
 	PT_HOST_NM_1W: "Модуль PT-HOST-NM-1W обеспечивает один беспроводной интерфейс 2,4 ГГц, предназначенный для подключения к беспроводным сетям. Модуль поддерживает протоколы, использующие Ethernet для доступа к локальной сети.",
+	WPC300N: "Модуль WPC300N обеспечивает один беспроводной интерфейс 2,4 ГГц, предназначенный для подключения к беспроводным сетям. Модуль поддерживает протоколы, использующие Ethernet для доступа к локальной сети.",
+	PT_LAPTOP_NM_1CFE: "Модуль PT-LAPTOP-NM-1CFE предоставляет один интерфейс Fast Ethernet для работы с медным кабелем. Идеально подходит для широкого спектра приложений локальных сетей. Сетевые модули Fast Ethernet поддерживают множество функций и стандартов. Однопортовые модули обеспечивают автоопределение 10/100BaseTX или 100BaseFX. Версия TX (медь) поддерживает развёртывание VLAN.",
+	PT_LAPTOP_NM_1FGE: "Однопортовый сетевой модуль Cisco Gigabit Ethernet (PT-LAPTOP-NM-1FGE) обеспечивает оптическое подключение Gigabit Ethernet для доступа к маршрутизаторам. Модуль поддерживается Cisco 2691, Cisco 3660, Cisco 3725 и Cisco 3745. Модуль имеет один слот GBIC для любого стандартного медного или оптического Cisco GBIC.",
 	PT_SWITCH_NM_1CE: "Модуль PT-SWITCH-NM-1CE оснащён одним портом Ethernet, который может подключаться к магистральной сети LAN, также поддерживающей либо шесть соединений PRI для объединения линий ISDN, либо 24 синхронных/асинхронных порта.",
 	PT_SWITCH_NM_1CFE: "Модуль PT-SWITCH-NM-1CFE предоставляет один интерфейс Fast Ethernet для работы с медным кабелем. Идеально подходит для широкого спектра приложений локальных сетей. Сетевые модули Fast Ethernet поддерживают множество функций и стандартов. Однопортовые модули обеспечивают автоопределение 10/100BaseTX или 100BaseFX. Версия TX (медь) поддерживает развёртывание VLAN.",
 	PT_SWITCH_NM_1FGE: "Однопортовый сетевой модуль Cisco Gigabit Ethernet (PT-SWITCH-NM-1FGE) обеспечивает оптическое подключение Gigabit Ethernet для доступа к маршрутизаторам. Модуль поддерживается Cisco 2691, Cisco 3660, Cisco 3725 и Cisco 3745. Модуль имеет один слот GBIC для любого стандартного медного или оптического Cisco GBIC.",
@@ -87,7 +105,7 @@ const DESCRIPTIONS := {
 	PT_REPEATER_NM_1CFE: "Модуль повторителя PT-REPEATER-NM-1CFE добавляет хабу один порт Fast Ethernet 100 Мбит/с для подключения оконечных устройств или другого концентратора.",
 }
 
-# Интерфейсы, которые физически предоставляют модули ПК.
+# Интерфейсы, которые физически предоставляют модули host-устройств.
 # Это единственный источник названий и типов интерфейсов для Config.
 const NETWORK_INTERFACES := {
 	PT_HOST_NM_1CE: [
@@ -113,6 +131,29 @@ const NETWORK_INTERFACES := {
 			"bandwidth_mbps": 11,
 			"ipv4_mode": "dhcp",
 			"ipv6_mode": "automatic",
+		},
+	],
+	WPC300N: [
+		{
+			"name": "Wireless0",
+			"kind": "wireless",
+			"bandwidth_mbps": 54,
+			"ipv4_mode": "dhcp",
+			"ipv6_mode": "automatic",
+		},
+	],
+	PT_LAPTOP_NM_1CFE: [
+		{
+			"name": "FastEthernet0",
+			"kind": "ethernet",
+			"bandwidth_mbps": 100,
+		},
+	],
+	PT_LAPTOP_NM_1FGE: [
+		{
+			"name": "GigabitEthernet0",
+			"kind": "fiber",
+			"bandwidth_mbps": 1000,
 		},
 	],
 	# У 1AM два телефонных порта RJ-11; для Config используется интерфейс модема.
@@ -169,7 +210,7 @@ const BUILTIN_INTERFACES := {
 
 
 static func has_module(module_name: String) -> bool:
-	return MODULES.has(module_name)
+	return MODULES.has(module_name) or LAPTOP_MODULES.has(module_name)
 
 
 static func has_switch_module(module_name: String) -> bool:
@@ -209,7 +250,10 @@ static func uses_host_modules(device_type: String) -> bool:
 
 static func get_modules_for_device(device_type: String) -> Array[String]:
 	var result: Array[String] = []
-	if uses_host_modules(device_type):
+	if device_type == "Laptop":
+		for module_name in LAPTOP_MODULES:
+			result.append(module_name)
+	elif uses_host_modules(device_type):
 		for module_name in MODULES:
 			result.append(module_name)
 	else:

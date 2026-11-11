@@ -1,6 +1,11 @@
 extends Node2D
 class_name Device
 
+# У AccessPoint.svg корпус находится ниже центра текстуры: антенны занимают
+# верхнюю часть. Смещаем рисунок вверх, чтобы кабель на уровне сходился
+# ровно в середине корпуса точки доступа.
+const AP_CABLE_OFFSET := Vector2(0.0, -48.5)
+
 @onready var sprite: Sprite2D = $Sprite
 @onready var name_label: Label = $NameLabel
 @onready var collision_shape: CollisionShape2D = $ClickArea/CollisionShape2D
@@ -188,7 +193,9 @@ func _apply_texture_by_type() -> void:
 		"Router":
 			if texture_router: sprite.texture = texture_router
 		"AccessPoint":
-			if texture_ap: sprite.texture = texture_ap
+			if texture_ap:
+				sprite.texture = texture_ap
+				sprite.offset = AP_CABLE_OFFSET
 		"Hub":
 			if texture_hub:
 				sprite.texture = texture_hub

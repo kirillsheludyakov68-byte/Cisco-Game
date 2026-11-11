@@ -15,6 +15,7 @@
 [ext_resource type="Script" path="res://scripts/hint_arrow.gd" id="13_hint"]
 [ext_resource type="PackedScene" path="res://scenes/ServerServicesPage.tscn" id="14_services"]
 [ext_resource type="PackedScene" path="res://scenes/HubPhysicalOverlay.tscn" id="15_hub"]
+[ext_resource type="PackedScene" path="res://scenes/LaptopPhysicalOverlay.tscn" id="16_laptop"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_y1kbd"]
 bg_color = Color(0.9411765, 0.9411765, 0.9411765, 1)
@@ -227,6 +228,10 @@ visible = false
 layout_mode = 1
 
 [node name="HubPhysicalOverlay" parent="MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage" instance=ExtResource("15_hub")]
+visible = false
+layout_mode = 1
+
+[node name="LaptopPhysicalOverlay" parent="MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage" instance=ExtResource("16_laptop")]
 visible = false
 layout_mode = 1
 
