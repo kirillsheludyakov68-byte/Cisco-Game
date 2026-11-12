@@ -16,6 +16,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ServerServicesPage.tscn" id="14_services"]
 [ext_resource type="PackedScene" path="res://scenes/HubPhysicalOverlay.tscn" id="15_hub"]
 [ext_resource type="PackedScene" path="res://scenes/LaptopPhysicalOverlay.tscn" id="16_laptop"]
+[ext_resource type="PackedScene" path="res://scenes/PrinterPhysicalOverlay.tscn" id="17_printer"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_y1kbd"]
 bg_color = Color(0.9411765, 0.9411765, 0.9411765, 1)
@@ -232,6 +233,10 @@ visible = false
 layout_mode = 1
 
 [node name="LaptopPhysicalOverlay" parent="MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage" instance=ExtResource("16_laptop")]
+visible = false
+layout_mode = 1
+
+[node name="PrinterPhysicalOverlay" parent="MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage" instance=ExtResource("17_printer")]
 visible = false
 layout_mode = 1
 

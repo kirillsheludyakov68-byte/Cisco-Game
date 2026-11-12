@@ -39,6 +39,7 @@ const ZOOM_SCROLL_BAR_WIDTH := 14.0
 @onready var switch_overlay: SwitchPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/SwitchPhysicalOverlay
 @onready var hub_overlay: HubPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/HubPhysicalOverlay
 @onready var laptop_overlay: LaptopPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/LaptopPhysicalOverlay
+@onready var printer_overlay: PrinterPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/PrinterPhysicalOverlay
 @onready var module_info: ModuleInfoPanel = get_node_or_null("MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel") as ModuleInfoPanel
 @onready var config_panel: ConfigPanel = $MainPanel/ContentPanel/PageConfig/ConfigPanel
 @onready var cli_page: SwitchCLIPage = $MainPanel/ContentPanel/PageCLI/SwitchCLIPage
@@ -132,6 +133,7 @@ func open_for(dev: Device) -> void:
 	var is_switch := dev.device_type == "Switch"
 	var is_hub := dev.device_type == "Hub"
 	var is_laptop := dev.device_type == "Laptop"
+	var is_printer := dev.device_type == "Printer"
 	var has_config := true
 	var has_cli := is_switch
 	var has_desktop := dev.device_type in ["PC", "Laptop", "Tablet"]
@@ -149,17 +151,18 @@ func open_for(dev: Device) -> void:
 	page_services.visible = false
 
 	# Слот модулей есть только у host-устройств, у коммутатора и хаба —
-	# по десять слотов на физической схеме. У ноутбука свой оверлей
-	# с отсеком модуля и кнопкой питания.
-	module_slot.visible = has_host_module and not is_laptop
+	# по десять слотов на физической схеме. У ноутбука и принтера свои
+	# оверлеи с отсеком модуля и кнопкой питания.
+	module_slot.visible = has_host_module and not is_laptop and not is_printer
 	switch_overlay.visible = is_switch
 	hub_overlay.visible = is_hub
 	laptop_overlay.visible = is_laptop
+	printer_overlay.visible = is_printer
 	modules_panel.visible = has_modules
 	if module_info != null:
 		module_info.visible = has_modules
 
-	if has_host_module and not is_laptop:
+	if has_host_module and not is_laptop and not is_printer:
 		module_slot.setup(dev, self)
 	if is_switch:
 		switch_overlay.setup(dev, self)
@@ -167,6 +170,8 @@ func open_for(dev: Device) -> void:
 		hub_overlay.setup(dev, self)
 	if is_laptop:
 		laptop_overlay.setup(dev, self)
+	if is_printer:
+		printer_overlay.setup(dev, self)
 	if has_modules:
 		modules_panel.setup(dev, self)
 	_update_device_image()
@@ -229,6 +234,8 @@ func _on_device_power_changed(is_on: bool) -> void:
 		hub_overlay.refresh()
 	if laptop_overlay.visible:
 		laptop_overlay.refresh()
+	if printer_overlay.visible:
+		printer_overlay.refresh()
 	if cli_page.visible:
 		cli_page.refresh()
 	if services_page != null:
@@ -430,6 +437,7 @@ func _update_device_image() -> void:
 	switch_overlay.visible = device.device_type == "Switch"
 	hub_overlay.visible = device.device_type == "Hub"
 	laptop_overlay.visible = device.device_type == "Laptop"
+	printer_overlay.visible = device.device_type == "Printer"
 	match device.device_type:
 		"PC":
 			if device.is_powered_on:
@@ -458,10 +466,11 @@ func _update_device_image() -> void:
 				else "res://assets/devices/Server_off.png"
 			)
 		"Printer":
-			device_image.texture = load(
-				"res://assets/fix levl2/Printer.svg" if device.is_powered_on
-				else "res://assets/devices/Printer_off.png"
-			)
+			# Корпус принтера всегда один и тот же; состояние питания
+			# показывает кнопка PowerOnPrinter.png / PowerOffPrinter.png.
+			device_image.texture = load("res://assets/Printer/iRealPrinter.png")
+			printer_overlay.setup(device, self)
+			printer_overlay.refresh()
 		"Laptop":
 			# Нижняя крышка ноутбука: состояние питания показывает
 			# отдельная кнопка Laptop_on.png / Laptop_off.png.
@@ -739,10 +748,10 @@ func _on_device_image_gui_input(event: InputEvent) -> void:
 		device_image.accept_event()
 		return
 
-	# У коммутатора, хаба и ноутбука кнопку питания обрабатывает
+	# У коммутатора, хаба, ноутбука и принтера кнопку питания обрабатывает
 	# физический оверлей, чтобы её зона точно совпадала с картинкой.
 	if device == null or ModuleCatalog.is_slot_device(device.device_type) \
-			or device.device_type == "Laptop":
+			or device.device_type in ["Laptop", "Printer"]:
 		return
 
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -790,6 +799,8 @@ func try_install_module(module_name: String) -> void:
 		module_slot.refresh()
 		if laptop_overlay.visible:
 			laptop_overlay.refresh()
+		if printer_overlay.visible:
+			printer_overlay.refresh()
 		_show_module_info(module_name)
 	else:
 		_show_module_error(result.get("reason", ""))
@@ -824,6 +835,8 @@ func try_remove_module() -> void:
 		module_slot.refresh()
 		if laptop_overlay.visible:
 			laptop_overlay.refresh()
+		if printer_overlay.visible:
+			printer_overlay.refresh()
 		_update_module_info()
 	else:
 		_show_module_error(result.get("reason", ""))
@@ -903,6 +916,11 @@ func show_hint_module() -> void:
 	if module_button != null:
 		show_hint_node(module_button)
 		return
+	if device != null and device.device_type == "Printer" and printer_overlay != null:
+		var printer_slot := printer_overlay.get_slot()
+		if printer_slot != null:
+			show_hint_node(printer_slot)
+			return
 	show_hint_node(module_slot)
 
 
@@ -947,6 +965,10 @@ func get_power_hint_rect() -> Rect2:
 	if device.device_type == "Laptop":
 		if laptop_overlay != null and laptop_overlay.power_area != null:
 			return laptop_overlay.power_area.get_global_rect()
+		return Rect2()
+	if device.device_type == "Printer":
+		if printer_overlay != null and printer_overlay.power_area != null:
+			return printer_overlay.power_area.get_global_rect()
 		return Rect2()
 	if device_image != null:
 		var base_rect := _get_power_base_rect()
