@@ -51,12 +51,12 @@ const LAPTOP_MODULES: Array[String] = [
 ]
 
 # Модули принтера: проводные Ethernet/FastEthernet/GigabitEthernet
-# и беспроводной PT-HOST-NM-1W.
+# и беспроводной WMP300N.
 const PRINTER_MODULES: Array[String] = [
 	PT_HOST_NM_1CE,
 	PT_HOST_NM_1CFE,
 	PT_HOST_NM_1FGE,
-	PT_HOST_NM_1W,
+	WMP300N,
 ]
 
 const SWITCH_MODULES: Array[String] = [
