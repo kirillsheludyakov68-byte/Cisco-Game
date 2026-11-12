@@ -5,6 +5,8 @@ extends RefCounted
 # Единый каталог модулей: используется панелью, слотами и загрузчиком уровня.
 const PT_HOST_NM_1AM := "PT-HOST-NM-1AM"
 const PT_HOST_NM_1CE := "PT-HOST-NM-1CE"
+const PT_HOST_NM_1CFE := "PT-HOST-NM-1CFE"
+const PT_HOST_NM_1FGE := "PT-HOST-NM-1FGE"
 const PT_HOST_NM_1W := "PT-HOST-NM-1W"
 const WMP300N := "WMP300N"
 
@@ -48,6 +50,15 @@ const LAPTOP_MODULES: Array[String] = [
 	PT_LAPTOP_NM_1FGE,
 ]
 
+# Модули принтера: проводные Ethernet/FastEthernet/GigabitEthernet
+# и беспроводной PT-HOST-NM-1W.
+const PRINTER_MODULES: Array[String] = [
+	PT_HOST_NM_1CE,
+	PT_HOST_NM_1CFE,
+	PT_HOST_NM_1FGE,
+	PT_HOST_NM_1W,
+]
+
 const SWITCH_MODULES: Array[String] = [
 	PT_SWITCH_NM_1CE,
 	PT_SWITCH_NM_1CFE,
@@ -78,8 +89,10 @@ const DEFAULT_HUB_MODULES := {}
 const ICON_PATHS := {
 	WMP300N: "res://assets/modules/wmp300n.jpg",
 	PT_HOST_NM_1AM: "res://assets/modules/pt-host-nm-1am.jpg",
-	PT_HOST_NM_1CE: "res://assets/modules/pt-host-nm-1ce.png",
-	PT_HOST_NM_1W: "res://assets/modules/pt-host-nm-1w.png",
+	PT_HOST_NM_1CE: "res://assets/Printer/gPTHostNM-1CE.png",
+	PT_HOST_NM_1CFE: "res://assets/Printer/gPTHostNM-1CFE.png",
+	PT_HOST_NM_1FGE: "res://assets/Printer/gPTHostNM-1FGE.png",
+	PT_HOST_NM_1W: "res://assets/Printer/gPTHostNM-1W.png",
 	WPC300N: "res://assets/modules/gPTLaptopNM-1W.png",
 	PT_LAPTOP_NM_1CFE: "res://assets/modules/gPTLaptopNM-1CFE.png",
 	PT_LAPTOP_NM_1FGE: "res://assets/modules/gPTLaptopNM-1FGE.png",
@@ -94,6 +107,8 @@ const DESCRIPTIONS := {
 	WMP300N: "Модуль WMP300N обеспечивает один беспроводной интерфейс 2,4 ГГц, предназначенный для подключения к беспроводным сетям. Модуль поддерживает протоколы, использующие Ethernet для доступа к локальной сети.",
 	PT_HOST_NM_1AM: "Карта PT-HOST-NM-1AM оснащена двумя разъёмами RJ-11, которые используются для базовых телефонных соединений. WIC-1AM использует один порт для подключения к стандартной телефонной линии, а второй порт можно подключить к обычному аналоговому телефону, пока модем не используется.",
 	PT_HOST_NM_1CE: "Модуль PT-HOST-NM-1CE оснащён одним портом Ethernet, который может подключаться к магистральной сети LAN, также поддерживающей либо шесть соединений PRI для объединения линий ISDN, либо 24 синхронных/асинхронных порта.",
+	PT_HOST_NM_1CFE: "Модуль PT-HOST-NM-1CFE предоставляет один интерфейс Fast Ethernet для работы с медным кабелем. Идеально подходит для широкого спектра приложений локальных сетей. Сетевые модули Fast Ethernet поддерживают множество функций и стандартов. Однопортовые модули обеспечивают автоопределение 10/100BaseTX или 100BaseFX. Версия TX (медь) поддерживает развёртывание VLAN.",
+	PT_HOST_NM_1FGE: "Однопортовый сетевой модуль Cisco Gigabit Ethernet (PT-HOST-NM-1FGE) обеспечивает оптическое подключение Gigabit Ethernet для доступа к маршрутизаторам. Модуль поддерживается Cisco 2691, Cisco 3660, Cisco 3725 и Cisco 3745. Модуль имеет один слот GBIC для любого стандартного медного или оптического Cisco GBIC.",
 	PT_HOST_NM_1W: "Модуль PT-HOST-NM-1W обеспечивает один беспроводной интерфейс 2,4 ГГц, предназначенный для подключения к беспроводным сетям. Модуль поддерживает протоколы, использующие Ethernet для доступа к локальной сети.",
 	WPC300N: "Модуль WPC300N обеспечивает один беспроводной интерфейс 2,4 ГГц, предназначенный для подключения к беспроводным сетям. Модуль поддерживает протоколы, использующие Ethernet для доступа к локальной сети.",
 	PT_LAPTOP_NM_1CFE: "Модуль PT-LAPTOP-NM-1CFE предоставляет один интерфейс Fast Ethernet для работы с медным кабелем. Идеально подходит для широкого спектра приложений локальных сетей. Сетевые модули Fast Ethernet поддерживают множество функций и стандартов. Однопортовые модули обеспечивают автоопределение 10/100BaseTX или 100BaseFX. Версия TX (медь) поддерживает развёртывание VLAN.",
@@ -113,6 +128,22 @@ const NETWORK_INTERFACES := {
 			"name": "Ethernet0",
 			"kind": "ethernet",
 			"bandwidth_mbps": 10,
+		},
+	],
+	PT_HOST_NM_1CFE: [
+		{
+			"name": "FastEthernet0",
+			"kind": "ethernet",
+			"bandwidth_mbps": 100,
+			"bandwidth_mode": "100mbps",
+		},
+	],
+	PT_HOST_NM_1FGE: [
+		{
+			"name": "GigabitEthernet0",
+			"kind": "fiber",
+			"bandwidth_mbps": 1000,
+			"bandwidth_mode": "1000mbps",
 		},
 	],
 	WMP300N: [
@@ -210,7 +241,9 @@ const BUILTIN_INTERFACES := {
 
 
 static func has_module(module_name: String) -> bool:
-	return MODULES.has(module_name) or LAPTOP_MODULES.has(module_name)
+	return MODULES.has(module_name) \
+		or LAPTOP_MODULES.has(module_name) \
+		or PRINTER_MODULES.has(module_name)
 
 
 static func has_switch_module(module_name: String) -> bool:
@@ -252,6 +285,9 @@ static func get_modules_for_device(device_type: String) -> Array[String]:
 	var result: Array[String] = []
 	if device_type == "Laptop":
 		for module_name in LAPTOP_MODULES:
+			result.append(module_name)
+	elif device_type == "Printer":
+		for module_name in PRINTER_MODULES:
 			result.append(module_name)
 	elif uses_host_modules(device_type):
 		for module_name in MODULES:

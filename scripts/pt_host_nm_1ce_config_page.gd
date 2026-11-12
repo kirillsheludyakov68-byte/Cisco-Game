@@ -6,6 +6,8 @@ class_name PTHostNM1CEConfigPage
 @onready var status_label: Label = $Root/VBox/StatusLabel
 
 @onready var port_status_check: CheckBox = $Root/VBox/BodyScroll/Body/TopGrid/PortStatusCheck
+@onready var bandwidth_1000: CheckBox = $Root/VBox/BodyScroll/Body/TopGrid/BandwidthRow/Bandwidth1000
+@onready var bandwidth_100: CheckBox = $Root/VBox/BodyScroll/Body/TopGrid/BandwidthRow/Bandwidth100
 @onready var bandwidth_10: CheckBox = $Root/VBox/BodyScroll/Body/TopGrid/BandwidthRow/Bandwidth10
 @onready var bandwidth_auto: CheckBox = $Root/VBox/BodyScroll/Body/TopGrid/BandwidthRow/BandwidthAuto
 @onready var duplex_half: CheckBox = $Root/VBox/BodyScroll/Body/TopGrid/DuplexRow/DuplexHalf
@@ -45,6 +47,10 @@ func refresh() -> void:
 		header_label.text = "Интерфейс"
 		port_status_check.button_pressed = false
 		port_status_check.disabled = true
+		bandwidth_1000.visible = false
+		bandwidth_100.visible = false
+		bandwidth_1000.disabled = true
+		bandwidth_100.disabled = true
 		bandwidth_10.disabled = true
 		bandwidth_auto.disabled = true
 		duplex_half.disabled = true
@@ -58,8 +64,17 @@ func refresh() -> void:
 	port_status_check.disabled = false
 	port_status_check.button_pressed = network_interface.enabled
 
+	var max_bandwidth := _get_max_bandwidth()
+	bandwidth_1000.visible = max_bandwidth >= 1000
+	bandwidth_100.visible = max_bandwidth >= 100
+	bandwidth_10.visible = true
+	bandwidth_auto.visible = true
+	bandwidth_1000.disabled = not bandwidth_1000.visible
+	bandwidth_100.disabled = not bandwidth_100.visible
 	bandwidth_10.disabled = false
 	bandwidth_auto.disabled = false
+	bandwidth_1000.button_pressed = network_interface.bandwidth_mode == DeviceInterface.BANDWIDTH_1000MBPS
+	bandwidth_100.button_pressed = network_interface.bandwidth_mode == DeviceInterface.BANDWIDTH_100MBPS
 	bandwidth_10.button_pressed = network_interface.bandwidth_mode == DeviceInterface.BANDWIDTH_10MBPS
 	bandwidth_auto.button_pressed = network_interface.bandwidth_mode == DeviceInterface.BANDWIDTH_AUTO
 
@@ -82,6 +97,8 @@ func _setup_groups() -> void:
 	_bandwidth_group = _make_button_group()
 	_duplex_group = _make_button_group()
 
+	bandwidth_1000.button_group = _bandwidth_group
+	bandwidth_100.button_group = _bandwidth_group
 	bandwidth_10.button_group = _bandwidth_group
 	bandwidth_auto.button_group = _bandwidth_group
 	duplex_half.button_group = _duplex_group
@@ -99,6 +116,12 @@ func _connect_signals() -> void:
 	ip_config.status_changed.connect(_on_ip_status_changed)
 	port_status_check.toggled.connect(_on_port_status_toggled)
 
+	bandwidth_1000.toggled.connect(
+		_on_bandwidth_toggled.bind(DeviceInterface.BANDWIDTH_1000MBPS)
+	)
+	bandwidth_100.toggled.connect(
+		_on_bandwidth_toggled.bind(DeviceInterface.BANDWIDTH_100MBPS)
+	)
 	bandwidth_10.toggled.connect(
 		_on_bandwidth_toggled.bind(DeviceInterface.BANDWIDTH_10MBPS)
 	)
@@ -129,11 +152,15 @@ func _on_port_status_toggled(pressed: bool) -> void:
 func _on_bandwidth_toggled(pressed: bool, mode: String) -> void:
 	if _updating or not pressed or device == null or network_interface == null:
 		return
-	device.set_interface_bandwidth(
-		network_interface.interface_name,
-		mode,
-		network_interface.bandwidth_mbps
-	)
+	var mbps := network_interface.bandwidth_mbps
+	match mode:
+		DeviceInterface.BANDWIDTH_1000MBPS:
+			mbps = 1000
+		DeviceInterface.BANDWIDTH_100MBPS:
+			mbps = 100
+		DeviceInterface.BANDWIDTH_10MBPS:
+			mbps = 10
+	device.set_interface_bandwidth(network_interface.interface_name, mode, mbps)
 	_set_status("Режим пропускной способности сохранён. Симуляция скорости не реализована.", false, true)
 
 
@@ -142,6 +169,15 @@ func _on_duplex_toggled(pressed: bool, mode: String) -> void:
 		return
 	device.set_interface_duplex(network_interface.interface_name, mode)
 	_set_status("Режим дуплекса сохранён. Симуляция дуплекса не реализована.", false, true)
+
+
+func _get_max_bandwidth() -> int:
+	if network_interface == null:
+		return 10
+	var specs := ModuleCatalog.get_network_interfaces(network_interface.source_module)
+	if not specs.is_empty():
+		return int((specs[0] as Dictionary).get("bandwidth_mbps", 10))
+	return maxi(network_interface.bandwidth_mbps, 10)
 
 
 func _set_status(text: String, is_error: bool = false, success: bool = false) -> void:
@@ -159,6 +195,8 @@ func _apply_styles() -> void:
 		ConfigStyles.apply_label(label)
 
 	ConfigStyles.apply_plain_checkbox(port_status_check)
+	ConfigStyles.apply_checkbox(bandwidth_1000)
+	ConfigStyles.apply_checkbox(bandwidth_100)
 	ConfigStyles.apply_checkbox(bandwidth_10)
 	ConfigStyles.apply_checkbox(bandwidth_auto)
 	ConfigStyles.apply_checkbox(duplex_half)

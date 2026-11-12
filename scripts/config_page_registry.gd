@@ -6,6 +6,8 @@ class_name ConfigPageRegistry
 
 const MODULE_PAGES := {
 	"PT-HOST-NM-1CE": preload("res://scenes/PTHostNM1CEConfigPage.tscn"),
+	"PT-HOST-NM-1CFE": preload("res://scenes/PTHostNM1CEConfigPage.tscn"),
+	"PT-HOST-NM-1FGE": preload("res://scenes/PTHostNM1CEConfigPage.tscn"),
 	"WMP300N": preload("res://scenes/WMP300NConfigPage.tscn"),
 	"WPC300N": preload("res://scenes/WMP300NConfigPage.tscn"),
 	"PT-HOST-NM-1W": preload("res://scenes/WMP300NConfigPage.tscn"),
