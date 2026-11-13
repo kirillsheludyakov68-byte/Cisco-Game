@@ -32,7 +32,6 @@ const SLOT_DEVICE_TYPES: Array[String] = ["Switch", "Hub"]
 const HOST_MODULE_DEVICE_TYPES: Array[String] = [
 	"PC",
 	"Laptop",
-	"Tablet",
 	"Printer",
 ]
 
@@ -235,6 +234,33 @@ const BUILTIN_INTERFACES := {
 			"name": "Ethernet0",
 			"kind": "ethernet",
 			"bandwidth_mbps": 1000,
+		},
+	],
+	# Планшет не имеет съёмных модулей: все интерфейсы встроенные.
+	"Tablet": [
+		{
+			"name": "Wireless0",
+			"kind": "wireless",
+			"bandwidth_mbps": 11,
+			"ipv4_mode": "dhcp",
+			"ipv6_mode": "automatic",
+		},
+		{
+			"name": "3G/4G Cell1",
+			"kind": "cellular",
+			"bandwidth_mbps": 0,
+			"ipv4_mode": "dhcp",
+			"ipv6_mode": "automatic",
+			"provider_name": "ptcellular",
+			# До получения аренды маска не отображается.
+			"subnet_mask": "",
+		},
+		{
+			"name": "Bluetooth",
+			"kind": "bluetooth",
+			"bandwidth_mbps": 0,
+			"ipv4_mode": "static",
+			"ipv6_mode": "static",
 		},
 	],
 }

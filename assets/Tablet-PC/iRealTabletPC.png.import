@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cqpmh8fomt272"
-path="res://.godot/imported/Tablet_off.png-d7fc2b6dbf55b6950ee50ca8052c8cc9.ctex"
+uid="uid://7kt0scogrpr8"
+path="res://.godot/imported/iRealTabletPC.png-4c0c607990da9456631f0fb205c05696.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/devices/Tablet_off.png"
-dest_files=["res://.godot/imported/Tablet_off.png-d7fc2b6dbf55b6950ee50ca8052c8cc9.ctex"]
+source_file="res://assets/Tablet-PC/iRealTabletPC.png"
+dest_files=["res://.godot/imported/iRealTabletPC.png-4c0c607990da9456631f0fb205c05696.ctex"]
 
 [params]
 

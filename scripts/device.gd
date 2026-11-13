@@ -158,6 +158,11 @@ signal interfaces_changed
 
 
 func _ready() -> void:
+	# Планшет по умолчанию получает адреса автоматически: это соответствует
+	# встроенному Wireless0 и странице Global Settings.
+	if device_type == "Tablet":
+		network_settings.ipv4_mode = NetworkSettings.IPV4_DHCP
+		network_settings.ipv6_mode = NetworkSettings.IPV6_AUTOMATIC
 	if ModuleCatalog.is_slot_device(device_type):
 		_ensure_slot_defaults()
 	_sync_interfaces_from_module()
@@ -210,8 +215,9 @@ func _apply_texture_by_type() -> void:
 			# иконкой; состояние питания отображается только в окне устройства.
 			if texture_laptop_on: sprite.texture = texture_laptop_on
 		"Tablet":
-			var tablet_texture := texture_tablet_on if is_powered_on else texture_tablet_off
-			if tablet_texture: sprite.texture = tablet_texture
+			# На главной панели уровня планшет всегда показан одной и той же
+			# иконкой; состояние питания отображается только в окне устройства.
+			if texture_tablet_on: sprite.texture = texture_tablet_on
 
 
 func _get_texture_content_offset(texture: Texture2D) -> Vector2:
@@ -432,6 +438,20 @@ func set_interface_duplex(interface_name: String, mode: String) -> void:
 	iface.duplex_mode = mode
 	_log_console("%s duplex set to %s" % [interface_name, mode])
 	configuration_changed.emit()
+
+
+func set_interface_provider_name(interface_name: String, value: String) -> bool:
+	var trimmed := value.strip_edges()
+	if trimmed.is_empty() or trimmed.length() > 64:
+		return false
+	var iface := get_interface(interface_name)
+	if iface == null:
+		return false
+	if iface.provider_name == trimmed:
+		return true
+	iface.provider_name = trimmed
+	configuration_changed.emit()
+	return true
 
 
 func set_interface_wireless_settings(interface_name: String, values: Dictionary) -> bool:
@@ -683,6 +703,8 @@ func _sync_interfaces_from_module() -> void:
 		network_interface.interface_kind = interface_kind
 		network_interface.source_module = source_module
 		network_interface.slot_index = slot_index
+		network_interface.provider_name = str(spec.get("provider_name", ""))
+		network_interface.subnet_mask = str(spec.get("subnet_mask", network_interface.subnet_mask))
 		network_interface.bandwidth_mbps = int(spec.get("bandwidth_mbps", 10))
 		network_interface.bandwidth_kbps = int(spec.get("bandwidth_kbps", 0))
 		var bandwidth_mode := str(spec.get("bandwidth_mode", DeviceInterface.BANDWIDTH_AUTO))
@@ -723,6 +745,7 @@ func _sync_interfaces_from_module() -> void:
 
 func _copy_interface_state(source: DeviceInterface, target: DeviceInterface) -> void:
 	target.enabled = source.enabled
+	target.provider_name = source.provider_name
 	target.bandwidth_mode = source.bandwidth_mode
 	target.bandwidth_mbps = source.bandwidth_mbps
 	target.bandwidth_kbps = source.bandwidth_kbps

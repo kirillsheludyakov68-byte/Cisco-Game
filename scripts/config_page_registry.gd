@@ -20,6 +20,7 @@ const MODULE_PAGES := {
 }
 
 const BUILTIN_PAGE := preload("res://scenes/InterfaceSettingsPage.tscn")
+const CELLULAR_PAGE := preload("res://scenes/CellularConfigPage.tscn")
 const FALLBACK_PAGE := preload("res://scenes/UnsupportedInterfacePage.tscn")
 
 
@@ -37,8 +38,13 @@ static func get_page_scene_for_interface(
 	source_module: String,
 	interface_kind: String
 ) -> PackedScene:
-	if source_module.is_empty() and interface_kind == "wireless":
-		return MODULE_PAGES[ModuleCatalog.WMP300N]
+	if source_module.is_empty():
+		if interface_kind == "wireless":
+			return MODULE_PAGES[ModuleCatalog.WMP300N]
+		if interface_kind == "cellular":
+			return CELLULAR_PAGE
+		if interface_kind == "bluetooth":
+			return FALLBACK_PAGE
 	return get_page_scene(source_module)
 
 

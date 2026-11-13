@@ -140,8 +140,8 @@ func _apply_textures(device: Device, device_type: String) -> void:
 		"Laptop":
 			device.texture_laptop_on = load("res://assets/fix levl2/Laptop.svg")
 		"Tablet":
+			# На главной панели используется постоянная иконка планшета.
 			device.texture_tablet_on = load("res://assets/fix levl2/Tablet PC-PT.svg")
-			device.texture_tablet_off = load("res://assets/devices/Tablet_off.png")
 
 
 func _apply_module_presets(presets: Dictionary) -> void:

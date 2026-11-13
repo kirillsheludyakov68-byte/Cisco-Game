@@ -146,9 +146,7 @@
       "PT-REPEATER-NM-1CE"
     ],
     "laptop1": ["PT-LAPTOP-NM-1CFE"],
-    "laptop2": ["PT-LAPTOP-NM-1CFE"],
-    "tablet0": ["WMP300N"],
-    "tablet1": ["WMP300N"]
+    "laptop2": ["PT-LAPTOP-NM-1CFE"]
   },
   "connections": [
     { "from": "ap0", "to": "sw0", "cable": "straight" },
