@@ -9,10 +9,13 @@ const MODULE_SLOT_SCENE := preload("res://scenes/ModuleSlot.tscn")
 const IMAGE_SIZE := Vector2(231, 60)
 
 # Большой чёрный отсек по центру корпуса — слот съёмного модуля (Port 0).
-const MODULE_RECT := Rect2(106, 16, 31, 28)
+# Прямоугольник совпадает с тёмным отсеком исходной картинки, поэтому
+# иконка модуля заполняет его целиком.
+const MODULE_RECT := Rect2(108, 15, 27, 34)
 
 # Кнопка питания с индикатором (PowerOn.png / PowerOff.png).
-const POWER_RECT := Rect2(67, 16, 18, 27)
+# Выровнена по физическому переключателю на корпусе.
+const POWER_RECT := Rect2(65, 19, 18, 25)
 
 @onready var slots_layer: Control = $SlotsLayer
 @onready var power_area: Control = $PowerArea
@@ -62,6 +65,9 @@ func _build_slot() -> void:
 	_slot.name = "ModuleSlot"
 	_slot.slot_index = -1
 	slots_layer.add_child(_slot)
+	# На Access Point иконка модуля должна заполнять тёмный отсек целиком,
+	# без полей по краям (в отличие от слотов коммутатора и ПК).
+	_slot.module_image.stretch_mode = TextureRect.STRETCH_SCALE
 	_apply_rect(_slot, MODULE_RECT)
 	_slot.slot_clicked.connect(_on_slot_clicked)
 	_slot.gui_input.connect(_on_slot_gui_input)
