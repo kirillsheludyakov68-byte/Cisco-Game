@@ -19,6 +19,8 @@
 [ext_resource type="PackedScene" path="res://scenes/PrinterPhysicalOverlay.tscn" id="17_printer"]
 [ext_resource type="PackedScene" path="res://scenes/TabletPhysicalOverlay.tscn" id="18_tablet"]
 
+[ext_resource type="PackedScene" path="res://scenes/AccessPointPhysicalOverlay.tscn" id="19_ap"]
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_y1kbd"]
 bg_color = Color(0.9411765, 0.9411765, 0.9411765, 1)
 
@@ -196,7 +198,7 @@ layout_mode = 2
 
 [node name="ViewerPanel" type="PanelContainer" parent="MainPanel/ContentPanel/PagePhysical" unique_id=1100135362]
 layout_mode = 0
-offset_left = 187.0
+offset_left = 219.0
 offset_top = 77.0
 offset_right = 795.0
 offset_bottom = 475.0
@@ -245,9 +247,13 @@ layout_mode = 1
 visible = false
 layout_mode = 1
 
+[node name="AccessPointPhysicalOverlay" parent="MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage" instance=ExtResource("19_ap")]
+visible = false
+layout_mode = 1
+
 [node name="ViewerLayout" type="VBoxContainer" parent="MainPanel/ContentPanel/PagePhysical" unique_id=614194327]
 layout_mode = 0
-offset_left = 187.0
+offset_left = 219.0
 offset_top = 3.0
 offset_right = 795.0
 offset_bottom = 26.0
@@ -264,16 +270,17 @@ horizontal_alignment = 1
 layout_mode = 0
 offset_left = 9.0
 offset_top = 4.0
-offset_right = 177.0
+offset_right = 209.0
 offset_bottom = 474.0
 theme_override_constants/separation = 10
 
 [node name="ModulesPanel" parent="MainPanel/ContentPanel/PagePhysical/PhysicalLayout" unique_id=816448491 instance=ExtResource("4_1rrw4")]
 layout_mode = 2
+size_flags_vertical = 3
 
 [node name="ZoomButtons" type="HBoxContainer" parent="MainPanel/ContentPanel/PagePhysical" unique_id=1746156344]
 layout_mode = 0
-offset_left = 239.0
+offset_left = 271.0
 offset_top = 34.0
 offset_right = 743.0
 offset_bottom = 64.0

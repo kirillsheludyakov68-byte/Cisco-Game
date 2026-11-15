@@ -7,6 +7,8 @@ const ERROR_POWER_ADD_SWITCH := "Невозможно добавить моду�
 const ERROR_POWER_REMOVE_SWITCH := "Невозможно извлечь модуль, пока коммутатор включён."
 const ERROR_POWER_ADD_HUB := "Невозможно добавить модуль, пока хаб включён."
 const ERROR_POWER_REMOVE_HUB := "Невозможно извлечь модуль, пока хаб включён."
+const ERROR_POWER_ADD_AP := "Невозможно добавить модуль, пока точка доступа включена."
+const ERROR_POWER_REMOVE_AP := "Невозможно извлечь модуль, пока точка доступа включена."
 const ERROR_OCCUPIED := "В слоте уже установлен модуль. Сначала извлеките его."
 const ERROR_EMPTY := "В слоте нет модуля."
 const ERROR_UNKNOWN := "Неизвестный модуль."
@@ -17,6 +19,8 @@ const ERROR_BOOTING := "Коммутатор загружается. Пожал�
 
 const ZOOM_STEP := 1.2
 const HUB_BASE_SCALE := 1.0 / (ZOOM_STEP * ZOOM_STEP * ZOOM_STEP)
+# Для точки доступа исходный (100%) масштаб — это четыре шага уменьшения.
+const AP_BASE_SCALE := 1.0 / (ZOOM_STEP * ZOOM_STEP * ZOOM_STEP * ZOOM_STEP)
 const ZOOM_MIN := 0.25
 const ZOOM_MAX := 3.0
 const ZOOM_SCROLL_STEP := 48.0
@@ -41,6 +45,7 @@ const ZOOM_SCROLL_BAR_WIDTH := 14.0
 @onready var laptop_overlay: LaptopPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/LaptopPhysicalOverlay
 @onready var printer_overlay: PrinterPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/PrinterPhysicalOverlay
 @onready var tablet_overlay: TabletPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/TabletPhysicalOverlay
+@onready var access_point_overlay: AccessPointPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/AccessPointPhysicalOverlay
 @onready var module_info: ModuleInfoPanel = get_node_or_null("MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel") as ModuleInfoPanel
 @onready var config_panel: ConfigPanel = $MainPanel/ContentPanel/PageConfig/ConfigPanel
 @onready var cli_page: SwitchCLIPage = $MainPanel/ContentPanel/PageCLI/SwitchCLIPage
@@ -136,6 +141,7 @@ func open_for(dev: Device) -> void:
 	var is_laptop := dev.device_type == "Laptop"
 	var is_printer := dev.device_type == "Printer"
 	var is_tablet := dev.device_type == "Tablet"
+	var is_access_point := dev.device_type == "AccessPoint"
 	var has_config := true
 	var has_cli := is_switch
 	var has_desktop := dev.device_type in ["PC", "Laptop", "Tablet"]
@@ -143,7 +149,7 @@ func open_for(dev: Device) -> void:
 	var has_host_module := ModuleCatalog.uses_host_modules(dev.device_type)
 	var has_slot_modules := ModuleCatalog.is_slot_device(dev.device_type)
 	# У планшета панель модулей есть, но список пуст: все интерфейсы встроенные.
-	var has_modules := has_host_module or has_slot_modules or is_tablet
+	var has_modules := has_host_module or has_slot_modules or is_tablet or is_access_point
 
 	tab_config.visible = has_config
 	tab_cli.visible = has_cli
@@ -162,6 +168,7 @@ func open_for(dev: Device) -> void:
 	laptop_overlay.visible = is_laptop
 	printer_overlay.visible = is_printer
 	tablet_overlay.visible = is_tablet
+	access_point_overlay.visible = is_access_point
 	modules_panel.visible = has_modules
 	if module_info != null:
 		# У планшета нет модулей, поэтому описание модуля не показываем.
@@ -179,6 +186,8 @@ func open_for(dev: Device) -> void:
 		printer_overlay.setup(dev, self)
 	if is_tablet:
 		tablet_overlay.setup(dev, self)
+	if is_access_point:
+		access_point_overlay.setup(dev, self)
 	if has_modules:
 		modules_panel.setup(dev, self)
 	_update_device_image()
@@ -245,6 +254,8 @@ func _on_device_power_changed(is_on: bool) -> void:
 		printer_overlay.refresh()
 	if tablet_overlay.visible:
 		tablet_overlay.refresh()
+	if access_point_overlay.visible:
+		access_point_overlay.refresh()
 	if cli_page.visible:
 		cli_page.refresh()
 	if services_page != null:
@@ -448,6 +459,7 @@ func _update_device_image() -> void:
 	laptop_overlay.visible = device.device_type == "Laptop"
 	printer_overlay.visible = device.device_type == "Printer"
 	tablet_overlay.visible = device.device_type == "Tablet"
+	access_point_overlay.visible = device.device_type == "AccessPoint"
 	match device.device_type:
 		"PC":
 			if device.is_powered_on:
@@ -463,7 +475,11 @@ func _update_device_image() -> void:
 		"Router":
 			device_image.texture = load("res://assets/fix levl2/Router.svg")
 		"AccessPoint":
-			device_image.texture = load("res://assets/fix levl2/AccessPoint.svg")
+			# Корпус точки доступа всегда один и тот же; кнопка питания и
+			# съёмный модуль Port 0 показаны отдельным оверлеем.
+			device_image.texture = load("res://assets/Access Point/iPTRealAccessPoint.png")
+			access_point_overlay.setup(device, self)
+			access_point_overlay.refresh()
 		"Hub":
 			# Hub.png обрезан по краям рисунка, поэтому кабели на уровне
 			# сходятся точно в визуальном центре корпуса.
@@ -555,14 +571,22 @@ func _setup_zoom() -> void:
 
 
 func _reset_zoom() -> void:
-	_zoom_scale = 1.0
+	_zoom_scale = _get_original_zoom_scale()
 	_zoom_pan = Vector2.ZERO
 	_apply_zoom()
+
+
+func _get_original_zoom_scale() -> float:
+	if device != null and device.device_type == "AccessPoint":
+		return AP_BASE_SCALE
+	return 1.0
 
 
 func _get_initial_zoom_scale() -> float:
 	if device != null and device.device_type == "Hub":
 		return HUB_BASE_SCALE
+	if device != null and device.device_type == "AccessPoint":
+		return AP_BASE_SCALE
 	return 1.0
 
 
@@ -762,7 +786,7 @@ func _on_device_image_gui_input(event: InputEvent) -> void:
 	# У коммутатора, хаба, ноутбука, принтера и планшета кнопку питания
 	# обрабатывает физический оверлей, чтобы её зона точно совпадала с картинкой.
 	if device == null or ModuleCatalog.is_slot_device(device.device_type) \
-			or device.device_type in ["Laptop", "Printer", "Tablet"]:
+			or device.device_type in ["Laptop", "Printer", "Tablet", "AccessPoint"]:
 		return
 
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -812,6 +836,8 @@ func try_install_module(module_name: String) -> void:
 			laptop_overlay.refresh()
 		if printer_overlay.visible:
 			printer_overlay.refresh()
+		if access_point_overlay.visible:
+			access_point_overlay.refresh()
 		_show_module_info(module_name)
 	else:
 		_show_module_error(result.get("reason", ""))
@@ -848,6 +874,8 @@ func try_remove_module() -> void:
 			laptop_overlay.refresh()
 		if printer_overlay.visible:
 			printer_overlay.refresh()
+		if access_point_overlay.visible:
+			access_point_overlay.refresh()
 		_update_module_info()
 	else:
 		_show_module_error(result.get("reason", ""))
@@ -923,6 +951,18 @@ func show_hint_module() -> void:
 	if not modules_panel.is_list_visible():
 		show_hint_node(modules_panel.header_button)
 		return
+	if device != null and device.device_type == "AccessPoint":
+		var ap_module_button := modules_panel.get_module_button(
+			ModuleCatalog.PT_REPEATER_NM_1CE
+		)
+		if ap_module_button != null:
+			show_hint_node(ap_module_button)
+			return
+		if access_point_overlay != null:
+			var ap_slot := access_point_overlay.get_slot()
+			if ap_slot != null:
+				show_hint_node(ap_slot)
+				return
 	var module_button := modules_panel.get_module_button(ModuleCatalog.PT_HOST_NM_1CE)
 	if module_button != null:
 		show_hint_node(module_button)
@@ -985,6 +1025,10 @@ func get_power_hint_rect() -> Rect2:
 		if tablet_overlay != null and tablet_overlay.power_area != null:
 			return tablet_overlay.power_area.get_global_rect()
 		return Rect2()
+	if device.device_type == "AccessPoint":
+		if access_point_overlay != null and access_point_overlay.power_area != null:
+			return access_point_overlay.power_area.get_global_rect()
+		return Rect2()
 	if device_image != null:
 		var base_rect := _get_power_base_rect()
 		if base_rect.size == Vector2.ZERO:
@@ -1005,6 +1049,8 @@ func _show_module_error(reason: String) -> void:
 				text = ERROR_POWER_ADD_SWITCH
 			elif _is_hub():
 				text = ERROR_POWER_ADD_HUB
+			elif _is_access_point():
+				text = ERROR_POWER_ADD_AP
 			else:
 				text = ERROR_POWER_ADD
 		"power_on_remove":
@@ -1012,6 +1058,8 @@ func _show_module_error(reason: String) -> void:
 				text = ERROR_POWER_REMOVE_SWITCH
 			elif _is_hub():
 				text = ERROR_POWER_REMOVE_HUB
+			elif _is_access_point():
+				text = ERROR_POWER_REMOVE_AP
 			else:
 				text = ERROR_POWER_REMOVE
 		"occupied":
@@ -1033,3 +1081,7 @@ func _is_switch() -> bool:
 
 func _is_hub() -> bool:
 	return device != null and device.device_type == "Hub"
+
+
+func _is_access_point() -> bool:
+	return device != null and device.device_type == "AccessPoint"
