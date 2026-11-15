@@ -22,6 +22,8 @@ const MODULE_PAGES := {
 const BUILTIN_PAGE := preload("res://scenes/InterfaceSettingsPage.tscn")
 const CELLULAR_PAGE := preload("res://scenes/CellularConfigPage.tscn")
 const FALLBACK_PAGE := preload("res://scenes/UnsupportedInterfacePage.tscn")
+const ACCESS_POINT_PORT0_PAGE := preload("res://scenes/AccessPointPort0ConfigPage.tscn")
+const ACCESS_POINT_WIRELESS_PAGE := preload("res://scenes/AccessPointWirelessConfigPage.tscn")
 
 
 static func get_page_scene(source_module: String) -> PackedScene:
@@ -32,12 +34,19 @@ static func get_page_scene(source_module: String) -> PackedScene:
 	return FALLBACK_PAGE
 
 
-# Встроенный беспроводной интерфейс точки доступа использует ту же
-# страницу SSID/безопасности, что и WMP300N.
+# Встроенный беспроводной интерфейс точки доступа использует страницу
+# Port 1 (SSID, канал 5 ГГц, зона покрытия), а её съёмный модуль — страницу
+# Port 0 (Port Status, Bandwidth, Duplex).
 static func get_page_scene_for_interface(
 	source_module: String,
-	interface_kind: String
+	interface_kind: String,
+	device_type: String = ""
 ) -> PackedScene:
+	if device_type == "AccessPoint":
+		if source_module.is_empty() and interface_kind == "wireless":
+			return ACCESS_POINT_WIRELESS_PAGE
+		if ModuleCatalog.is_access_point_module(source_module):
+			return ACCESS_POINT_PORT0_PAGE
 	if source_module.is_empty():
 		if interface_kind == "wireless":
 			return MODULE_PAGES[ModuleCatalog.WMP300N]

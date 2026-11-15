@@ -21,6 +21,7 @@ const PT_SWITCH_NM_1FGE := "PT-SWITCH-NM-1FGE"
 
 const PT_REPEATER_NM_1CE := "PT-REPEATER-NM-1CE"
 const PT_REPEATER_NM_1CFE := "PT-REPEATER-NM-1CFE"
+const PT_REPEATER_NM_1FGE := "PT-REPEATER-NM-1FGE"
 
 const SWITCH_SLOT_COUNT := 10
 const HUB_SLOT_COUNT := 10
@@ -70,6 +71,13 @@ const HUB_MODULES: Array[String] = [
 	PT_SWITCH_NM_1FGE,
 ]
 
+# Модули, которые устанавливаются в единственный слот точки доступа.
+const ACCESS_POINT_MODULES: Array[String] = [
+	PT_REPEATER_NM_1CFE,
+	PT_REPEATER_NM_1CE,
+	PT_REPEATER_NM_1FGE,
+]
+
 # Заводская конфигурация коммутатора: слот 0 — крайний справа, слот 9 — слева.
 # Модули можно извлекать и заменять при выключенном устройстве.
 const DEFAULT_SWITCH_MODULES := {
@@ -100,6 +108,7 @@ const ICON_PATHS := {
 	PT_SWITCH_NM_1FGE: "res://assets/Switch/modules/gPTSwitchNM-1FGE.png",
 	PT_REPEATER_NM_1CE: "res://assets/devices/gPTRepeaterNM-1CE.png",
 	PT_REPEATER_NM_1CFE: "res://assets/devices/gPTRepeaterNM-1CFE.png",
+	PT_REPEATER_NM_1FGE: "res://assets/Switch/modules/gPTSwitchNM-1FGE.png",
 }
 
 const DESCRIPTIONS := {
@@ -117,6 +126,7 @@ const DESCRIPTIONS := {
 	PT_SWITCH_NM_1FGE: "Однопортовый сетевой модуль Cisco Gigabit Ethernet (PT-SWITCH-NM-1FGE) обеспечивает оптическое подключение Gigabit Ethernet для доступа к маршрутизаторам. Модуль поддерживается Cisco 2691, Cisco 3660, Cisco 3725 и Cisco 3745. Модуль имеет один слот GBIC для любого стандартного медного или оптического Cisco GBIC.",
 	PT_REPEATER_NM_1CE: "Модуль повторителя PT-REPEATER-NM-1CE добавляет хабу один порт Ethernet 10 Мбит/с для подключения оконечных устройств или другого концентратора.",
 	PT_REPEATER_NM_1CFE: "Модуль повторителя PT-REPEATER-NM-1CFE добавляет хабу один порт Fast Ethernet 100 Мбит/с для подключения оконечных устройств или другого концентратора.",
+	PT_REPEATER_NM_1FGE: "Однопортовый сетевой модуль Cisco Gigabit Ethernet (PT-REPEATER-NM-1FGE) обеспечивает оптическое подключение Gigabit Ethernet для доступа к маршрутизаторам. Модуль поддерживается Cisco 2691, Cisco 3660, Cisco 3725 и Cisco 3745. Модуль имеет один слот GBIC для любого стандартного медного или оптического Cisco GBIC.",
 }
 
 # Интерфейсы, которые физически предоставляют модули host-устройств.
@@ -269,7 +279,12 @@ const BUILTIN_INTERFACES := {
 static func has_module(module_name: String) -> bool:
 	return MODULES.has(module_name) \
 		or LAPTOP_MODULES.has(module_name) \
-		or PRINTER_MODULES.has(module_name)
+		or PRINTER_MODULES.has(module_name) \
+		or ACCESS_POINT_MODULES.has(module_name)
+
+
+static func is_access_point_module(module_name: String) -> bool:
+	return ACCESS_POINT_MODULES.has(module_name)
 
 
 static func has_switch_module(module_name: String) -> bool:
@@ -315,6 +330,9 @@ static func get_modules_for_device(device_type: String) -> Array[String]:
 	elif device_type == "Printer":
 		for module_name in PRINTER_MODULES:
 			result.append(module_name)
+	elif device_type == "AccessPoint":
+		for module_name in ACCESS_POINT_MODULES:
+			result.append(module_name)
 	elif uses_host_modules(device_type):
 		for module_name in MODULES:
 			result.append(module_name)
@@ -357,7 +375,7 @@ static func get_slot_interface_name(module_name: String, slot_index: int) -> Str
 			prefix = "Ethernet"
 		PT_SWITCH_NM_1CFE, PT_REPEATER_NM_1CFE:
 			prefix = "FastEthernet"
-		PT_SWITCH_NM_1FGE:
+		PT_SWITCH_NM_1FGE, PT_REPEATER_NM_1FGE:
 			prefix = "GigabitEthernet"
 		_:
 			return ""
@@ -384,9 +402,9 @@ static func get_slot_interface_spec(
 	match module_name:
 		PT_SWITCH_NM_1CFE, PT_REPEATER_NM_1CFE:
 			bandwidth_mbps = 100
-		PT_SWITCH_NM_1FGE:
+		PT_SWITCH_NM_1FGE, PT_REPEATER_NM_1FGE:
 			bandwidth_mbps = 1000
-			# PT-SWITCH-NM-1FGE — оптический Gigabit Ethernet.
+			# PT-SWITCH-NM-1FGE и PT-REPEATER-NM-1FGE — оптический Gigabit Ethernet.
 			interface_kind = "fiber"
 
 	return {
@@ -419,7 +437,7 @@ static func get_slot_bandwidth_options(module_name: String) -> Array[Dictionary]
 				{"label": "100 Mbps", "value": "100mbps"},
 				{"label": "Auto", "value": "auto"},
 			]
-		PT_SWITCH_NM_1FGE:
+		PT_SWITCH_NM_1FGE, PT_REPEATER_NM_1FGE:
 			result = [
 				{"label": "1000 Mbps", "value": "1000mbps"},
 				{"label": "Auto", "value": "auto"},
@@ -428,6 +446,41 @@ static func get_slot_bandwidth_options(module_name: String) -> Array[Dictionary]
 
 
 static func get_switch_bandwidth_options(module_name: String) -> Array[Dictionary]:
+	return get_slot_bandwidth_options(module_name)
+
+
+# Интерфейс Port 0 точки доступа всегда называется одинаково, независимо от
+# установленного модуля. Сам модуль определяет только скорость и тип порта.
+static func get_access_point_port0_spec(module_name: String) -> Dictionary:
+	if not is_access_point_module(module_name):
+		return {}
+
+	var bandwidth_mbps := 10
+	var bandwidth_mode := DeviceInterface.BANDWIDTH_10MBPS
+	var interface_kind := "ethernet"
+	match module_name:
+		PT_REPEATER_NM_1CFE:
+			bandwidth_mbps = 100
+			bandwidth_mode = DeviceInterface.BANDWIDTH_100MBPS
+		PT_REPEATER_NM_1FGE:
+			bandwidth_mbps = 1000
+			bandwidth_mode = DeviceInterface.BANDWIDTH_1000MBPS
+			interface_kind = "fiber"
+
+	return {
+		"name": "Port 0",
+		"kind": interface_kind,
+		"source_module": module_name,
+		"slot_index": -1,
+		"bandwidth_mbps": bandwidth_mbps,
+		"bandwidth_mode": bandwidth_mode,
+		"duplex_mode": DeviceInterface.DUPLEX_AUTO,
+		"ipv4_mode": NetworkSettings.IPV4_STATIC,
+		"ipv6_mode": NetworkSettings.IPV6_STATIC,
+	}
+
+
+static func get_access_point_bandwidth_options(module_name: String) -> Array[Dictionary]:
 	return get_slot_bandwidth_options(module_name)
 
 

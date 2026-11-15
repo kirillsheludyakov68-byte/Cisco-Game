@@ -13,6 +13,7 @@ const SECTION_INTERFACE := "interface"
 @onready var global_page: GlobalSettingsPage = $Root/PageStack/GlobalSettingsPage
 @onready var switch_global_page: SwitchGlobalSettingsPage = $Root/PageStack/SwitchGlobalSettingsPage
 @onready var hub_global_page: HubGlobalSettingsPage = $Root/PageStack/HubGlobalSettingsPage
+@onready var access_point_global_page: AccessPointGlobalSettingsPage = $Root/PageStack/AccessPointGlobalSettingsPage
 @onready var interface_page_host: Control = $Root/PageStack/InterfacePageHost
 
 var device: Device = null
@@ -178,6 +179,7 @@ func _show_settings() -> void:
 	global_page.visible = settings_page == global_page
 	switch_global_page.visible = settings_page == switch_global_page
 	hub_global_page.visible = settings_page == hub_global_page
+	access_point_global_page.visible = settings_page == access_point_global_page
 	interface_page_host.visible = false
 	settings_button.button_pressed = true
 	if settings_page.has_method("set_selected_interface"):
@@ -220,6 +222,7 @@ func _display_interface(iface: DeviceInterface) -> void:
 	global_page.visible = false
 	switch_global_page.visible = false
 	hub_global_page.visible = false
+	access_point_global_page.visible = false
 	interface_page_host.visible = true
 	_update_nav_selection()
 
@@ -248,7 +251,8 @@ func _on_interfaces_changed() -> void:
 func _ensure_interface_page(iface: DeviceInterface) -> void:
 	var page_scene := ConfigPageRegistry.get_page_scene_for_interface(
 		iface.source_module,
-		iface.interface_kind
+		iface.interface_kind,
+		device.device_type if device != null else ""
 	)
 	if page_scene == null:
 		return
@@ -288,6 +292,8 @@ func _get_settings_page() -> Control:
 		return switch_global_page
 	if device != null and device.device_type == "Hub":
 		return hub_global_page
+	if device != null and device.device_type == "AccessPoint":
+		return access_point_global_page
 	return global_page
 
 

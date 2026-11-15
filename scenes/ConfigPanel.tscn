@@ -1,9 +1,10 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/config_panel.gd" id="1_panel"]
 [ext_resource type="PackedScene" path="res://scenes/GlobalSettingsPage.tscn" id="2_global"]
 [ext_resource type="PackedScene" path="res://scenes/SwitchGlobalSettingsPage.tscn" id="3_switch_global"]
 [ext_resource type="PackedScene" path="res://scenes/HubGlobalSettingsPage.tscn" id="4_hub_global"]
+[ext_resource type="PackedScene" path="res://scenes/AccessPointGlobalSettingsPage.tscn" id="5_ap_global"]
 
 [node name="ConfigPanel" type="MarginContainer"]
 anchors_preset = 15
@@ -83,6 +84,15 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="HubGlobalSettingsPage" parent="Root/PageStack" instance=ExtResource("4_hub_global")]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="AccessPointGlobalSettingsPage" parent="Root/PageStack" instance=ExtResource("5_ap_global")]
 visible = false
 layout_mode = 1
 anchors_preset = 15

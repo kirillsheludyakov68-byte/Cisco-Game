@@ -476,10 +476,22 @@ func set_interface_wireless_settings(interface_name: String, values: Dictionary)
 	if not WirelessSettings.is_valid_eap_method(eap_method):
 		return false
 
+	if values.has("channel_5ghz") \
+			and not WirelessSettings.is_valid_5ghz_channel(int(values["channel_5ghz"])):
+		return false
+	if values.has("coverage_range_m"):
+		var coverage_range := float(values["coverage_range_m"])
+		if coverage_range < 0.0 or coverage_range > 10000.0:
+			return false
+
 	iface.wireless.ssid = ssid
 	iface.wireless.authentication_mode = auth_mode
 	iface.wireless.encryption_type = encryption_type
 	iface.wireless.eap_method = eap_method
+	if values.has("channel_5ghz"):
+		iface.wireless.channel_5ghz = int(values["channel_5ghz"])
+	if values.has("coverage_range_m"):
+		iface.wireless.coverage_range_m = float(values["coverage_range_m"])
 	if values.has("wep_key"):
 		iface.wireless.wep_key = str(values["wep_key"])
 	if values.has("psk_passphrase"):
@@ -623,9 +635,33 @@ func get_dhcp_pool() -> Array[String]:
 	return pool
 
 
+func _get_access_point_interfaces() -> Array[Dictionary]:
+	var specs: Array[Dictionary] = []
+
+	# Port 0 — съёмный модуль. Пока модуль не установлен, порта нет.
+	if installed_module != "":
+		var port0 := ModuleCatalog.get_access_point_port0_spec(installed_module)
+		if not port0.is_empty():
+			specs.append(port0)
+
+	# Port 1 — постоянный встроенный беспроводной интерфейс точки доступа.
+	specs.append({
+		"name": "Port 1",
+		"kind": "wireless",
+		"source_module": "",
+		"slot_index": -1,
+		"bandwidth_mbps": 11,
+		"ipv4_mode": NetworkSettings.IPV4_STATIC,
+		"ipv6_mode": NetworkSettings.IPV6_STATIC,
+	})
+	return specs
+
+
 func _sync_interfaces_from_module() -> void:
 	var specs: Array[Dictionary] = []
-	if ModuleCatalog.uses_host_modules(device_type):
+	if device_type == "AccessPoint":
+		specs = _get_access_point_interfaces()
+	elif ModuleCatalog.uses_host_modules(device_type):
 		specs = ModuleCatalog.get_network_interfaces(installed_module)
 		for spec in specs:
 			spec["source_module"] = installed_module
@@ -729,6 +765,19 @@ func _sync_interfaces_from_module() -> void:
 
 		if old_interface != null:
 			_copy_interface_state(old_interface, network_interface)
+			# У точки доступа Port 0 — это новый модуль в слоте. При его
+			# замене скорость и дуплекс должны соответствовать модулю,
+			# а не старому порту с тем же именем.
+			if device_type == "AccessPoint" and interface_name == "Port 0":
+				network_interface.bandwidth_mbps = int(
+					spec.get("bandwidth_mbps", network_interface.bandwidth_mbps)
+				)
+				network_interface.bandwidth_mode = str(
+					spec.get("bandwidth_mode", network_interface.bandwidth_mode)
+				)
+				network_interface.duplex_mode = str(
+					spec.get("duplex_mode", network_interface.duplex_mode)
+				)
 		elif index == 0 and ModuleCatalog.uses_host_modules(device_type):
 			# Host-устройство сохраняет IP первого интерфейса при смене модуля.
 			network_interface.ipv4_address = _pending_ipv4
@@ -766,6 +815,8 @@ func _copy_interface_state(source: DeviceInterface, target: DeviceInterface) -> 
 	target.wireless.eap_user_name = source.wireless.eap_user_name
 	target.wireless.eap_password = source.wireless.eap_password
 	target.wireless.encryption_type = source.wireless.encryption_type
+	target.wireless.channel_5ghz = source.wireless.channel_5ghz
+	target.wireless.coverage_range_m = source.wireless.coverage_range_m
 
 
 func _ensure_mac_addresses() -> void:

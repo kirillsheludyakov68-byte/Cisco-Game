@@ -41,6 +41,16 @@ const EAP_METHODS: Array[String] = [
 	EAP_TLS,
 ]
 
+# Каналы 5 ГГц, доступные на странице Port 1 точки доступа.
+const FIVE_GHZ_CHANNELS: Array[int] = [
+	36, 40, 44, 48,
+	52, 56, 60, 64,
+	100, 104, 108, 112,
+	116, 120, 124, 128,
+	132, 136, 140,
+	149, 153, 157, 161, 165,
+]
+
 var ssid: String = "Default"
 var authentication_mode: String = AUTH_DISABLED
 var wep_key: String = ""
@@ -51,6 +61,8 @@ var eap_method: String = EAP_MD5
 var eap_user_name: String = ""
 var eap_password: String = ""
 var encryption_type: String = ENCRYPTION_DISABLED
+var channel_5ghz: int = 112
+var coverage_range_m: float = 120.0
 
 
 static func is_valid_auth_mode(mode: String) -> bool:
@@ -63,3 +75,7 @@ static func is_valid_encryption_type(value: String) -> bool:
 
 static func is_valid_eap_method(value: String) -> bool:
 	return EAP_METHODS.has(value)
+
+
+static func is_valid_5ghz_channel(value: int) -> bool:
+	return FIVE_GHZ_CHANNELS.has(value)
