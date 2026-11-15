@@ -73,8 +73,8 @@ const HUB_MODULES: Array[String] = [
 
 # Модули, которые устанавливаются в единственный слот точки доступа.
 const ACCESS_POINT_MODULES: Array[String] = [
-	PT_REPEATER_NM_1CFE,
 	PT_REPEATER_NM_1CE,
+	PT_REPEATER_NM_1CFE,
 	PT_REPEATER_NM_1FGE,
 ]
 
