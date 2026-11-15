@@ -11,7 +11,7 @@ const IMAGE_SIZE := Vector2(231, 60)
 # Большой чёрный отсек по центру корпуса — слот съёмного модуля (Port 0).
 const MODULE_RECT := Rect2(106, 16, 31, 28)
 
-# Постоянный порт с индикатором питания (PowerOn.png / PowerOff.png).
+# Кнопка питания с индикатором (PowerOn.png / PowerOff.png).
 const POWER_RECT := Rect2(67, 16, 18, 27)
 
 @onready var slots_layer: Control = $SlotsLayer
