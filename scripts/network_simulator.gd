@@ -252,6 +252,7 @@ func resolve_hostname(source: Device, target: String) -> Dictionary:
 				"ok": false,
 				"error": "DNS-сервер %s недоступен." % candidate.device_name,
 			}
+		candidate.dns_cache[key] = str(candidate.dns_records[key])
 		return {
 			"ok": true,
 			"address": str(candidate.dns_records[key]),

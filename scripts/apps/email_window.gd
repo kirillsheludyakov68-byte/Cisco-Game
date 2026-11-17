@@ -71,7 +71,8 @@ func _apply_styles() -> void:
 
 
 func _on_send_pressed() -> void:
-	var result := EmailStore.send(
+	var result := EmailStore.send_from_device(
+		device,
 		from_edit.text,
 		to_edit.text,
 		subject_edit.text,

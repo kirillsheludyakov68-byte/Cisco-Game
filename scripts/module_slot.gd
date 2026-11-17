@@ -22,7 +22,7 @@ func setup(dev: Device, window, _module_info = null, _extra = null) -> void:
 func get_installed_module() -> String:
 	if device == null:
 		return ""
-	if ModuleCatalog.is_slot_device(device.device_type):
+	if ModuleCatalog.is_slot_device(device.device_type) or device.device_type == "Server":
 		return device.get_installed_module(slot_index)
 	return device.installed_module
 
@@ -78,7 +78,8 @@ func _drop_data(_at_position: Vector2, data: Variant) -> void:
 	if device_window == null:
 		return
 	var module_name := str(data.get("module", ""))
-	if device != null and ModuleCatalog.is_slot_device(device.device_type):
+	if device != null and (ModuleCatalog.is_slot_device(device.device_type) \
+			or device.device_type == "Server"):
 		if device_window.has_method("try_install_module_to_slot"):
 			device_window.try_install_module_to_slot(module_name, slot_index)
 		return

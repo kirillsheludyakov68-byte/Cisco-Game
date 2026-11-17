@@ -156,6 +156,9 @@ func _apply_module_presets(presets: Dictionary) -> void:
 		if ModuleCatalog.is_slot_device(dev.device_type):
 			_apply_slot_module_preset(dev, device_id, value)
 			continue
+		if dev.device_type == "Server":
+			_apply_server_module_preset(dev, device_id, value)
+			continue
 
 		var module_name := ""
 		if value is String:
@@ -187,6 +190,26 @@ func _apply_slot_module_preset(dev: Device, device_id: String, value) -> void:
 
 	for slot_index in range(value.size()):
 		dev.set_initial_switch_module(str(value[slot_index]), slot_index)
+
+
+# У сервера массив задаёт верхний, затем нижний слот. Словарь позволяет
+# указать слот явно: { "0": "PT-HOST-NM-1CFE", "1": "WMP300N" }.
+func _apply_server_module_preset(dev: Device, device_id: String, value) -> void:
+	if value is Dictionary:
+		for slot_value in value:
+			dev.set_initial_server_module(str(value[slot_value]), int(slot_value))
+		return
+
+	if value is String:
+		dev.set_initial_server_module(value, 0)
+		return
+
+	if not (value is Array):
+		push_warning("module_presets: некорректный список модулей сервера для " + str(device_id))
+		return
+
+	for slot_index in range(mini(value.size(), ModuleCatalog.SERVER_SLOT_COUNT)):
+		dev.set_initial_server_module(str(value[slot_index]), slot_index)
 
 
 func _apply_network_configs(device_data: Array) -> void:
@@ -787,6 +810,8 @@ func _hint_for_dns_record(objective: Dictionary) -> Dictionary:
 			"Включите %s." % dev.device_name,
 			_window_rect_target(window, window.get_power_hint_rect())
 		)
+	if window.services_page != null:
+		window.services_page.show_service_page("dns")
 	if not window.page_services.visible:
 		return _hint(
 			"Перейдите на вкладку Services.",
@@ -818,6 +843,8 @@ func _hint_for_dhcp_config(objective: Dictionary) -> Dictionary:
 			"Включите %s." % dev.device_name,
 			_window_rect_target(window, window.get_power_hint_rect())
 		)
+	if window.services_page != null:
+		window.services_page.show_service_page("dhcp")
 	if not window.page_services.visible:
 		return _hint(
 			"Перейдите на вкладку Services.",
@@ -870,6 +897,8 @@ func _hint_for_dhcp_lease(objective: Dictionary) -> Dictionary:
 					"Кликните по %s, чтобы открыть окно сервера." % server.device_name,
 					_world_target(server)
 				)
+			if server_window.services_page != null:
+				server_window.services_page.show_service_page("dhcp")
 			if not server_window.page_services.visible:
 				return _hint(
 					"Перейдите на вкладку Services.",
@@ -1028,6 +1057,8 @@ func _hint_for_dns_failure(dev: Device, target: String) -> Dictionary:
 			"Включите %s." % server.device_name,
 			_window_rect_target(window, window.get_power_hint_rect())
 		)
+	if window.services_page != null:
+		window.services_page.show_service_page("dns")
 	if not window.page_services.visible:
 		return _hint(
 			"Перейдите на вкладку Services.",

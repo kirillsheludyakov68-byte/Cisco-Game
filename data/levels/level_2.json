@@ -147,6 +147,7 @@
     ],
     "laptop1": ["PT-LAPTOP-NM-1CFE"],
     "laptop2": ["PT-LAPTOP-NM-1CFE"],
+    "server0": ["PT-HOST-NM-1CFE"],
     "ap0": ["PT-REPEATER-NM-1CE"]
   },
   "connections": [
@@ -203,7 +204,7 @@
       "id": "server_static",
       "type": "static_ip",
       "device": "server0",
-      "interface": "Ethernet0",
+      "interface": "FastEthernet0",
       "ip": "192.168.9.1",
       "mask": "255.255.255.0",
       "text": "Настройте статический адрес Server0: 192.168.9.1/24."

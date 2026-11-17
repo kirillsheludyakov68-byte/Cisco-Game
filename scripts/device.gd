@@ -32,6 +32,10 @@ var is_powered_on: bool = true:
 # Физически установленные модули коммутатора: { slot_index: module_name }.
 var installed_switch_modules: Dictionary = {}
 
+# Физически установленные модули сервера: { slot_index: module_name }.
+# Слот 0 — верхний, слот 1 — нижний.
+var installed_server_modules: Dictionary = {}
+
 # Модуль, который реально работает. Обновляется только при включении ПК.
 var active_module: String = ""
 
@@ -51,6 +55,7 @@ var console: SwitchConsole = SwitchConsole.new()
 var is_booting: bool = false
 
 var _slot_defaults_initialized: bool = false
+var _server_service_defaults_initialized: bool = false
 var _boot_generation: int = 0
 var _suppress_power_boot: bool = false
 
@@ -83,6 +88,8 @@ var network_settings: NetworkSettings = NetworkSettings.new()
 # DNS: { "имя": "IPv4-адрес" }.
 var dns_service_enabled: bool = false
 var dns_records: Dictionary = {}
+# Кэш последних успешных разрешений имён через этот сервер.
+var dns_cache: Dictionary = {}
 
 # DHCP-пул. Адреса выдаются математически, без имитации DHCP-пакетов.
 var dhcp_service_enabled: bool = false
@@ -91,6 +98,22 @@ var dhcp_subnet_mask: String = "255.255.255.0"
 var dhcp_gateway: String = ""
 var dhcp_dns: String = ""
 var dhcp_max_users: int = 0
+var dhcp_pool_name: String = "serverPool"
+var dhcp_interface: String = ""
+var dhcp_tftp: String = ""
+var dhcp_wlc: String = ""
+
+# HTTP/HTTPS: файлы, которые сервер отдаёт браузеру.
+var http_service_enabled: bool = false
+var https_service_enabled: bool = false
+var http_files: Dictionary = {}
+
+# EMAIL: SMTP/POP3 и учётные записи. Письма хранятся в email_messages.
+var email_smtp_enabled: bool = false
+var email_pop3_enabled: bool = false
+var email_domain: String = "local"
+var email_users: Dictionary = {}
+var email_messages: Array[Dictionary] = []
 
 # Резервные значения для данных старого уровня, пока у устройства нет
 # подходящего интерфейса (например, ПК без установленного модуля).
@@ -165,6 +188,8 @@ func _ready() -> void:
 		network_settings.ipv6_mode = NetworkSettings.IPV6_AUTOMATIC
 	if ModuleCatalog.is_slot_device(device_type):
 		_ensure_slot_defaults()
+	if device_type == "Server":
+		_ensure_server_service_defaults()
 	_sync_interfaces_from_module()
 	_ensure_mac_addresses()
 	if name_label:
@@ -275,6 +300,8 @@ func reset_highlight() -> void:
 func get_installed_module(slot_index: int = -1) -> String:
 	if ModuleCatalog.is_slot_device(device_type):
 		return str(installed_switch_modules.get(slot_index, ""))
+	if device_type == "Server":
+		return str(installed_server_modules.get(slot_index, ""))
 	if slot_index <= 0:
 		return installed_module
 	return ""
@@ -282,6 +309,10 @@ func get_installed_module(slot_index: int = -1) -> String:
 
 func get_installed_switch_modules() -> Dictionary:
 	return installed_switch_modules.duplicate(true)
+
+
+func get_installed_server_modules() -> Dictionary:
+	return installed_server_modules.duplicate(true)
 
 
 func get_primary_interface() -> DeviceInterface:
@@ -553,6 +584,104 @@ func get_primary_ipv4_address() -> String:
 	return ""
 
 
+func _ensure_server_service_defaults() -> void:
+	if _server_service_defaults_initialized:
+		return
+	_server_service_defaults_initialized = true
+	if http_files.is_empty():
+		http_files = {
+			"copyrights.html": (
+				"<html><head><title>Copyrights</title></head><body>"
+				+ "<h1>Copyrights</h1><p>Cisco Packet Tracer simulator.</p></body></html>"
+			),
+			"helloworld.html": (
+				"<html><head><title>Hello World</title></head><body>"
+				+ "<h1>Hello World</h1><p>It works!</p></body></html>"
+			),
+			"image.html": (
+				"<html><head><title>Image</title></head><body>"
+				+ "<h1>Image</h1><p>Image page.</p></body></html>"
+			),
+			"index.html": (
+				"<html><head><title>Welcome</title></head><body>"
+				+ "<h1>Welcome to Cisco Packet Tracer</h1>"
+				+ "<p>This page is served by the simulator HTTP service.</p>"
+				+ "</body></html>"
+			),
+			"cscoptlogo177x111.jpg": "Binary image placeholder.",
+		}
+	http_service_enabled = true
+	https_service_enabled = false
+	email_smtp_enabled = true
+	email_pop3_enabled = true
+	if email_domain.is_empty():
+		email_domain = "local"
+
+
+func set_http_service(enabled: bool, use_https: bool = false) -> void:
+	if use_https:
+		https_service_enabled = enabled
+	else:
+		http_service_enabled = enabled
+	configuration_changed.emit()
+
+
+func set_http_file(file_name: String, content: String) -> bool:
+	var name := file_name.strip_edges()
+	if name.is_empty() or name.length() > 128 or name.contains("/") or name.contains("\\"):
+		return false
+	http_files[name] = content
+	configuration_changed.emit()
+	return true
+
+
+func remove_http_file(file_name: String) -> bool:
+	if not http_files.has(file_name):
+		return false
+	http_files.erase(file_name)
+	configuration_changed.emit()
+	return true
+
+
+func get_http_file(file_name: String) -> String:
+	if http_files.has(file_name):
+		return str(http_files[file_name])
+	var target := file_name.to_lower()
+	for key in http_files:
+		if str(key).to_lower() == target:
+			return str(http_files[key])
+	return ""
+
+
+func set_email_config(domain: String, smtp_enabled: bool, pop3_enabled: bool) -> bool:
+	var value := domain.strip_edges().to_lower()
+	if value.is_empty() or value.length() > 63 or value.contains(" "):
+		return false
+	email_domain = value
+	email_smtp_enabled = smtp_enabled
+	email_pop3_enabled = pop3_enabled
+	configuration_changed.emit()
+	return true
+
+
+func set_email_user(user_name: String, password: String) -> bool:
+	var user := user_name.strip_edges().to_lower()
+	if user.is_empty() or user.length() > 64 or user.contains("@") or user.contains(" "):
+		return false
+	email_users[user] = password
+	configuration_changed.emit()
+	return true
+
+
+func remove_email_user(user_name: String) -> bool:
+	var user := user_name.strip_edges().to_lower()
+	if not email_users.has(user):
+		return false
+	email_users.erase(user)
+	configuration_changed.emit()
+	return true
+
+
 func set_dns_service(enabled: bool) -> void:
 	if dns_service_enabled == enabled:
 		return
@@ -593,6 +722,10 @@ func set_dhcp_config(values: Dictionary) -> bool:
 	var gateway := str(values.get("gateway", dhcp_gateway)).strip_edges()
 	var dns := str(values.get("dns", dhcp_dns)).strip_edges()
 	var max_users := int(values.get("max_users", dhcp_max_users))
+	var pool_name := str(values.get("pool_name", dhcp_pool_name)).strip_edges()
+	var interface_name := str(values.get("interface", dhcp_interface)).strip_edges()
+	var tftp := str(values.get("tftp", dhcp_tftp)).strip_edges()
+	var wlc := str(values.get("wlc", dhcp_wlc)).strip_edges()
 
 	if not NetworkValidation.is_valid_ipv4(start_ip):
 		return false
@@ -604,14 +737,35 @@ func set_dhcp_config(values: Dictionary) -> bool:
 		return false
 	if max_users < 1 or max_users > 254:
 		return false
+	if not tftp.is_empty() and not NetworkValidation.is_valid_ipv4(tftp):
+		return false
+	if not wlc.is_empty() and not NetworkValidation.is_valid_ipv4(wlc):
+		return false
 
 	dhcp_start_ip = start_ip
 	dhcp_subnet_mask = mask
 	dhcp_gateway = gateway
 	dhcp_dns = dns
 	dhcp_max_users = max_users
+	dhcp_pool_name = pool_name if not pool_name.is_empty() else "serverPool"
+	dhcp_interface = interface_name
+	dhcp_tftp = tftp
+	dhcp_wlc = wlc
 	configuration_changed.emit()
 	return true
+
+
+func clear_dhcp_config() -> void:
+	dhcp_service_enabled = false
+	dhcp_start_ip = ""
+	dhcp_gateway = ""
+	dhcp_dns = ""
+	dhcp_max_users = 0
+	dhcp_pool_name = "serverPool"
+	dhcp_interface = ""
+	dhcp_tftp = ""
+	dhcp_wlc = ""
+	configuration_changed.emit()
 
 
 func get_dhcp_pool() -> Array[String]:
@@ -657,10 +811,25 @@ func _get_access_point_interfaces() -> Array[Dictionary]:
 	return specs
 
 
+func _get_server_interfaces() -> Array[Dictionary]:
+	var specs: Array[Dictionary] = []
+	var slots: Array = installed_server_modules.keys()
+	slots.sort()
+	for slot_value in slots:
+		var slot_index := int(slot_value)
+		var module_name := str(installed_server_modules[slot_value])
+		var spec := ModuleCatalog.get_server_interface_spec(module_name, slot_index)
+		if not spec.is_empty():
+			specs.append(spec)
+	return specs
+
+
 func _sync_interfaces_from_module() -> void:
 	var specs: Array[Dictionary] = []
 	if device_type == "AccessPoint":
 		specs = _get_access_point_interfaces()
+	elif device_type == "Server":
+		specs = _get_server_interfaces()
 	elif ModuleCatalog.uses_host_modules(device_type):
 		specs = ModuleCatalog.get_network_interfaces(installed_module)
 		for spec in specs:
@@ -895,8 +1064,10 @@ func remove_module() -> Dictionary:
 	return {"ok": true, "reason": ""}
 
 
-# Поставить модуль в конкретный слот коммутатора.
+# Поставить модуль в конкретный слот коммутатора или сервера.
 func install_module_in_slot(module_name: String, slot_index: int) -> Dictionary:
+	if device_type == "Server":
+		return _install_server_module_in_slot(module_name, slot_index)
 	if not ModuleCatalog.is_slot_device(device_type):
 		return install_module(module_name)
 	if is_powered_on:
@@ -913,8 +1084,10 @@ func install_module_in_slot(module_name: String, slot_index: int) -> Dictionary:
 	return {"ok": true, "reason": ""}
 
 
-# Извлечь модуль из конкретного слота коммутатора.
+# Извлечь модуль из конкретного слота коммутатора или сервера.
 func remove_module_from_slot(slot_index: int) -> Dictionary:
+	if device_type == "Server":
+		return _remove_server_module_from_slot(slot_index)
 	if not ModuleCatalog.is_slot_device(device_type):
 		return remove_module()
 	if is_powered_on:
@@ -929,14 +1102,56 @@ func remove_module_from_slot(slot_index: int) -> Dictionary:
 	return {"ok": true, "reason": ""}
 
 
+func _install_server_module_in_slot(module_name: String, slot_index: int) -> Dictionary:
+	if is_powered_on:
+		return {"ok": false, "reason": "power_on_add"}
+	if slot_index < 0 or slot_index >= ModuleCatalog.SERVER_SLOT_COUNT:
+		return {"ok": false, "reason": "invalid_slot"}
+	if str(installed_server_modules.get(slot_index, "")) != "":
+		return {"ok": false, "reason": "occupied"}
+	if not ModuleCatalog.is_server_module(module_name):
+		return {"ok": false, "reason": "unknown"}
+
+	installed_server_modules[slot_index] = module_name
+	_sync_interfaces_from_module()
+	return {"ok": true, "reason": ""}
+
+
+func _remove_server_module_from_slot(slot_index: int) -> Dictionary:
+	if is_powered_on:
+		return {"ok": false, "reason": "power_on_remove"}
+	if slot_index < 0 or slot_index >= ModuleCatalog.SERVER_SLOT_COUNT:
+		return {"ok": false, "reason": "invalid_slot"}
+	if str(installed_server_modules.get(slot_index, "")) == "":
+		return {"ok": false, "reason": "empty"}
+
+	installed_server_modules.erase(slot_index)
+	_sync_interfaces_from_module()
+	return {"ok": true, "reason": ""}
+
+
 # Установка предустановленного модуля из JSON уровня (без проверок питания).
 func set_initial_module(module_name: String) -> void:
+	if device_type == "Server":
+		set_initial_server_module(module_name, 0)
+		return
 	if not ModuleCatalog.has_module(module_name):
 		push_warning("Неизвестный модуль в уровне: " + module_name)
 		return
 	installed_module = module_name
 	_sync_interfaces_from_module()
 	_refresh_active_module()
+
+
+func set_initial_server_module(module_name: String, slot_index: int) -> void:
+	if not ModuleCatalog.is_server_module(module_name):
+		push_warning("Неизвестный модуль сервера в уровне: " + module_name)
+		return
+	if slot_index < 0 or slot_index >= ModuleCatalog.SERVER_SLOT_COUNT:
+		push_warning("Некорректный слот модуля сервера: " + str(slot_index))
+		return
+	installed_server_modules[slot_index] = module_name
+	_sync_interfaces_from_module()
 
 
 func set_initial_switch_module(module_name: String, slot_index: int) -> void:

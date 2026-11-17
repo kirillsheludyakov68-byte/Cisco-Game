@@ -9,6 +9,8 @@ const ERROR_POWER_ADD_HUB := "Невозможно добавить модуль
 const ERROR_POWER_REMOVE_HUB := "Невозможно извлечь модуль, пока хаб включён."
 const ERROR_POWER_ADD_AP := "Невозможно добавить модуль, пока точка доступа включена."
 const ERROR_POWER_REMOVE_AP := "Невозможно извлечь модуль, пока точка доступа включена."
+const ERROR_POWER_ADD_SERVER := "Невозможно добавить модуль, пока сервер включён."
+const ERROR_POWER_REMOVE_SERVER := "Невозможно извлечь модуль, пока сервер включён."
 const ERROR_OCCUPIED := "В слоте уже установлен модуль. Сначала извлеките его."
 const ERROR_EMPTY := "В слоте нет модуля."
 const ERROR_UNKNOWN := "Неизвестный модуль."
@@ -46,6 +48,7 @@ const ZOOM_SCROLL_BAR_WIDTH := 14.0
 @onready var printer_overlay: PrinterPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/PrinterPhysicalOverlay
 @onready var tablet_overlay: TabletPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/TabletPhysicalOverlay
 @onready var access_point_overlay: AccessPointPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/AccessPointPhysicalOverlay
+@onready var server_overlay: ServerPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/ServerPhysicalOverlay
 @onready var module_info: ModuleInfoPanel = get_node_or_null("MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel") as ModuleInfoPanel
 @onready var config_panel: ConfigPanel = $MainPanel/ContentPanel/PageConfig/ConfigPanel
 @onready var cli_page: SwitchCLIPage = $MainPanel/ContentPanel/PageCLI/SwitchCLIPage
@@ -142,14 +145,15 @@ func open_for(dev: Device) -> void:
 	var is_printer := dev.device_type == "Printer"
 	var is_tablet := dev.device_type == "Tablet"
 	var is_access_point := dev.device_type == "AccessPoint"
+	var is_server := dev.device_type == "Server"
 	var has_config := true
 	var has_cli := is_switch
-	var has_desktop := dev.device_type in ["PC", "Laptop", "Tablet"]
-	var has_services := dev.device_type == "Server"
+	var has_desktop := dev.device_type in ["PC", "Laptop", "Tablet", "Server"]
+	var has_services := is_server
 	var has_host_module := ModuleCatalog.uses_host_modules(dev.device_type)
 	var has_slot_modules := ModuleCatalog.is_slot_device(dev.device_type)
 	# У планшета панель модулей есть, но список пуст: все интерфейсы встроенные.
-	var has_modules := has_host_module or has_slot_modules or is_tablet or is_access_point
+	var has_modules := has_host_module or has_slot_modules or is_tablet or is_access_point or is_server
 
 	tab_config.visible = has_config
 	tab_cli.visible = has_cli
@@ -169,6 +173,7 @@ func open_for(dev: Device) -> void:
 	printer_overlay.visible = is_printer
 	tablet_overlay.visible = is_tablet
 	access_point_overlay.visible = is_access_point
+	server_overlay.visible = is_server
 	modules_panel.visible = has_modules
 	if module_info != null:
 		# У планшета нет модулей, поэтому описание модуля не показываем.
@@ -188,6 +193,8 @@ func open_for(dev: Device) -> void:
 		tablet_overlay.setup(dev, self)
 	if is_access_point:
 		access_point_overlay.setup(dev, self)
+	if is_server:
+		server_overlay.setup(dev, self)
 	if has_modules:
 		modules_panel.setup(dev, self)
 	_update_device_image()
@@ -256,6 +263,8 @@ func _on_device_power_changed(is_on: bool) -> void:
 		tablet_overlay.refresh()
 	if access_point_overlay.visible:
 		access_point_overlay.refresh()
+	if server_overlay.visible:
+		server_overlay.refresh()
 	if cli_page.visible:
 		cli_page.refresh()
 	if services_page != null:
@@ -322,7 +331,7 @@ func _on_device_boot_finished() -> void:
 func _update_module_info() -> void:
 	if device == null:
 		return
-	if ModuleCatalog.is_slot_device(device.device_type):
+	if ModuleCatalog.is_slot_device(device.device_type) or device.device_type == "Server":
 		var available := ModuleCatalog.get_slot_modules(device.device_type)
 		var module_name := _get_first_installed_slot_module()
 		if module_name.is_empty() and not available.is_empty():
@@ -357,7 +366,7 @@ func _show_module_info(module_name: String) -> void:
 func show_slot_module_info(slot_index: int) -> void:
 	if device == null:
 		return
-	if ModuleCatalog.is_slot_device(device.device_type):
+	if ModuleCatalog.is_slot_device(device.device_type) or device.device_type == "Server":
 		_show_module_info(device.get_installed_module(slot_index))
 	else:
 		_show_module_info(device.installed_module)
@@ -390,7 +399,7 @@ func _show_page(page: String) -> void:
 			allowed = true
 		if page == "cli" and device.device_type == "Switch":
 			allowed = true
-		if page == "desktop" and device.device_type in ["PC", "Laptop", "Tablet"]:
+		if page == "desktop" and device.device_type in ["PC", "Laptop", "Tablet", "Server"]:
 			allowed = true
 		if page == "services" and device.device_type == "Server":
 			allowed = true
@@ -460,6 +469,7 @@ func _update_device_image() -> void:
 	printer_overlay.visible = device.device_type == "Printer"
 	tablet_overlay.visible = device.device_type == "Tablet"
 	access_point_overlay.visible = device.device_type == "AccessPoint"
+	server_overlay.visible = device.device_type == "Server"
 	match device.device_type:
 		"PC":
 			if device.is_powered_on:
@@ -487,10 +497,11 @@ func _update_device_image() -> void:
 			hub_overlay.setup(device, self)
 			hub_overlay.refresh()
 		"Server":
-			device_image.texture = load(
-				"res://assets/fix levl2/Server.svg" if device.is_powered_on
-				else "res://assets/devices/Server_off.png"
-			)
+			# Корпус сервера всегда один и тот же; питание и оба слота
+			# модулей показываются отдельным оверлеем.
+			device_image.texture = load("res://assets/Server/iRealServer.png")
+			server_overlay.setup(device, self)
+			server_overlay.refresh()
 		"Printer":
 			# Корпус принтера всегда один и тот же; состояние питания
 			# показывает кнопка PowerOnPrinter.png / PowerOffPrinter.png.
@@ -786,7 +797,7 @@ func _on_device_image_gui_input(event: InputEvent) -> void:
 	# У коммутатора, хаба, ноутбука, принтера и планшета кнопку питания
 	# обрабатывает физический оверлей, чтобы её зона точно совпадала с картинкой.
 	if device == null or ModuleCatalog.is_slot_device(device.device_type) \
-			or device.device_type in ["Laptop", "Printer", "Tablet", "AccessPoint"]:
+			or device.device_type in ["Laptop", "Printer", "Tablet", "AccessPoint", "Server"]:
 		return
 
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -828,6 +839,14 @@ func try_install_module(module_name: String) -> void:
 	if device == null:
 		return
 
+	if device.device_type == "Server":
+		for slot_index in range(ModuleCatalog.SERVER_SLOT_COUNT):
+			if device.get_installed_module(slot_index).is_empty():
+				try_install_module_to_slot(module_name, slot_index)
+				return
+		_show_module_error("occupied")
+		return
+
 	var result: Dictionary = device.install_module(module_name)
 	if result.get("ok", false):
 		hide_hint()
@@ -838,6 +857,8 @@ func try_install_module(module_name: String) -> void:
 			printer_overlay.refresh()
 		if access_point_overlay.visible:
 			access_point_overlay.refresh()
+		if server_overlay.visible:
+			server_overlay.refresh()
 		_show_module_info(module_name)
 	else:
 		_show_module_error(result.get("reason", ""))
@@ -846,7 +867,7 @@ func try_install_module(module_name: String) -> void:
 func try_install_module_to_slot(module_name: String, slot_index: int) -> void:
 	if device == null:
 		return
-	if not ModuleCatalog.is_slot_device(device.device_type):
+	if not ModuleCatalog.is_slot_device(device.device_type) and device.device_type != "Server":
 		try_install_module(module_name)
 		return
 
@@ -856,6 +877,8 @@ func try_install_module_to_slot(module_name: String, slot_index: int) -> void:
 			switch_overlay.refresh()
 		if hub_overlay.visible:
 			hub_overlay.refresh()
+		if server_overlay.visible:
+			server_overlay.refresh()
 		module_slot.refresh()
 		_show_module_info(module_name)
 	else:
@@ -876,6 +899,8 @@ func try_remove_module() -> void:
 			printer_overlay.refresh()
 		if access_point_overlay.visible:
 			access_point_overlay.refresh()
+		if server_overlay.visible:
+			server_overlay.refresh()
 		_update_module_info()
 	else:
 		_show_module_error(result.get("reason", ""))
@@ -884,7 +909,8 @@ func try_remove_module() -> void:
 func try_remove_module_from_slot(slot_index: int) -> void:
 	if device == null:
 		return
-	if not ModuleCatalog.is_slot_device(device.device_type) or slot_index < 0:
+	if (not ModuleCatalog.is_slot_device(device.device_type) \
+			and device.device_type != "Server") or slot_index < 0:
 		try_remove_module()
 		return
 
@@ -894,6 +920,8 @@ func try_remove_module_from_slot(slot_index: int) -> void:
 			switch_overlay.refresh()
 		if hub_overlay.visible:
 			hub_overlay.refresh()
+		if server_overlay.visible:
+			server_overlay.refresh()
 		module_slot.refresh()
 		_update_module_info()
 	else:
@@ -963,6 +991,16 @@ func show_hint_module() -> void:
 			if ap_slot != null:
 				show_hint_node(ap_slot)
 				return
+	if device != null and device.device_type == "Server":
+		var server_button := modules_panel.get_module_button(ModuleCatalog.PT_HOST_NM_1CFE)
+		if server_button != null:
+			show_hint_node(server_button)
+			return
+		if server_overlay != null:
+			var server_slot := server_overlay.get_slot(0)
+			if server_slot != null:
+				show_hint_node(server_slot)
+				return
 	var module_button := modules_panel.get_module_button(ModuleCatalog.PT_HOST_NM_1CE)
 	if module_button != null:
 		show_hint_node(module_button)
@@ -1029,6 +1067,10 @@ func get_power_hint_rect() -> Rect2:
 		if access_point_overlay != null and access_point_overlay.power_area != null:
 			return access_point_overlay.power_area.get_global_rect()
 		return Rect2()
+	if device.device_type == "Server":
+		if server_overlay != null and server_overlay.power_area != null:
+			return server_overlay.power_area.get_global_rect()
+		return Rect2()
 	if device_image != null:
 		var base_rect := _get_power_base_rect()
 		if base_rect.size == Vector2.ZERO:
@@ -1051,6 +1093,8 @@ func _show_module_error(reason: String) -> void:
 				text = ERROR_POWER_ADD_HUB
 			elif _is_access_point():
 				text = ERROR_POWER_ADD_AP
+			elif _is_server():
+				text = ERROR_POWER_ADD_SERVER
 			else:
 				text = ERROR_POWER_ADD
 		"power_on_remove":
@@ -1060,6 +1104,8 @@ func _show_module_error(reason: String) -> void:
 				text = ERROR_POWER_REMOVE_HUB
 			elif _is_access_point():
 				text = ERROR_POWER_REMOVE_AP
+			elif _is_server():
+				text = ERROR_POWER_REMOVE_SERVER
 			else:
 				text = ERROR_POWER_REMOVE
 		"occupied":
@@ -1085,3 +1131,7 @@ func _is_hub() -> bool:
 
 func _is_access_point() -> bool:
 	return device != null and device.device_type == "AccessPoint"
+
+
+func _is_server() -> bool:
+	return device != null and device.device_type == "Server"

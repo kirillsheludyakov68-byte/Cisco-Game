@@ -25,6 +25,8 @@ const PT_REPEATER_NM_1FGE := "PT-REPEATER-NM-1FGE"
 
 const SWITCH_SLOT_COUNT := 10
 const HUB_SLOT_COUNT := 10
+# У сервера два слота: верхний (0) и нижний (1).
+const SERVER_SLOT_COUNT := 2
 
 # Устройства с десятью слотами съёмных модулей.
 const SLOT_DEVICE_TYPES: Array[String] = ["Switch", "Hub"]
@@ -34,6 +36,14 @@ const HOST_MODULE_DEVICE_TYPES: Array[String] = [
 	"PC",
 	"Laptop",
 	"Printer",
+]
+
+# Модули сервера. Порядок совпадает с панелью Modules.
+const SERVER_MODULES: Array[String] = [
+	WMP300N,
+	PT_HOST_NM_1CE,
+	PT_HOST_NM_1CFE,
+	PT_HOST_NM_1FGE,
 ]
 
 const MODULES: Array[String] = [
@@ -287,6 +297,14 @@ static func is_access_point_module(module_name: String) -> bool:
 	return ACCESS_POINT_MODULES.has(module_name)
 
 
+static func is_server_module(module_name: String) -> bool:
+	return SERVER_MODULES.has(module_name)
+
+
+static func is_server(device_type: String) -> bool:
+	return device_type == "Server"
+
+
 static func has_switch_module(module_name: String) -> bool:
 	return SWITCH_MODULES.has(module_name)
 
@@ -300,6 +318,8 @@ static func get_slot_count(device_type: String) -> int:
 		return HUB_SLOT_COUNT
 	if device_type == "Switch":
 		return SWITCH_SLOT_COUNT
+	if device_type == "Server":
+		return SERVER_SLOT_COUNT
 	return 0
 
 
@@ -310,6 +330,9 @@ static func get_slot_modules(device_type: String) -> Array[String]:
 			result.append(module_name)
 	elif device_type == "Hub":
 		for module_name in HUB_MODULES:
+			result.append(module_name)
+	elif device_type == "Server":
+		for module_name in SERVER_MODULES:
 			result.append(module_name)
 	return result
 
@@ -332,6 +355,9 @@ static func get_modules_for_device(device_type: String) -> Array[String]:
 			result.append(module_name)
 	elif device_type == "AccessPoint":
 		for module_name in ACCESS_POINT_MODULES:
+			result.append(module_name)
+	elif device_type == "Server":
+		for module_name in SERVER_MODULES:
 			result.append(module_name)
 	elif uses_host_modules(device_type):
 		for module_name in MODULES:
@@ -482,6 +508,55 @@ static func get_access_point_port0_spec(module_name: String) -> Dictionary:
 
 static func get_access_point_bandwidth_options(module_name: String) -> Array[Dictionary]:
 	return get_slot_bandwidth_options(module_name)
+
+
+# Интерфейс сервера называется по типу модуля и номеру слота:
+# верхний слот даёт индекс 0, нижний — 1. WMP300N даёт Wireless0/Wireless1.
+static func get_server_interface_spec(module_name: String, slot_index: int) -> Dictionary:
+	if not is_server_module(module_name):
+		return {}
+	if slot_index < 0 or slot_index >= SERVER_SLOT_COUNT:
+		return {}
+
+	var interface_name := ""
+	var interface_kind := "ethernet"
+	var bandwidth_mbps := 10
+	var bandwidth_mode := DeviceInterface.BANDWIDTH_AUTO
+	var ipv4_mode := NetworkSettings.IPV4_STATIC
+	var ipv6_mode := NetworkSettings.IPV6_STATIC
+	match module_name:
+		PT_HOST_NM_1CE:
+			interface_name = "Ethernet%d" % slot_index
+			bandwidth_mode = DeviceInterface.BANDWIDTH_10MBPS
+		PT_HOST_NM_1CFE:
+			interface_name = "FastEthernet%d" % slot_index
+			bandwidth_mbps = 100
+			bandwidth_mode = DeviceInterface.BANDWIDTH_100MBPS
+		PT_HOST_NM_1FGE:
+			interface_name = "GigabitEthernet%d" % slot_index
+			interface_kind = "fiber"
+			bandwidth_mbps = 1000
+			bandwidth_mode = DeviceInterface.BANDWIDTH_1000MBPS
+		WMP300N:
+			interface_name = "Wireless%d" % slot_index
+			interface_kind = "wireless"
+			bandwidth_mbps = 11
+			ipv4_mode = NetworkSettings.IPV4_DHCP
+			ipv6_mode = NetworkSettings.IPV6_AUTOMATIC
+		_:
+			return {}
+
+	return {
+		"name": interface_name,
+		"kind": interface_kind,
+		"source_module": module_name,
+		"slot_index": slot_index,
+		"bandwidth_mbps": bandwidth_mbps,
+		"bandwidth_mode": bandwidth_mode,
+		"duplex_mode": DeviceInterface.DUPLEX_AUTO,
+		"ipv4_mode": ipv4_mode,
+		"ipv6_mode": ipv6_mode,
+	}
 
 
 static func get_default_slot_modules(device_type: String) -> Dictionary:
