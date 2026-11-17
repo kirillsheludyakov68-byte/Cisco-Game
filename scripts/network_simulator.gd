@@ -152,6 +152,12 @@ func refresh_dhcp_leases() -> void:
 			var network_interface: DeviceInterface = client.get_interface(interface_name)
 			if network_interface == null or network_interface.ipv4_mode != NetworkSettings.IPV4_DHCP:
 				continue
+			# Локальный DHCP-сервер обслуживает только Ethernet и Wi-Fi.
+			# Сотовый модем получает адрес у провайдера, а Bluetooth не является
+			# IP-интерфейсом для DHCP; иначе планшет занимал бы несколько аренд.
+			if network_interface.interface_kind != "ethernet" \
+					and network_interface.interface_kind != "wireless":
+				continue
 			if not _is_operational(client):
 				network_interface.ipv4_address = ""
 				continue
