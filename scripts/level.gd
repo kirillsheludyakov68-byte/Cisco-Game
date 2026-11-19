@@ -676,6 +676,24 @@ func _hint_for_connection(objective: Dictionary) -> Dictionary:
 			_world_target(to_device)
 		)
 
+	# Для Wi-Fi ручной кабель больше не нужен: после совпадения настроек
+	# соединение создаётся автоматически.
+	if cable_name == "wireless":
+		if not from_device.is_powered_on:
+			return _hint(
+				"Включите %s." % from_device.device_name,
+				_world_target(from_device)
+			)
+		if not to_device.is_powered_on:
+			return _hint(
+				"Включите %s." % to_device.device_name,
+				_world_target(to_device)
+			)
+		return _hint(
+			"Wi-Fi настроен. Соединение с точкой доступа установится автоматически через несколько секунд.",
+			_world_target(to_device)
+		)
+
 	var cable_type := _cable_type_from_name(cable_name)
 	if cable_type < 0:
 		cable_type = NetworkSimulator.CableType.STRAIGHT
