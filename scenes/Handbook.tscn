@@ -1,0 +1,15 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/handbook.gd" id="1_handbook"]
+
+[node name="Handbook" type="Window"]
+title = "Пособие"
+visible = false
+position = Vector2i(50, 20)
+size = Vector2i(1180, 680)
+min_size = Vector2i(900, 560)
+unresizable = true
+borderless = true
+always_on_top = true
+transient = true
+script = ExtResource("1_handbook")
