@@ -9,6 +9,7 @@ var _failures: Array[String] = []
 
 func _ready() -> void:
 	await _test_physical_shell()
+	await _test_minimum_size_layout()
 	await _test_pages_fill()
 	await _test_pc_scaling()
 	await _test_preferred_size()
@@ -33,6 +34,29 @@ func _test_physical_shell() -> void:
 	_expect(
 		info.get_global_rect().end.y <= page.get_global_rect().end.y + 1.0,
 		"Панель информации о модуле должна оставаться внутри страницы"
+	)
+
+	await _close_window(window, device)
+
+
+func _test_minimum_size_layout() -> void:
+	var device: Device = await _make_device("PC", "PC1")
+	var window := await _open_window(device, Vector2i(850, 600))
+	var page: Control = window.get_node("MainPanel/ContentPanel/PagePhysical")
+	var modules: Control = window.get_node("MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ModulesPanel")
+	var viewer: Control = window.get_node("MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel")
+	var info: Control = window.get_node("MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel")
+
+	_expect(page.size.x >= 700.0, "При минимальной ширине страница должна оставаться читаемой")
+	_expect(viewer.size.y >= 250.0, "При минимальной высоте область просмотра не должна схлопываться")
+	_expect(modules.size.y >= 300.0, "Панель модулей должна сохранять рабочую высоту")
+	_expect(
+		info.get_global_rect().end.y <= page.get_global_rect().end.y + 1.0,
+		"При минимальном размере информация о модуле должна оставаться в странице"
+	)
+	_expect(
+		viewer.get_global_rect().end.x <= page.get_global_rect().end.x + 1.0,
+		"При минимальном размере область просмотра не должна выходить за страницу"
 	)
 
 	await _close_window(window, device)
