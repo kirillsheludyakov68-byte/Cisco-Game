@@ -222,7 +222,7 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0, 0, 0, 1)
 theme_override_fonts/font = SubResource("FontFile_13r6r")
 theme_override_font_sizes/font_size = 16
-text = "Physical Divice View"
+text = "Physical Device View"
 horizontal_alignment = 1
 
 [node name="ZoomButtons" type="HBoxContainer" parent="MainPanel/ContentPanel/PagePhysical" unique_id=1746156344]
