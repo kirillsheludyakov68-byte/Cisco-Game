@@ -27,6 +27,8 @@ const ZOOM_MIN := 0.25
 const ZOOM_MAX := 3.0
 const ZOOM_SCROLL_STEP := 48.0
 const ZOOM_SCROLL_BAR_WIDTH := 14.0
+const PC_TEXTURE_SIZE := Vector2(166.0, 396.0)
+const PC_POWER_RECT := Rect2(132.0, 118.0, 14.0, 21.0)
 
 @onready var tab_physical: Button = $WindowRoot/TabBar/TabPhysical
 @onready var tab_config: Button = $WindowRoot/TabBar/TabConfig
@@ -235,7 +237,7 @@ func _on_device_name_changed(new_name: String) -> void:
 
 
 func _on_device_view_resized() -> void:
-	if device == null or device.device_type == "PC":
+	if device == null:
 		return
 	# После первого расчёта раскладки область просмотра может измениться.
 	# Пересчитываем размер картинки, чтобы она точно вписалась в окно.
@@ -560,11 +562,12 @@ func _update_device_base_rect() -> void:
 	if device_image == null or device_image.texture == null:
 		return
 
+	var view_size := device_view.size
+	if view_size.x <= 1.0 or view_size.y <= 1.0:
+		view_size = Vector2(606, 396)
+
 	if device != null and device.device_type != "PC":
 		var texture_size := device_image.texture.get_size()
-		var view_size := device_view.size
-		if view_size.x <= 1.0 or view_size.y <= 1.0:
-			view_size = Vector2(606, 396)
 		var fit_scale := minf(
 			view_size.x / maxf(texture_size.x, 1.0),
 			view_size.y / maxf(texture_size.y, 1.0)
@@ -575,8 +578,16 @@ func _update_device_base_rect() -> void:
 		_device_base_rect = Rect2(Vector2.ZERO, fitted_size)
 	else:
 		if _pc_base_rect.size == Vector2.ZERO:
-			_pc_base_rect = Rect2(Vector2.ZERO, Vector2(166, 396))
-		_device_base_rect = _pc_base_rect
+			_pc_base_rect = Rect2(Vector2.ZERO, PC_TEXTURE_SIZE)
+		# Компьютер тоже вписываем в область просмотра и центрируем,
+		# иначе в полноэкранном окне он остаётся маленьким в углу.
+		var fit_scale := minf(
+			view_size.x / maxf(_pc_base_rect.size.x, 1.0),
+			view_size.y / maxf(_pc_base_rect.size.y, 1.0)
+		)
+		var fitted_size := _pc_base_rect.size * maxf(fit_scale, 0.01)
+		var fitted_position := (view_size - fitted_size) * 0.5
+		_device_base_rect = Rect2(fitted_position, fitted_size)
 
 
 # --- Масштаб Physical Device View ---
@@ -826,7 +837,11 @@ func _get_power_base_rect() -> Rect2:
 	if device == null or _device_base_rect.size == Vector2.ZERO:
 		return Rect2()
 	if device.device_type == "PC":
-		return Rect2(132, 118, 14, 21)
+		var base_size := _pc_base_rect.size
+		if base_size.x <= 0.0 or base_size.y <= 0.0:
+			base_size = PC_TEXTURE_SIZE
+		var scale := _device_base_rect.size / base_size
+		return Rect2(PC_POWER_RECT.position * scale, PC_POWER_RECT.size * scale)
 
 	var size := _device_base_rect.size
 	if device.device_type in ["Server", "Printer", "Laptop", "Tablet"]:
