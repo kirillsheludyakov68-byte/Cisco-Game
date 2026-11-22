@@ -2,6 +2,7 @@ extends Control
 
 const MAIN_MENU_SCENE := "res://scenes/MainMenu.tscn"
 const ICON_LOCK := preload("res://assets/menu/icon_lock.svg")
+const ICON_HELP := preload("res://assets/menu/icon_help.svg")
 
 const LEVEL_COUNT := 15
 const LEVEL_SCENES := {
@@ -49,6 +50,14 @@ func _build_ui() -> void:
 	MenuStyles.apply_button(back_button, "secondary", 18, 16, 12)
 	back_button.pressed.connect(_on_back_pressed)
 	top.add_child(back_button)
+
+	var help_button := Button.new()
+	help_button.text = "Пособие"
+	help_button.icon = ICON_HELP
+	help_button.custom_minimum_size = Vector2(170.0, 48.0)
+	MenuStyles.apply_button(help_button, "secondary", 18, 16, 12)
+	help_button.pressed.connect(_on_help_pressed)
+	top.add_child(help_button)
 
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -156,6 +165,10 @@ func _on_level_pressed(level_number: int) -> void:
 	if scene_path.is_empty():
 		return
 	get_tree().change_scene_to_file(scene_path)
+
+
+func _on_help_pressed() -> void:
+	Handbook.open()
 
 
 func _on_back_pressed() -> void:
