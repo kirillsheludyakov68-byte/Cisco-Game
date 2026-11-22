@@ -10,6 +10,7 @@ var _failures: Array[String] = []
 func _ready() -> void:
 	await _test_physical_shell()
 	await _test_pages_fill()
+	await _test_pc_scaling()
 	_finish()
 
 
@@ -67,6 +68,41 @@ func _test_pages_fill() -> void:
 			"Страница CLI должна заполнять ContentPanel"
 		)
 	await _close_window(switch_window, switch)
+
+
+func _test_pc_scaling() -> void:
+	var device: Device = await _make_device("PC", "PC1")
+	var window := await _open_window(device, Vector2i(1600, 900))
+	var device_view := window.device_view
+	var initial_size := window.device_image.size
+
+	_expect(
+		absf(initial_size.y - device_view.size.y) <= 2.0,
+		"PC должен вписываться по высоте в область просмотра"
+	)
+	_expect(
+		absf(
+			window.device_image.position.x
+			- (device_view.size.x - initial_size.x) * 0.5
+		) <= 2.0,
+		"PC должен центрироваться по горизонтали"
+	)
+
+	var power_rect: Rect2 = window._get_power_base_rect()
+	_expect(power_rect.size.x > 14.0, "Кнопка питания PC должна масштабироваться вместе с картинкой")
+	_expect(
+		Rect2(Vector2.ZERO, initial_size).encloses(power_rect),
+		"Кнопка питания PC должна оставаться внутри картинки"
+	)
+
+	window.size = Vector2i(1920, 1080)
+	await _wait_frames(2)
+	_expect(
+		window.device_image.size.y > initial_size.y,
+		"При увеличении окна картинка PC должна увеличиваться"
+	)
+
+	await _close_window(window, device)
 
 
 func _get_page_node(window: DeviceWindow, page_name: String) -> Control:
