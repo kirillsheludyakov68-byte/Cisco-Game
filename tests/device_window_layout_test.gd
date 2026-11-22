@@ -11,6 +11,7 @@ func _ready() -> void:
 	await _test_physical_shell()
 	await _test_pages_fill()
 	await _test_pc_scaling()
+	await _test_preferred_size()
 	_finish()
 
 
@@ -103,6 +104,18 @@ func _test_pc_scaling() -> void:
 	)
 
 	await _close_window(window, device)
+
+
+func _test_preferred_size() -> void:
+	var device: Device = await _make_device("Tablet", "Tablet1")
+	var window := await _open_window(device, Vector2i(1680, 920))
+	await _wait_frames(2)
+	await _close_window(window, device)
+
+	_expect(
+		DeviceWindow.get_preferred_window_size() == Vector2i(1680, 920),
+		"Окно устройства должно запоминать последний размер"
+	)
 
 
 func _get_page_node(window: DeviceWindow, page_name: String) -> Control:
