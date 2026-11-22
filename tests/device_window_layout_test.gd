@@ -9,6 +9,7 @@ var _failures: Array[String] = []
 
 func _ready() -> void:
 	await _test_physical_shell()
+	await _test_pages_fill()
 	_finish()
 
 
@@ -33,6 +34,56 @@ func _test_physical_shell() -> void:
 	)
 
 	await _close_window(window, device)
+
+
+func _test_pages_fill() -> void:
+	var server: Device = await _make_device("Server", "Server0")
+	var server_window := await _open_window(server, Vector2i(1600, 900))
+	var server_page: Control = server_window.get_node("MainPanel/ContentPanel/PagePhysical")
+	for page_name in ["config", "desktop", "services"]:
+		server_window._show_page(page_name)
+		await _wait_frames(1)
+		var page_node = _get_page_node(server_window, page_name)
+		_expect(page_node != null, "Страница %s должна существовать" % page_name)
+		if page_node != null:
+			_expect(page_node.is_visible_in_tree(), "Страница %s должна быть видима" % page_name)
+			_expect(
+				_rect_size_close(page_node.size, server_page.size),
+				"Страница %s должна заполнять ContentPanel" % page_name
+			)
+	await _close_window(server_window, server)
+
+	var switch: Device = await _make_device("Switch", "Switch1")
+	var switch_window := await _open_window(switch, Vector2i(1600, 900))
+	var switch_page: Control = switch_window.get_node("MainPanel/ContentPanel/PagePhysical")
+	switch_window._show_page("cli")
+	await _wait_frames(1)
+	var cli_page = _get_page_node(switch_window, "cli")
+	_expect(cli_page != null, "Страница CLI должна существовать")
+	if cli_page != null:
+		_expect(cli_page.is_visible_in_tree(), "Страница CLI должна быть видима")
+		_expect(
+			_rect_size_close(cli_page.size, switch_page.size),
+			"Страница CLI должна заполнять ContentPanel"
+		)
+	await _close_window(switch_window, switch)
+
+
+func _get_page_node(window: DeviceWindow, page_name: String) -> Control:
+	match page_name:
+		"config":
+			return window.config_panel
+		"desktop":
+			return window.desktop_page
+		"services":
+			return window.services_page
+		"cli":
+			return window.cli_page
+	return null
+
+
+func _rect_size_close(a: Vector2, b: Vector2) -> bool:
+	return absf(a.x - b.x) <= 1.0 and absf(a.y - b.y) <= 1.0
 
 
 func _make_device(device_type: String, device_name: String) -> Device:
