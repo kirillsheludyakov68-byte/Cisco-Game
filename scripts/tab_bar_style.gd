@@ -9,7 +9,7 @@ func _ready() -> void:
 	add_theme_constant_override("separation", 0)
 	
 	for child in get_children():
-		if child is Button:
+		if child is Button and not child.has_meta("tab_bar_custom"):
 			_style_button(child)
 
 func _style_button(btn: Button) -> void:

@@ -176,6 +176,18 @@ visible = false
 layout_mode = 2
 text = "Services"
 
+[node name="TabSpacer" type="Control" parent="WindowRoot/TabBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="HelpButton" type="Button" parent="WindowRoot/TabBar"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+focus_mode = 0
+text = "?"
+metadata/tab_bar_custom = true
+
 [node name="MainPanel" type="PanelContainer" parent="." unique_id=390358281]
 anchors_preset = 8
 anchor_left = 0.5

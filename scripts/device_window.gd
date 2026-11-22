@@ -33,6 +33,7 @@ const ZOOM_SCROLL_BAR_WIDTH := 14.0
 @onready var tab_cli: Button = $WindowRoot/TabBar/TabCLI
 @onready var tab_desktop: Button = $WindowRoot/TabBar/TabDesktop
 @onready var tab_services: Button = $WindowRoot/TabBar/TabServices
+@onready var help_button: Button = $WindowRoot/TabBar/HelpButton
 
 @onready var page_physical: Control = $MainPanel/ContentPanel/PagePhysical
 @onready var page_config: Control = $MainPanel/ContentPanel/PageConfig
@@ -91,6 +92,9 @@ func _ready() -> void:
 	tab_cli.pressed.connect(_on_tab_cli)
 	tab_desktop.pressed.connect(_on_tab_desktop)
 	tab_services.pressed.connect(_on_tab_services)
+	help_button.pressed.connect(_on_help_pressed)
+	help_button.tooltip_text = "Пособие по устройству"
+	MenuStyles.apply_button(help_button, "secondary", 18, 10, 9)
 
 	zoom_in_button.pressed.connect(_on_zoom_in_pressed)
 	original_size_button.pressed.connect(_on_original_size_pressed)
@@ -390,6 +394,13 @@ func _on_tab_desktop() -> void:
 
 func _on_tab_services() -> void:
 	_show_page("services")
+
+
+func _on_help_pressed() -> void:
+	if device == null:
+		Handbook.open()
+		return
+	Handbook.open_device(str(device.device_type))
 
 
 func _show_page(page: String) -> void:
