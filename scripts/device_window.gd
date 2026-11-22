@@ -30,6 +30,10 @@ const ZOOM_SCROLL_BAR_WIDTH := 14.0
 const PC_TEXTURE_SIZE := Vector2(166.0, 396.0)
 const PC_POWER_RECT := Rect2(132.0, 118.0, 14.0, 21.0)
 
+# Размер последнего открытого окна. Если пользователь развернул окно
+# на весь экран, следующее устройство откроется в таком же размере.
+static var _preferred_window_size := Vector2i(850, 670)
+
 @onready var tab_physical: Button = $WindowRoot/TabBar/TabPhysical
 @onready var tab_config: Button = $WindowRoot/TabBar/TabConfig
 @onready var tab_cli: Button = $WindowRoot/TabBar/TabCLI
@@ -87,6 +91,7 @@ func _ready() -> void:
 	_device_base_rect = _pc_base_rect
 
 	close_requested.connect(_on_close_requested)
+	size_changed.connect(_on_window_size_changed)
 	if error_dialog:
 		error_dialog.closed.connect(_on_error_dialog_closed)
 	tab_physical.pressed.connect(_on_tab_physical)
@@ -129,6 +134,16 @@ func _ready() -> void:
 	page_cli.visible = false
 	page_services.visible = false
 	_show_page("physical")
+
+
+static func get_preferred_window_size() -> Vector2i:
+	return _preferred_window_size
+
+
+func _on_window_size_changed() -> void:
+	if size.x < 1 or size.y < 1:
+		return
+	_preferred_window_size = size
 
 
 func open_for(dev: Device) -> void:

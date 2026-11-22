@@ -200,7 +200,7 @@ func _open_device_window(device: Device) -> void:
 
 	# Только потом передаем устройство и открываем
 	current_device_window.open_for(device)
-	current_device_window.popup_centered(Vector2i(850, 670))
+	current_device_window.popup_centered(DeviceWindow.get_preferred_window_size())
 
 func _reset_all_highlights() -> void:
 	for d in NetworkSimulator.devices:
