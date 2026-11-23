@@ -105,7 +105,7 @@ func _ready() -> void:
 	tab_services.pressed.connect(_on_tab_services)
 	help_button.pressed.connect(_on_help_pressed)
 	help_button.tooltip_text = "Пособие по устройству"
-	MenuStyles.apply_button(help_button, "secondary", 18, 10, 9)
+	MenuStyles.apply_flat_help_button(help_button)
 
 	zoom_in_button.pressed.connect(_on_zoom_in_pressed)
 	original_size_button.pressed.connect(_on_original_size_pressed)

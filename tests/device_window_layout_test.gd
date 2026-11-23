@@ -25,6 +25,7 @@ func _test_physical_shell() -> void:
 	var modules: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/ModulesPanel")
 	var viewer: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel")
 	var info: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel")
+	var help: Button = window.get_node("WindowRoot/TabBar/HelpButton")
 
 	_expect(main.size.x >= 1500.0, "MainPanel должен растягиваться по ширине окна")
 	_expect(main.size.y >= 800.0, "MainPanel должен растягиваться по высоте окна")
@@ -35,6 +36,14 @@ func _test_physical_shell() -> void:
 		info.get_global_rect().end.y <= page.get_global_rect().end.y + 1.0,
 		"Панель информации о модуле должна оставаться внутри страницы"
 	)
+
+	var help_style := help.get_theme_stylebox("normal")
+	_expect(help_style is StyleBoxFlat, "Кнопка помощи должна использовать плоский стиль")
+	if help_style is StyleBoxFlat:
+		_expect(
+			help_style.shadow_size == 0 and help_style.shadow_color.a == 0.0,
+			"У кнопки помощи не должно быть тени"
+		)
 
 	await _close_window(window, device)
 
