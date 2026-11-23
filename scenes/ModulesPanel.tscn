@@ -4,12 +4,12 @@
 [ext_resource type="Script" path="res://scripts/module_drop_zone.gd" id="2_drop"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2ocn1"]
-bg_color = Color(0.8862745, 0.8862745, 0.8862745, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0, 0, 0, 1)
+bg_color = Color(0.9490196, 0.9490196, 0.9490196, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.43529412, 0.43529412, 0.43529412, 1)
 corner_detail = 1
 expand_margin_left = 1.0
 expand_margin_top = 1.0
@@ -39,39 +39,39 @@ cache/0/11/0/scale = 1.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_13r6r"]
 bg_color = Color(1, 1, 1, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.69803923, 0.69803923, 0.69803923, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.6627451, 0.6627451, 0.6627451, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cbhqr"]
-bg_color = Color(0.85430586, 0.85430586, 0.85430586, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.69803923, 0.69803923, 0.69803923, 1)
+bg_color = Color(0.8745098, 0.91764706, 0.9607843, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.6627451, 0.6627451, 0.6627451, 1)
 corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gvr62"]
-bg_color = Color(0.91764706, 0.91764706, 0.91764706, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.69803923, 0.69803923, 0.69803923, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
+bg_color = Color(0.93333334, 0.95686275, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.6627451, 0.6627451, 0.6627451, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
 
 [node name="ModulesPanel" type="PanelContainer" unique_id=816448491]
 custom_minimum_size = Vector2(200, 470)
@@ -85,14 +85,14 @@ layout_mode = 2
 theme_override_constants/separation = 3
 
 [node name="HeaderButton" type="Button" parent="RootVBox" unique_id=1257650392]
-custom_minimum_size = Vector2(0, 22)
+custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0, 0.015686275, 1)
 theme_override_colors/font_focus_color = Color(0, 0, 0, 1)
 theme_override_colors/font_pressed_color = Color(0, 0, 0, 1)
 theme_override_colors/font_hover_color = Color(0, 0, 0, 1)
 theme_override_fonts/font = SubResource("FontFile_yvgyf")
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 15
 theme_override_styles/normal = SubResource("StyleBoxFlat_13r6r")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_cbhqr")
 theme_override_styles/hover = SubResource("StyleBoxFlat_gvr62")
