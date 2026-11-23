@@ -29,6 +29,10 @@ const ZOOM_SCROLL_STEP := 48.0
 const ZOOM_SCROLL_BAR_WIDTH := 14.0
 const PC_TEXTURE_SIZE := Vector2(166.0, 396.0)
 const PC_POWER_RECT := Rect2(132.0, 118.0, 14.0, 21.0)
+# Отступ изображения от краёв серой области просмотра.
+const DEVICE_VIEW_PADDING := 12.0
+# Не позволяем маленькой картинке разрастаться на весь экран.
+const DEVICE_MAX_SCALE := 1.35
 
 # Размер последнего открытого окна. Если пользователь развернул окно
 # на весь экран, следующее устройство откроется в таком же размере.
@@ -581,28 +585,35 @@ func _update_device_base_rect() -> void:
 	if view_size.x <= 1.0 or view_size.y <= 1.0:
 		view_size = Vector2(606, 396)
 
-	if device != null and device.device_type != "PC":
-		var texture_size := device_image.texture.get_size()
-		var fit_scale := minf(
-			view_size.x / maxf(texture_size.x, 1.0),
-			view_size.y / maxf(texture_size.y, 1.0)
-		)
-		var fitted_size := texture_size * maxf(fit_scale, 0.01)
-		# Левый верхний угол устройства совпадает с левым верхним
-		# углом области просмотра.
-		_device_base_rect = Rect2(Vector2.ZERO, fitted_size)
-	else:
+	# Для всех устройств используем одно правило: картинка стоит
+	# в левом верхнем углу области просмотра с небольшим отступом.
+	# Если она больше области — пропорционально уменьшаем,
+	# но не раздуваем её на весь экран при увеличении окна.
+	var base_size := _get_device_base_size()
+	var available_size := Vector2(
+		maxf(view_size.x - DEVICE_VIEW_PADDING * 2.0, 1.0),
+		maxf(view_size.y - DEVICE_VIEW_PADDING * 2.0, 1.0)
+	)
+	var fit_scale := minf(
+		available_size.x / maxf(base_size.x, 1.0),
+		available_size.y / maxf(base_size.y, 1.0)
+	)
+	var applied_scale := maxf(minf(fit_scale, DEVICE_MAX_SCALE), 0.01)
+	var fitted_size := base_size * applied_scale
+	_device_base_rect = Rect2(
+		Vector2(DEVICE_VIEW_PADDING, DEVICE_VIEW_PADDING),
+		fitted_size
+	)
+
+
+func _get_device_base_size() -> Vector2:
+	if device != null and device.device_type == "PC":
 		if _pc_base_rect.size == Vector2.ZERO:
 			_pc_base_rect = Rect2(Vector2.ZERO, PC_TEXTURE_SIZE)
-		# Компьютер тоже вписываем в область просмотра и центрируем,
-		# иначе в полноэкранном окне он остаётся маленьким в углу.
-		var fit_scale := minf(
-			view_size.x / maxf(_pc_base_rect.size.x, 1.0),
-			view_size.y / maxf(_pc_base_rect.size.y, 1.0)
-		)
-		var fitted_size := _pc_base_rect.size * maxf(fit_scale, 0.01)
-		var fitted_position := (view_size - fitted_size) * 0.5
-		_device_base_rect = Rect2(fitted_position, fitted_size)
+		return _pc_base_rect.size
+	if device_image.texture != null:
+		return device_image.texture.get_size()
+	return PC_TEXTURE_SIZE
 
 
 # --- Масштаб Physical Device View ---

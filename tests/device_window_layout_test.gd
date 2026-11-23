@@ -102,15 +102,12 @@ func _test_pc_scaling() -> void:
 	var initial_size := window.device_image.size
 
 	_expect(
-		absf(initial_size.y - device_view.size.y) <= 2.0,
-		"PC должен вписываться по высоте в область просмотра"
+		window.device_image.position.is_equal_approx(Vector2(12.0, 12.0)),
+		"PC должен стоять в левом верхнем углу области просмотра"
 	)
 	_expect(
-		absf(
-			window.device_image.position.x
-			- (device_view.size.x - initial_size.x) * 0.5
-		) <= 2.0,
-		"PC должен центрироваться по горизонтали"
+		initial_size.x <= device_view.size.x - 22.0 and initial_size.y <= device_view.size.y - 22.0,
+		"PC не должен выходить за пределы области просмотра"
 	)
 
 	var power_rect: Rect2 = window._get_power_base_rect()
@@ -123,8 +120,12 @@ func _test_pc_scaling() -> void:
 	window.size = Vector2i(1920, 1080)
 	await _wait_frames(2)
 	_expect(
-		window.device_image.size.y > initial_size.y,
-		"При увеличении окна картинка PC должна увеличиваться"
+		window.device_image.position.is_equal_approx(Vector2(12.0, 12.0)),
+		"При увеличении окна PC должен оставаться в левом верхнем углу"
+	)
+	_expect(
+		window.device_image.size.y <= initial_size.y + 1.0,
+		"Картинка PC не должна разрастаться после достижения максимального масштаба"
 	)
 
 	await _close_window(window, device)
