@@ -41,33 +41,33 @@ static var _preferred_window_size := Vector2i(850, 670)
 @onready var tab_services: Button = $WindowRoot/TabBar/TabServices
 @onready var help_button: Button = $WindowRoot/TabBar/HelpButton
 
-@onready var page_physical: Control = $MainPanel/ContentPanel/PagePhysical
-@onready var page_config: Control = $MainPanel/ContentPanel/PageConfig
-@onready var page_cli: Control = $MainPanel/ContentPanel/PageCLI
-@onready var page_desktop: Control = $MainPanel/ContentPanel/PageDesktop
-@onready var page_services: Control = $MainPanel/ContentPanel/PageServices
+@onready var page_physical: Control = $WindowRoot/MainPanel/ContentPanel/PagePhysical
+@onready var page_config: Control = $WindowRoot/MainPanel/ContentPanel/PageConfig
+@onready var page_cli: Control = $WindowRoot/MainPanel/ContentPanel/PageCLI
+@onready var page_desktop: Control = $WindowRoot/MainPanel/ContentPanel/PageDesktop
+@onready var page_services: Control = $WindowRoot/MainPanel/ContentPanel/PageServices
 
-@onready var modules_panel: ModulesPanel = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ModulesPanel
-@onready var module_slot: ModuleSlot = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/ModuleSlot
-@onready var switch_overlay: SwitchPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/SwitchPhysicalOverlay
-@onready var hub_overlay: HubPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/HubPhysicalOverlay
-@onready var laptop_overlay: LaptopPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/LaptopPhysicalOverlay
-@onready var printer_overlay: PrinterPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/PrinterPhysicalOverlay
-@onready var tablet_overlay: TabletPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/TabletPhysicalOverlay
-@onready var access_point_overlay: AccessPointPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/AccessPointPhysicalOverlay
-@onready var server_overlay: ServerPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/ServerPhysicalOverlay
-@onready var module_info: ModuleInfoPanel = get_node_or_null("MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel") as ModuleInfoPanel
-@onready var config_panel: ConfigPanel = $MainPanel/ContentPanel/PageConfig/ConfigPanel
-@onready var cli_page: SwitchCLIPage = $MainPanel/ContentPanel/PageCLI/SwitchCLIPage
-@onready var desktop_page: DesktopPage = $MainPanel/ContentPanel/PageDesktop/DesktopPage
-@onready var services_page: ServerServicesPage = $MainPanel/ContentPanel/PageServices/ServerServicesPage
+@onready var modules_panel: ModulesPanel = $WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ModulesPanel
+@onready var module_slot: ModuleSlot = $WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/ModuleSlot
+@onready var switch_overlay: SwitchPhysicalOverlay = $WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/SwitchPhysicalOverlay
+@onready var hub_overlay: HubPhysicalOverlay = $WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/HubPhysicalOverlay
+@onready var laptop_overlay: LaptopPhysicalOverlay = $WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/LaptopPhysicalOverlay
+@onready var printer_overlay: PrinterPhysicalOverlay = $WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/PrinterPhysicalOverlay
+@onready var tablet_overlay: TabletPhysicalOverlay = $WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/TabletPhysicalOverlay
+@onready var access_point_overlay: AccessPointPhysicalOverlay = $WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/AccessPointPhysicalOverlay
+@onready var server_overlay: ServerPhysicalOverlay = $WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/ServerPhysicalOverlay
+@onready var module_info: ModuleInfoPanel = get_node_or_null("WindowRoot/MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel") as ModuleInfoPanel
+@onready var config_panel: ConfigPanel = $WindowRoot/MainPanel/ContentPanel/PageConfig/ConfigPanel
+@onready var cli_page: SwitchCLIPage = $WindowRoot/MainPanel/ContentPanel/PageCLI/SwitchCLIPage
+@onready var desktop_page: DesktopPage = $WindowRoot/MainPanel/ContentPanel/PageDesktop/DesktopPage
+@onready var services_page: ServerServicesPage = $WindowRoot/MainPanel/ContentPanel/PageServices/ServerServicesPage
 @onready var error_dialog: ErrorDialog = $ErrorDialog
 @onready var hint_overlay: HintArrow = $HintOverlay
 
-@onready var device_view: Control = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView
-@onready var zoom_in_button: Button = $MainPanel/ContentPanel/PagePhysical/ZoomButtons/ZoomIn
-@onready var original_size_button: Button = $MainPanel/ContentPanel/PagePhysical/ZoomButtons/OriginalSize
-@onready var zoom_out_button: Button = $MainPanel/ContentPanel/PagePhysical/ZoomButtons/ZoomOut
+@onready var device_view: Control = $WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView
+@onready var zoom_in_button: Button = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ZoomButtons/ZoomIn
+@onready var original_size_button: Button = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ZoomButtons/OriginalSize
+@onready var zoom_out_button: Button = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ZoomButtons/ZoomOut
 
 # Ищем картинку по всему дереву
 @onready var device_image: TextureRect = find_child("DeviceImage", true, false)
