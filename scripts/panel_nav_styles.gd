@@ -5,33 +5,30 @@ class_name PanelNavStyles
 # Значения взяты из ModulesPanel.tscn и modules_panel.gd, чтобы обе панели
 # использовали одинаковые рамки, отступы и состояния кнопок.
 
-const PANEL_BG := Color(0.8862745, 0.8862745, 0.8862745)
-const PANEL_HIGHLIGHT_BG := Color(1.0, 1.0, 0.78)
-const PANEL_BORDER := Color(0, 0, 0)
+const PANEL_BG := Color("#f2f2f2")
+const PANEL_HIGHLIGHT_BG := Color("#fff7c2")
+const PANEL_BORDER := Color("#6f6f6f")
 
 const HEADER_NORMAL_BG := Color(1, 1, 1)
-const HEADER_HOVER_BG := Color(0.91764706, 0.91764706, 0.91764706)
-const HEADER_PRESSED_BG := Color(0.85430586, 0.85430586, 0.85430586)
-const HEADER_BORDER := Color(0.69803923, 0.69803923, 0.69803923)
+const HEADER_HOVER_BG := Color("#eef4fa")
+const HEADER_PRESSED_BG := Color("#dfeaf5")
+const HEADER_BORDER := Color("#a9a9a9")
 
 const ITEM_NORMAL_BG := Color(1, 1, 1)
-const ITEM_HOVER_BG := Color(0.85, 0.85, 0.85)
-const ITEM_PRESSED_BG := Color(0.7, 0.7, 0.7)
-const ITEM_BORDER := Color(0.7, 0.7, 0.7)
+const ITEM_HOVER_BG := Color("#eef4fa")
+const ITEM_PRESSED_BG := Color("#dce9f6")
+const ITEM_BORDER := Color("#c4c4c4")
 
-const HEADER_HEIGHT := 22
+const HEADER_HEIGHT := 24
 const ITEM_HEIGHT := 27
-const FONT_SIZE := 16
+const FONT_SIZE := 15
 
 
 static func make_panel_style(highlight: bool = false) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = PANEL_HIGHLIGHT_BG if highlight else PANEL_BG
 	style.border_color = PANEL_BORDER
-	style.border_width_left = 2
-	style.border_width_top = 2
-	style.border_width_right = 2
-	style.border_width_bottom = 2
+	style.set_border_width_all(1)
 	style.corner_detail = 1
 	style.expand_margin_left = 1.0
 	style.expand_margin_top = 1.0
@@ -85,11 +82,8 @@ static func _header_style(bg: Color, pressed: bool = false) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = bg
 	style.border_color = HEADER_BORDER
-	style.border_width_left = 2
-	style.border_width_top = 2
-	style.border_width_right = 2
-	style.border_width_bottom = 2
-	var radius := 2 if pressed else 4
+	style.set_border_width_all(1)
+	var radius := 2 if pressed else 3
 	style.corner_radius_top_left = radius
 	style.corner_radius_top_right = radius
 	style.corner_radius_bottom_right = radius
@@ -102,14 +96,11 @@ static func _item_style(bg: Color) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = bg
 	style.border_color = ITEM_BORDER
-	style.border_width_left = 2
-	style.border_width_top = 2
-	style.border_width_right = 2
-	style.border_width_bottom = 2
-	style.corner_radius_top_left = 4
-	style.corner_radius_top_right = 4
-	style.corner_radius_bottom_right = 4
-	style.corner_radius_bottom_left = 4
+	style.set_border_width_all(1)
+	style.corner_radius_top_left = 3
+	style.corner_radius_top_right = 3
+	style.corner_radius_bottom_right = 3
+	style.corner_radius_bottom_left = 3
 	style.anti_aliasing = true
 	style.content_margin_left = 4
 	style.content_margin_right = 4
