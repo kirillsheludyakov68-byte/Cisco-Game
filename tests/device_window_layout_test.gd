@@ -22,8 +22,8 @@ func _test_physical_shell() -> void:
 
 	var main: Control = window.get_node("WindowRoot/MainPanel")
 	var page: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical")
-	var modules: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ModulesPanel")
-	var viewer: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel")
+	var modules: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/ModulesPanel")
+	var viewer: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel")
 	var info: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel")
 
 	_expect(main.size.x >= 1500.0, "MainPanel должен растягиваться по ширине окна")
@@ -43,8 +43,8 @@ func _test_minimum_size_layout() -> void:
 	var device: Device = await _make_device("PC", "PC1")
 	var window := await _open_window(device, Vector2i(850, 600))
 	var page: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical")
-	var modules: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ModulesPanel")
-	var viewer: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel")
+	var modules: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/ModulesPanel")
+	var viewer: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel")
 	var info: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel")
 
 	_expect(page.size.x >= 700.0, "При минимальной ширине страница должна оставаться читаемой")

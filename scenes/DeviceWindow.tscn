@@ -207,26 +207,42 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_74g6v")
 
 [node name="PagePhysical" type="VBoxContainer" parent="WindowRoot/MainPanel/ContentPanel" unique_id=785156055]
 layout_mode = 2
+size_flags_vertical = 3
 theme_override_constants/separation = 4
 
-[node name="ViewerLayout" type="VBoxContainer" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical" unique_id=614194327]
+[node name="ContentRow" type="HBoxContainer" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
 
-[node name="TitleLabel" type="Label" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/ViewerLayout" unique_id=134238440]
+[node name="ModulesPanel" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow" unique_id=816448491 instance=ExtResource("4_1rrw4")]
+custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RightColumn" type="VBoxContainer" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 4
+
+[node name="TitleLabel" type="Label" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn" unique_id=134238440]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0, 0, 0, 1)
 theme_override_fonts/font = SubResource("FontFile_13r6r")
 theme_override_font_sizes/font_size = 16
 text = "Physical Device View"
 horizontal_alignment = 1
 
-[node name="ZoomButtons" type="HBoxContainer" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical" unique_id=1746156344]
-custom_minimum_size = Vector2(472, 30)
+[node name="ZoomButtons" type="HBoxContainer" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn" unique_id=1746156344]
+custom_minimum_size = Vector2(0, 30)
 layout_mode = 2
-size_flags_horizontal = 4
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
 
-[node name="ZoomIn" type="Button" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/ZoomButtons" unique_id=1004585840]
+[node name="ZoomIn" type="Button" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ZoomButtons" unique_id=1004585840]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0, 0, 0, 1)
@@ -238,7 +254,7 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_yvgyf")
 theme_override_styles/hover = SubResource("StyleBoxFlat_13r6r")
 text = "Zoom In"
 
-[node name="OriginalSize" type="Button" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/ZoomButtons" unique_id=1349430540]
+[node name="OriginalSize" type="Button" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ZoomButtons" unique_id=1349430540]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0, 0, 0, 1)
@@ -248,9 +264,9 @@ theme_override_fonts/font = SubResource("FontFile_owhx7")
 theme_override_styles/normal = SubResource("StyleBoxFlat_a5ap3")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_yvgyf")
 theme_override_styles/hover = SubResource("StyleBoxFlat_13r6r")
-text = "OriginalSize"
+text = "Original Size"
 
-[node name="ZoomOut" type="Button" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/ZoomButtons" unique_id=1125816915]
+[node name="ZoomOut" type="Button" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ZoomButtons" unique_id=1125816915]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0, 0, 0, 1)
@@ -262,29 +278,18 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_yvgyf")
 theme_override_styles/hover = SubResource("StyleBoxFlat_13r6r")
 text = "Zoom Out"
 
-[node name="PhysicalLayout" type="HBoxContainer" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical" unique_id=1231581937]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_constants/separation = 10
-
-[node name="ModulesPanel" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout" unique_id=816448491 instance=ExtResource("4_1rrw4")]
-custom_minimum_size = Vector2(200, 300)
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="ViewerPanel" type="PanelContainer" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout" unique_id=1100135362]
+[node name="ViewerPanel" type="PanelContainer" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn" unique_id=1100135362]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_owhx7")
 
-[node name="DeviceView" type="Control" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel" unique_id=389325631]
+[node name="DeviceView" type="Control" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel" unique_id=389325631]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="DeviceImage" type="TextureRect" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView" unique_id=1390962978]
+[node name="DeviceImage" type="TextureRect" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView" unique_id=1390962978]
 layout_mode = 0
 offset_right = 166.0
 offset_bottom = 396.0
@@ -293,7 +298,7 @@ texture = ExtResource("5_74g6v")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="ModuleSlot" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage" unique_id=177739264 instance=ExtResource("6_slot")]
+[node name="ModuleSlot" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage" unique_id=177739264 instance=ExtResource("6_slot")]
 layout_mode = 1
 anchor_left = 0.205128
 anchor_top = 0.866953
@@ -302,31 +307,31 @@ anchor_bottom = 0.922747
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="SwitchPhysicalOverlay" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage" instance=ExtResource("11_switch")]
+[node name="SwitchPhysicalOverlay" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage" instance=ExtResource("11_switch")]
 visible = false
 layout_mode = 1
 
-[node name="HubPhysicalOverlay" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage" instance=ExtResource("15_hub")]
+[node name="HubPhysicalOverlay" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage" instance=ExtResource("15_hub")]
 visible = false
 layout_mode = 1
 
-[node name="LaptopPhysicalOverlay" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage" instance=ExtResource("16_laptop")]
+[node name="LaptopPhysicalOverlay" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage" instance=ExtResource("16_laptop")]
 visible = false
 layout_mode = 1
 
-[node name="PrinterPhysicalOverlay" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage" instance=ExtResource("17_printer")]
+[node name="PrinterPhysicalOverlay" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage" instance=ExtResource("17_printer")]
 visible = false
 layout_mode = 1
 
-[node name="TabletPhysicalOverlay" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage" instance=ExtResource("18_tablet")]
+[node name="TabletPhysicalOverlay" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage" instance=ExtResource("18_tablet")]
 visible = false
 layout_mode = 1
 
-[node name="AccessPointPhysicalOverlay" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage" instance=ExtResource("19_ap")]
+[node name="AccessPointPhysicalOverlay" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage" instance=ExtResource("19_ap")]
 visible = false
 layout_mode = 1
 
-[node name="ServerPhysicalOverlay" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage" instance=ExtResource("20_server")]
+[node name="ServerPhysicalOverlay" parent="WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage" instance=ExtResource("20_server")]
 visible = false
 layout_mode = 1
 
@@ -396,4 +401,4 @@ script = ExtResource("13_hint")
 visible = false
 z_index = 200
 
-[connection signal="gui_input" from="WindowRoot/MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage" to="." method="_on_device_image_gui_input"]
+[connection signal="gui_input" from="WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage" to="." method="_on_device_image_gui_input"]
