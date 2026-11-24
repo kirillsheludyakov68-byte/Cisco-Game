@@ -26,18 +26,19 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_desc")
 custom_minimum_size = Vector2(0, 76)
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/margin_left = 6
-theme_override_constants/margin_top = 3
-theme_override_constants/margin_right = 6
-theme_override_constants/margin_bottom = 3
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 5
 
 [node name="DescriptionLabel" type="Label" parent="DescriptionPanel/DescriptionMargin" unique_id=250046474]
 layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.1882353, 0.6156863, 1)
+theme_override_colors/font_color = Color(0.12156863, 0.16078432, 0.2, 1)
 theme_override_font_sizes/font_size = 13
 autowrap_mode = 3
 
 [node name="ModulePreview" parent="." unique_id=1838361402 instance=ExtResource("2_preview")]
+custom_minimum_size = Vector2(190, 64)
 layout_mode = 2
-size_flags_horizontal = 4
+size_flags_horizontal = 8
 size_flags_vertical = 4

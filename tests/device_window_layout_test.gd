@@ -12,6 +12,7 @@ func _ready() -> void:
 	await _test_minimum_size_layout()
 	await _test_pages_fill()
 	await _test_pc_scaling()
+	await _test_all_devices_top_left()
 	await _test_preferred_size()
 	_finish()
 
@@ -20,21 +21,74 @@ func _test_physical_shell() -> void:
 	var device: Device = await _make_device("PC", "PC1")
 	var window := await _open_window(device, Vector2i(1600, 900))
 
-	var main: Control = window.get_node("MainPanel")
-	var page: Control = window.get_node("MainPanel/ContentPanel/PagePhysical")
-	var modules: Control = window.get_node("MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ModulesPanel")
-	var viewer: Control = window.get_node("MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel")
-	var info: Control = window.get_node("MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel")
+	var main: Control = window.get_node("WindowRoot/MainPanel")
+	var tab_bar: Control = window.get_node("WindowRoot/TabBar")
+	var page: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical")
+	var content_row: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow")
+	var modules: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/ModulesPanel")
+	var right_column: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn")
+	var title: Label = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/TitleLabel")
+	var zoom: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ZoomButtons")
+	var original: Button = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ZoomButtons/OriginalSize")
+	var viewer: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel")
+	var info: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel")
+	var help: Button = window.get_node("WindowRoot/TabBar/HelpButton")
 
 	_expect(main.size.x >= 1500.0, "MainPanel должен растягиваться по ширине окна")
 	_expect(main.size.y >= 800.0, "MainPanel должен растягиваться по высоте окна")
+	_expect(
+		absf(main.position.y - (tab_bar.position.y + tab_bar.size.y)) <= 1.0,
+		"Между вкладками и MainPanel не должно быть лишнего зазора"
+	)
 	_expect(modules.size.x == 200.0, "Панель модулей должна сохранять ширину 200 px")
 	_expect(viewer.size.x > modules.size.x, "Область просмотра должна занимать остаток ширины")
+	_expect(
+		absf(title.get_global_rect().position.y - modules.get_global_rect().position.y) <= 1.0,
+		"Заголовок и панель модулей должны начинаться на одном уровне"
+	)
+	_expect(
+		title.get_global_rect().position.x >= modules.get_global_rect().end.x - 1.0,
+		"Заголовок должен находиться над областью просмотра, а не над панелью модулей"
+	)
+	_expect(
+		zoom.get_global_rect().position.x >= modules.get_global_rect().end.x - 1.0,
+		"Кнопки масштаба должны находиться справа от панели модулей"
+	)
+	_expect(
+		absf(zoom.size.x - viewer.size.x) <= 1.0,
+		"Кнопки масштаба должны занимать ширину области просмотра"
+	)
+	_expect(
+		zoom.get_global_rect().end.y <= viewer.get_global_rect().position.y + 1.0,
+		"Кнопки масштаба должны находиться над областью просмотра"
+	)
+	_expect(
+		modules.get_global_rect().end.y <= viewer.get_global_rect().end.y + 1.0
+			and modules.get_global_rect().end.y >= viewer.get_global_rect().end.y - 2.0,
+		"Панель модулей должна заканчиваться на уровне области просмотра"
+	)
+	_expect(
+		absf(right_column.size.x - viewer.size.x) <= 1.0,
+		"Правая колонка должна занимать ширину области просмотра"
+	)
+	_expect(
+		absf(content_row.get_global_rect().end.y - modules.get_global_rect().end.y) <= 1.0,
+		"Панель модулей должна растягиваться на всю высоту ContentRow"
+	)
+	_expect(original.text == "Original Size", "Кнопка должна называться Original Size")
 	_expect(info.visible, "Для PC панель информации о модуле должна быть видима")
 	_expect(
 		info.get_global_rect().end.y <= page.get_global_rect().end.y + 1.0,
 		"Панель информации о модуле должна оставаться внутри страницы"
 	)
+
+	var help_style := help.get_theme_stylebox("normal")
+	_expect(help_style is StyleBoxFlat, "Кнопка помощи должна использовать плоский стиль")
+	if help_style is StyleBoxFlat:
+		_expect(
+			help_style.shadow_size == 0 and help_style.shadow_color.a == 0.0,
+			"У кнопки помощи не должно быть тени"
+		)
 
 	await _close_window(window, device)
 
@@ -42,14 +96,30 @@ func _test_physical_shell() -> void:
 func _test_minimum_size_layout() -> void:
 	var device: Device = await _make_device("PC", "PC1")
 	var window := await _open_window(device, Vector2i(850, 600))
-	var page: Control = window.get_node("MainPanel/ContentPanel/PagePhysical")
-	var modules: Control = window.get_node("MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ModulesPanel")
-	var viewer: Control = window.get_node("MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel")
-	var info: Control = window.get_node("MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel")
+	var page: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical")
+	var content_row: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow")
+	var modules: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/ModulesPanel")
+	var title: Label = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/TitleLabel")
+	var zoom: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ZoomButtons")
+	var viewer: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel")
+	var info: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel")
 
 	_expect(page.size.x >= 700.0, "При минимальной ширине страница должна оставаться читаемой")
 	_expect(viewer.size.y >= 250.0, "При минимальной высоте область просмотра не должна схлопываться")
 	_expect(modules.size.y >= 300.0, "Панель модулей должна сохранять рабочую высоту")
+	_expect(
+		absf(title.get_global_rect().position.y - modules.get_global_rect().position.y) <= 1.0,
+		"При минимальном размере заголовок и модули должны начинаться на одном уровне"
+	)
+	_expect(
+		zoom.get_global_rect().end.y <= viewer.get_global_rect().position.y + 1.0,
+		"При минимальном размере кнопки масштаба должны оставаться над просмотром"
+	)
+	_expect(
+		modules.get_global_rect().end.y <= content_row.get_global_rect().end.y + 1.0
+			and modules.get_global_rect().end.y >= content_row.get_global_rect().end.y - 2.0,
+		"При минимальном размере панель модулей должна заполнять ContentRow по высоте"
+	)
 	_expect(
 		info.get_global_rect().end.y <= page.get_global_rect().end.y + 1.0,
 		"При минимальном размере информация о модуле должна оставаться в странице"
@@ -65,7 +135,7 @@ func _test_minimum_size_layout() -> void:
 func _test_pages_fill() -> void:
 	var server: Device = await _make_device("Server", "Server0")
 	var server_window := await _open_window(server, Vector2i(1600, 900))
-	var server_page: Control = server_window.get_node("MainPanel/ContentPanel/PagePhysical")
+	var server_page: Control = server_window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical")
 	for page_name in ["config", "desktop", "services"]:
 		server_window._show_page(page_name)
 		await _wait_frames(1)
@@ -81,7 +151,7 @@ func _test_pages_fill() -> void:
 
 	var switch: Device = await _make_device("Switch", "Switch1")
 	var switch_window := await _open_window(switch, Vector2i(1600, 900))
-	var switch_page: Control = switch_window.get_node("MainPanel/ContentPanel/PagePhysical")
+	var switch_page: Control = switch_window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical")
 	switch_window._show_page("cli")
 	await _wait_frames(1)
 	var cli_page = _get_page_node(switch_window, "cli")
@@ -102,15 +172,12 @@ func _test_pc_scaling() -> void:
 	var initial_size := window.device_image.size
 
 	_expect(
-		absf(initial_size.y - device_view.size.y) <= 2.0,
-		"PC должен вписываться по высоте в область просмотра"
+		window.device_image.position.is_equal_approx(Vector2.ZERO),
+		"PC должен быть прижат к левому верхнему углу области просмотра"
 	)
 	_expect(
-		absf(
-			window.device_image.position.x
-			- (device_view.size.x - initial_size.x) * 0.5
-		) <= 2.0,
-		"PC должен центрироваться по горизонтали"
+		initial_size.x <= device_view.size.x + 1.0 and initial_size.y <= device_view.size.y + 1.0,
+		"PC не должен выходить за пределы области просмотра"
 	)
 
 	var power_rect: Rect2 = window._get_power_base_rect()
@@ -123,11 +190,66 @@ func _test_pc_scaling() -> void:
 	window.size = Vector2i(1920, 1080)
 	await _wait_frames(2)
 	_expect(
-		window.device_image.size.y > initial_size.y,
-		"При увеличении окна картинка PC должна увеличиваться"
+		window.device_image.position.is_equal_approx(Vector2.ZERO),
+		"При увеличении окна PC должен оставаться в левом верхнем углу"
+	)
+	_expect(
+		window.device_image.size.y <= initial_size.y + 1.0,
+		"Картинка PC не должна разрастаться после достижения максимального масштаба"
 	)
 
 	await _close_window(window, device)
+
+
+func _test_all_devices_top_left() -> void:
+	for device_type in ["PC", "Laptop", "Tablet", "Switch", "Hub", "Router", "AccessPoint", "Server", "Printer"]:
+		var device: Device = await _make_device(device_type, device_type + "1")
+		var window := await _open_window(device, Vector2i(1280, 800))
+		var viewer: Control = window.get_node(
+			"WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel"
+		)
+		var modules: Control = window.get_node(
+			"WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/ModulesPanel"
+		)
+		var image_rect := window.device_image.get_global_rect()
+
+		_expect(
+			window.device_image.position.is_equal_approx(Vector2.ZERO),
+			"%s должен быть прижат к левому верхнему углу области просмотра" % device_type
+		)
+		_expect(
+			image_rect.position.x >= viewer.get_global_rect().position.x
+				and image_rect.position.y >= viewer.get_global_rect().position.y,
+			"%s не должен выходить за верхний левый край области просмотра" % device_type
+		)
+		_expect(
+			image_rect.end.x <= viewer.get_global_rect().end.x + 1.0
+				and image_rect.end.y <= viewer.get_global_rect().end.y + 1.0,
+			"%s должен оставаться внутри области просмотра" % device_type
+		)
+		if device_type == "AccessPoint":
+			_expect(
+				image_rect.size.x >= 240.0,
+				"Точка доступа в исходном масштабе не должна быть слишком маленькой"
+			)
+		if window.modules_panel.visible:
+			_expect(modules.size.x == 200.0, "%s: панель модулей должна иметь ширину 200 px" % device_type)
+			_expect(
+				viewer.size.x > modules.size.x,
+				"%s: область просмотра должна занимать остаток ширины" % device_type
+			)
+		else:
+			_expect(
+				viewer.size.x >= page_width(window) - 20.0,
+				"%s: без панели модулей область просмотра должна занимать всю ширину" % device_type
+			)
+
+		await _close_window(window, device)
+
+
+func page_width(window: DeviceWindow) -> float:
+	var page: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical")
+	return page.size.x
 
 
 func _test_preferred_size() -> void:

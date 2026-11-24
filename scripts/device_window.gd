@@ -21,14 +21,19 @@ const ERROR_BOOTING := "Коммутатор загружается. Пожал�
 
 const ZOOM_STEP := 1.2
 const HUB_BASE_SCALE := 1.0 / (ZOOM_STEP * ZOOM_STEP * ZOOM_STEP)
-# Для точки доступа исходный (100%) масштаб — это четыре шага уменьшения.
-const AP_BASE_SCALE := 1.0 / (ZOOM_STEP * ZOOM_STEP * ZOOM_STEP * ZOOM_STEP)
+# Для точки доступа исходный (100%) масштаб — это один шаг уменьшения.
+# Прежние четыре шага делали устройство слишком маленьким в окне просмотра.
+const AP_BASE_SCALE := 1.0 / ZOOM_STEP
 const ZOOM_MIN := 0.25
 const ZOOM_MAX := 3.0
 const ZOOM_SCROLL_STEP := 48.0
 const ZOOM_SCROLL_BAR_WIDTH := 14.0
 const PC_TEXTURE_SIZE := Vector2(166.0, 396.0)
 const PC_POWER_RECT := Rect2(132.0, 118.0, 14.0, 21.0)
+# Изображение устройства прижато к левому верхнему углу области просмотра.
+const DEVICE_VIEW_PADDING := 0.0
+# Не позволяем маленькой картинке разрастаться на весь экран.
+const DEVICE_MAX_SCALE := 1.35
 
 # Размер последнего открытого окна. Если пользователь развернул окно
 # на весь экран, следующее устройство откроется в таком же размере.
@@ -41,33 +46,33 @@ static var _preferred_window_size := Vector2i(850, 670)
 @onready var tab_services: Button = $WindowRoot/TabBar/TabServices
 @onready var help_button: Button = $WindowRoot/TabBar/HelpButton
 
-@onready var page_physical: Control = $MainPanel/ContentPanel/PagePhysical
-@onready var page_config: Control = $MainPanel/ContentPanel/PageConfig
-@onready var page_cli: Control = $MainPanel/ContentPanel/PageCLI
-@onready var page_desktop: Control = $MainPanel/ContentPanel/PageDesktop
-@onready var page_services: Control = $MainPanel/ContentPanel/PageServices
+@onready var page_physical: Control = $WindowRoot/MainPanel/ContentPanel/PagePhysical
+@onready var page_config: Control = $WindowRoot/MainPanel/ContentPanel/PageConfig
+@onready var page_cli: Control = $WindowRoot/MainPanel/ContentPanel/PageCLI
+@onready var page_desktop: Control = $WindowRoot/MainPanel/ContentPanel/PageDesktop
+@onready var page_services: Control = $WindowRoot/MainPanel/ContentPanel/PageServices
 
-@onready var modules_panel: ModulesPanel = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ModulesPanel
-@onready var module_slot: ModuleSlot = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/ModuleSlot
-@onready var switch_overlay: SwitchPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/SwitchPhysicalOverlay
-@onready var hub_overlay: HubPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/HubPhysicalOverlay
-@onready var laptop_overlay: LaptopPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/LaptopPhysicalOverlay
-@onready var printer_overlay: PrinterPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/PrinterPhysicalOverlay
-@onready var tablet_overlay: TabletPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/TabletPhysicalOverlay
-@onready var access_point_overlay: AccessPointPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/AccessPointPhysicalOverlay
-@onready var server_overlay: ServerPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/ServerPhysicalOverlay
-@onready var module_info: ModuleInfoPanel = get_node_or_null("MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel") as ModuleInfoPanel
-@onready var config_panel: ConfigPanel = $MainPanel/ContentPanel/PageConfig/ConfigPanel
-@onready var cli_page: SwitchCLIPage = $MainPanel/ContentPanel/PageCLI/SwitchCLIPage
-@onready var desktop_page: DesktopPage = $MainPanel/ContentPanel/PageDesktop/DesktopPage
-@onready var services_page: ServerServicesPage = $MainPanel/ContentPanel/PageServices/ServerServicesPage
+@onready var modules_panel: ModulesPanel = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/ModulesPanel
+@onready var module_slot: ModuleSlot = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage/ModuleSlot
+@onready var switch_overlay: SwitchPhysicalOverlay = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage/SwitchPhysicalOverlay
+@onready var hub_overlay: HubPhysicalOverlay = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage/HubPhysicalOverlay
+@onready var laptop_overlay: LaptopPhysicalOverlay = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage/LaptopPhysicalOverlay
+@onready var printer_overlay: PrinterPhysicalOverlay = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage/PrinterPhysicalOverlay
+@onready var tablet_overlay: TabletPhysicalOverlay = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage/TabletPhysicalOverlay
+@onready var access_point_overlay: AccessPointPhysicalOverlay = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage/AccessPointPhysicalOverlay
+@onready var server_overlay: ServerPhysicalOverlay = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage/ServerPhysicalOverlay
+@onready var module_info: ModuleInfoPanel = get_node_or_null("WindowRoot/MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel") as ModuleInfoPanel
+@onready var config_panel: ConfigPanel = $WindowRoot/MainPanel/ContentPanel/PageConfig/ConfigPanel
+@onready var cli_page: SwitchCLIPage = $WindowRoot/MainPanel/ContentPanel/PageCLI/SwitchCLIPage
+@onready var desktop_page: DesktopPage = $WindowRoot/MainPanel/ContentPanel/PageDesktop/DesktopPage
+@onready var services_page: ServerServicesPage = $WindowRoot/MainPanel/ContentPanel/PageServices/ServerServicesPage
 @onready var error_dialog: ErrorDialog = $ErrorDialog
 @onready var hint_overlay: HintArrow = $HintOverlay
 
-@onready var device_view: Control = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView
-@onready var zoom_in_button: Button = $MainPanel/ContentPanel/PagePhysical/ZoomButtons/ZoomIn
-@onready var original_size_button: Button = $MainPanel/ContentPanel/PagePhysical/ZoomButtons/OriginalSize
-@onready var zoom_out_button: Button = $MainPanel/ContentPanel/PagePhysical/ZoomButtons/ZoomOut
+@onready var device_view: Control = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView
+@onready var zoom_in_button: Button = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ZoomButtons/ZoomIn
+@onready var original_size_button: Button = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ZoomButtons/OriginalSize
+@onready var zoom_out_button: Button = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ZoomButtons/ZoomOut
 
 # Ищем картинку по всему дереву
 @onready var device_image: TextureRect = find_child("DeviceImage", true, false)
@@ -101,7 +106,7 @@ func _ready() -> void:
 	tab_services.pressed.connect(_on_tab_services)
 	help_button.pressed.connect(_on_help_pressed)
 	help_button.tooltip_text = "Пособие по устройству"
-	MenuStyles.apply_button(help_button, "secondary", 18, 10, 9)
+	MenuStyles.apply_flat_help_button(help_button)
 
 	zoom_in_button.pressed.connect(_on_zoom_in_pressed)
 	original_size_button.pressed.connect(_on_original_size_pressed)
@@ -581,28 +586,34 @@ func _update_device_base_rect() -> void:
 	if view_size.x <= 1.0 or view_size.y <= 1.0:
 		view_size = Vector2(606, 396)
 
-	if device != null and device.device_type != "PC":
-		var texture_size := device_image.texture.get_size()
-		var fit_scale := minf(
-			view_size.x / maxf(texture_size.x, 1.0),
-			view_size.y / maxf(texture_size.y, 1.0)
-		)
-		var fitted_size := texture_size * maxf(fit_scale, 0.01)
-		# Левый верхний угол устройства совпадает с левым верхним
-		# углом области просмотра.
-		_device_base_rect = Rect2(Vector2.ZERO, fitted_size)
-	else:
+	# Для всех устройств используем одно правило: картинка прижата
+	# к левому верхнему углу области просмотра. Если она больше области —
+	# пропорционально уменьшаем, но не раздуваем её на весь экран.
+	var base_size := _get_device_base_size()
+	var available_size := Vector2(
+		maxf(view_size.x - DEVICE_VIEW_PADDING * 2.0, 1.0),
+		maxf(view_size.y - DEVICE_VIEW_PADDING * 2.0, 1.0)
+	)
+	var fit_scale := minf(
+		available_size.x / maxf(base_size.x, 1.0),
+		available_size.y / maxf(base_size.y, 1.0)
+	)
+	var applied_scale := maxf(minf(fit_scale, DEVICE_MAX_SCALE), 0.01)
+	var fitted_size := base_size * applied_scale
+	_device_base_rect = Rect2(
+		Vector2(DEVICE_VIEW_PADDING, DEVICE_VIEW_PADDING),
+		fitted_size
+	)
+
+
+func _get_device_base_size() -> Vector2:
+	if device != null and device.device_type == "PC":
 		if _pc_base_rect.size == Vector2.ZERO:
 			_pc_base_rect = Rect2(Vector2.ZERO, PC_TEXTURE_SIZE)
-		# Компьютер тоже вписываем в область просмотра и центрируем,
-		# иначе в полноэкранном окне он остаётся маленьким в углу.
-		var fit_scale := minf(
-			view_size.x / maxf(_pc_base_rect.size.x, 1.0),
-			view_size.y / maxf(_pc_base_rect.size.y, 1.0)
-		)
-		var fitted_size := _pc_base_rect.size * maxf(fit_scale, 0.01)
-		var fitted_position := (view_size - fitted_size) * 0.5
-		_device_base_rect = Rect2(fitted_position, fitted_size)
+		return _pc_base_rect.size
+	if device_image.texture != null:
+		return device_image.texture.get_size()
+	return PC_TEXTURE_SIZE
 
 
 # --- Масштаб Physical Device View ---

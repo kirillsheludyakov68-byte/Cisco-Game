@@ -103,6 +103,48 @@ static func apply_button(
 	button.focus_mode = Control.FOCUS_NONE
 
 
+static func apply_flat_help_button(button: Button) -> void:
+	button.add_theme_stylebox_override(
+		"normal",
+		_flat_help_style(Color("#f4f4f4"), Color("#bdbdbd"))
+	)
+	button.add_theme_stylebox_override(
+		"hover",
+		_flat_help_style(Color("#e9f2fa"), Color("#8fb0cc"))
+	)
+	button.add_theme_stylebox_override(
+		"pressed",
+		_flat_help_style(Color("#d8e7f5"), Color("#6f94b4"))
+	)
+	button.add_theme_stylebox_override(
+		"focus",
+		_flat_help_style(Color("#f4f4f4"), Color("#bdbdbd"))
+	)
+	button.add_theme_color_override("font_color", Color("#20262d"))
+	button.add_theme_color_override("font_hover_color", Color("#20262d"))
+	button.add_theme_color_override("font_pressed_color", Color("#20262d"))
+	button.add_theme_color_override("font_focus_color", Color("#20262d"))
+	button.add_theme_color_override("font_outline_color", Color.TRANSPARENT)
+	button.add_theme_constant_override("outline_size", 0)
+	button.add_theme_font_size_override("font_size", 17)
+	button.focus_mode = Control.FOCUS_NONE
+
+
+static func _flat_help_style(bg: Color, border: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = bg
+	style.border_color = border
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	style.content_margin_left = 4
+	style.content_margin_right = 4
+	style.content_margin_top = 2
+	style.content_margin_bottom = 2
+	style.shadow_color = Color.TRANSPARENT
+	style.shadow_size = 0
+	return style
+
+
 static func apply_level_tile(button: Button, unlocked: bool) -> void:
 	var bg := BLUE if unlocked else GRAY
 	var hover_bg := BLUE_HOVER if unlocked else GRAY

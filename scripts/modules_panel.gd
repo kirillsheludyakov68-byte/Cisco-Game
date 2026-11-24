@@ -22,6 +22,7 @@ var _panel_highlight_style: StyleBoxFlat
 
 func _ready() -> void:
 	_build_styles()
+	_style_scrollbar()
 	_populate_modules()
 	_apply_press_offset_to_header()
 
@@ -44,6 +45,36 @@ func _build_styles() -> void:
 	_panel_highlight_style = PanelNavStyles.make_panel_style(true)
 	add_theme_stylebox_override("panel", _panel_normal_style)
 	PanelNavStyles.apply_header_button(header_button)
+
+
+# Тонкий скроллбар в стиле эталонного окна Packet Tracer.
+func _style_scrollbar() -> void:
+	if scroll_list == null:
+		return
+	var scroll_bar := scroll_list.get_v_scroll_bar()
+	scroll_bar.custom_minimum_size = Vector2(10, 0)
+
+	var scroll_style := StyleBoxFlat.new()
+	scroll_style.bg_color = Color("#edf1f5")
+	scroll_style.set_corner_radius_all(4)
+
+	var grabber := StyleBoxFlat.new()
+	grabber.bg_color = Color("#9aa8b5")
+	grabber.set_corner_radius_all(4)
+	grabber.content_margin_left = 2
+	grabber.content_margin_right = 2
+	grabber.content_margin_top = 2
+	grabber.content_margin_bottom = 2
+
+	var grabber_hover := grabber.duplicate() as StyleBoxFlat
+	grabber_hover.bg_color = Color("#7f8f9e")
+	var grabber_pressed := grabber.duplicate() as StyleBoxFlat
+	grabber_pressed.bg_color = Color("#66798a")
+
+	scroll_bar.add_theme_stylebox_override("scroll", scroll_style)
+	scroll_bar.add_theme_stylebox_override("grabber", grabber)
+	scroll_bar.add_theme_stylebox_override("grabber_highlight", grabber_hover)
+	scroll_bar.add_theme_stylebox_override("grabber_pressed", grabber_pressed)
 
 
 func _on_header_pressed() -> void:
