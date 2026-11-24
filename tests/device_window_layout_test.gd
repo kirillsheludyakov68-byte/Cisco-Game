@@ -21,16 +21,60 @@ func _test_physical_shell() -> void:
 	var window := await _open_window(device, Vector2i(1600, 900))
 
 	var main: Control = window.get_node("WindowRoot/MainPanel")
+	var tab_bar: Control = window.get_node("WindowRoot/TabBar")
 	var page: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical")
+	var content_row: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow")
 	var modules: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/ModulesPanel")
+	var right_column: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn")
+	var title: Label = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/TitleLabel")
+	var zoom: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ZoomButtons")
+	var original: Button = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ZoomButtons/OriginalSize")
 	var viewer: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel")
 	var info: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel")
 	var help: Button = window.get_node("WindowRoot/TabBar/HelpButton")
 
 	_expect(main.size.x >= 1500.0, "MainPanel должен растягиваться по ширине окна")
 	_expect(main.size.y >= 800.0, "MainPanel должен растягиваться по высоте окна")
+	_expect(
+		absf(main.position.y - (tab_bar.position.y + tab_bar.size.y)) <= 1.0,
+		"Между вкладками и MainPanel не должно быть лишнего зазора"
+	)
 	_expect(modules.size.x == 200.0, "Панель модулей должна сохранять ширину 200 px")
 	_expect(viewer.size.x > modules.size.x, "Область просмотра должна занимать остаток ширины")
+	_expect(
+		absf(title.get_global_rect().position.y - modules.get_global_rect().position.y) <= 1.0,
+		"Заголовок и панель модулей должны начинаться на одном уровне"
+	)
+	_expect(
+		title.get_global_rect().position.x >= modules.get_global_rect().end.x - 1.0,
+		"Заголовок должен находиться над областью просмотра, а не над панелью модулей"
+	)
+	_expect(
+		zoom.get_global_rect().position.x >= modules.get_global_rect().end.x - 1.0,
+		"Кнопки масштаба должны находиться справа от панели модулей"
+	)
+	_expect(
+		absf(zoom.size.x - viewer.size.x) <= 1.0,
+		"Кнопки масштаба должны занимать ширину области просмотра"
+	)
+	_expect(
+		zoom.get_global_rect().end.y <= viewer.get_global_rect().position.y + 1.0,
+		"Кнопки масштаба должны находиться над областью просмотра"
+	)
+	_expect(
+		modules.get_global_rect().end.y <= viewer.get_global_rect().end.y + 1.0
+			and modules.get_global_rect().end.y >= viewer.get_global_rect().end.y - 2.0,
+		"Панель модулей должна заканчиваться на уровне области просмотра"
+	)
+	_expect(
+		absf(right_column.size.x - viewer.size.x) <= 1.0,
+		"Правая колонка должна занимать ширину области просмотра"
+	)
+	_expect(
+		absf(content_row.get_global_rect().end.y - modules.get_global_rect().end.y) <= 1.0,
+		"Панель модулей должна растягиваться на всю высоту ContentRow"
+	)
+	_expect(original.text == "Original Size", "Кнопка должна называться Original Size")
 	_expect(info.visible, "Для PC панель информации о модуле должна быть видима")
 	_expect(
 		info.get_global_rect().end.y <= page.get_global_rect().end.y + 1.0,
