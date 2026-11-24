@@ -1,0 +1,115 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/interface_settings_page.gd" id="1_page"]
+
+[node name="InterfaceSettingsPage" type="PanelContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_page")
+
+[node name="Root" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 9
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 9
+theme_override_constants/margin_bottom = 9
+
+[node name="VBox" type="VBoxContainer" parent="Root"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="HeaderPanel" type="PanelContainer" parent="Root/VBox"]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+
+[node name="HeaderLabel" type="Label" parent="Root/VBox/HeaderPanel"]
+layout_mode = 2
+text = "FastEthernet0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StatusLabel" type="Label" parent="Root/VBox"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 2
+
+[node name="BodyScroll" type="ScrollContainer" parent="Root/VBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Body" type="VBoxContainer" parent="Root/VBox/BodyScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="Fields" type="GridContainer" parent="Root/VBox/BodyScroll/Body"]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 7
+columns = 2
+
+[node name="PortStatusLabel" type="Label" parent="Root/VBox/BodyScroll/Body/Fields"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+text = "Port Status"
+vertical_alignment = 1
+
+[node name="PortStatusCheck" type="CheckBox" parent="Root/VBox/BodyScroll/Body/Fields"]
+layout_mode = 2
+text = "On"
+
+[node name="MacLabel" type="Label" parent="Root/VBox/BodyScroll/Body/Fields"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+text = "MAC Address"
+vertical_alignment = 1
+
+[node name="MacEdit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/Fields"]
+layout_mode = 2
+size_flags_horizontal = 3
+editable = false
+max_length = 17
+
+[node name="IPv4Label" type="Label" parent="Root/VBox/BodyScroll/Body/Fields"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+text = "IPv4 Address"
+vertical_alignment = 1
+
+[node name="IPv4Edit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/Fields"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_length = 15
+
+[node name="MaskLabel" type="Label" parent="Root/VBox/BodyScroll/Body/Fields"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+text = "Subnet Mask"
+vertical_alignment = 1
+
+[node name="MaskEdit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/Fields"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_length = 15
+
+[node name="IPv6Label" type="Label" parent="Root/VBox/BodyScroll/Body/Fields"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+text = "IPv6 Address"
+vertical_alignment = 1
+
+[node name="IPv6Edit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/Fields"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_length = 45
+
+[node name="HintLabel" type="Label" parent="Root/VBox/BodyScroll/Body"]
+layout_mode = 2
+text = "Изменения применяются по Enter или при выходе из поля."
+autowrap_mode = 2

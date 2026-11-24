@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b12tlryvgcw3c"
-path="res://.godot/imported/icon-swith.png-b032fe0b08dd89802ceee2e2dade4b40.ctex"
+uid="uid://dk4jpunwrksoq"
+path="res://.godot/imported/radio_checked.svg-4b82b82209de36634305ee49c959fc37.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/icon-swith.png"
-dest_files=["res://.godot/imported/icon-swith.png-b032fe0b08dd89802ceee2e2dade4b40.ctex"]
+source_file="res://assets/ui/radio_checked.svg"
+dest_files=["res://.godot/imported/radio_checked.svg-4b82b82209de36634305ee49c959fc37.ctex"]
 
 [params]
 
@@ -38,3 +38,6 @@ process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
 detect_3d/compress_to=1
+svg/scale=1.0
+editor/scale_with_editor_scale=false
+editor/convert_colors_with_editor_theme=false

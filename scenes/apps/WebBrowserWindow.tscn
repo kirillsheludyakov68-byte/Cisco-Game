@@ -1,0 +1,56 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/apps/web_browser_window.gd" id="1_browser"]
+
+[node name="WebBrowserWindow" type="VBoxContainer"]
+custom_minimum_size = Vector2(640, 420)
+theme_override_constants/separation = 4
+script = ExtResource("1_browser")
+
+[node name="NavRow" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="BackButton" type="Button" parent="NavRow"]
+custom_minimum_size = Vector2(30, 25)
+layout_mode = 2
+text = "←"
+
+[node name="ForwardButton" type="Button" parent="NavRow"]
+custom_minimum_size = Vector2(30, 25)
+layout_mode = 2
+text = "→"
+
+[node name="UriEdit" type="LineEdit" parent="NavRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "http://адрес"
+
+[node name="GoButton" type="Button" parent="NavRow"]
+custom_minimum_size = Vector2(42, 25)
+layout_mode = 2
+text = "Go"
+
+[node name="PagePanel" type="PanelContainer" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="PageMargin" type="MarginContainer" parent="PagePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 7
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 7
+theme_override_constants/margin_bottom = 6
+
+[node name="PageText" type="RichTextLabel" parent="PagePanel/PageMargin"]
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = false
+scroll_active = true
+scroll_following = false
+selection_enabled = true
+
+[node name="StatusLabel" type="Label" parent="."]
+visible = false
+layout_mode = 2
+autowrap_mode = 2

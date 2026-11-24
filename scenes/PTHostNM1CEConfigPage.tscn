@@ -1,0 +1,122 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/pt_host_nm_1ce_config_page.gd" id="1_page"]
+[ext_resource type="PackedScene" path="res://scenes/InterfaceIpConfigBlock.tscn" id="2_ip"]
+
+[node name="PTHostNM1CEConfigPage" type="PanelContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_page")
+
+[node name="Root" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 9
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 9
+theme_override_constants/margin_bottom = 9
+
+[node name="VBox" type="VBoxContainer" parent="Root"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="HeaderPanel" type="PanelContainer" parent="Root/VBox"]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+
+[node name="HeaderLabel" type="Label" parent="Root/VBox/HeaderPanel"]
+layout_mode = 2
+text = "Ethernet0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StatusLabel" type="Label" parent="Root/VBox"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 2
+
+[node name="BodyScroll" type="ScrollContainer" parent="Root/VBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Body" type="VBoxContainer" parent="Root/VBox/BodyScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="TopGrid" type="GridContainer" parent="Root/VBox/BodyScroll/Body"]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 6
+columns = 2
+
+[node name="PortStatusLabel" type="Label" parent="Root/VBox/BodyScroll/Body/TopGrid"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "Port Status"
+vertical_alignment = 1
+
+[node name="PortStatusCheck" type="CheckBox" parent="Root/VBox/BodyScroll/Body/TopGrid"]
+layout_mode = 2
+text = "On"
+
+[node name="BandwidthLabel" type="Label" parent="Root/VBox/BodyScroll/Body/TopGrid"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "Bandwidth"
+vertical_alignment = 1
+
+[node name="BandwidthRow" type="HBoxContainer" parent="Root/VBox/BodyScroll/Body/TopGrid"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Bandwidth10" type="CheckBox" parent="Root/VBox/BodyScroll/Body/TopGrid/BandwidthRow"]
+layout_mode = 2
+text = "10 Mbps"
+
+[node name="BandwidthAuto" type="CheckBox" parent="Root/VBox/BodyScroll/Body/TopGrid/BandwidthRow"]
+layout_mode = 2
+text = "Auto"
+
+[node name="DuplexLabel" type="Label" parent="Root/VBox/BodyScroll/Body/TopGrid"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "Duplex"
+vertical_alignment = 1
+
+[node name="DuplexRow" type="HBoxContainer" parent="Root/VBox/BodyScroll/Body/TopGrid"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="DuplexHalf" type="CheckBox" parent="Root/VBox/BodyScroll/Body/TopGrid/DuplexRow"]
+layout_mode = 2
+text = "Half Duplex"
+
+[node name="DuplexFull" type="CheckBox" parent="Root/VBox/BodyScroll/Body/TopGrid/DuplexRow"]
+layout_mode = 2
+text = "Full Duplex"
+
+[node name="DuplexAuto" type="CheckBox" parent="Root/VBox/BodyScroll/Body/TopGrid/DuplexRow"]
+layout_mode = 2
+text = "Auto"
+
+[node name="MacLabel" type="Label" parent="Root/VBox/BodyScroll/Body/TopGrid"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "MAC Address"
+vertical_alignment = 1
+
+[node name="MacEdit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/TopGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+editable = false
+max_length = 14
+
+[node name="IpConfig" parent="Root/VBox/BodyScroll/Body" instance=ExtResource("2_ip")]
+layout_mode = 2
+

@@ -23,11 +23,15 @@
 	  "id": "sw1",
 	  "type": "Switch",
 	  "name": "Switch1",
-	  "position": [654, 121]
+	  "position": [654, 121],
+	  "power": false
 	}
   ],
   "connections": [
 	{ "from": "pc1", "to": "sw1", "cable": "straight" },
 	{ "from": "pc2", "to": "sw1", "cable": "straight" }
-  ]
+  ],
+  "module_presets": {
+	"pc1": ["PT-HOST-NM-1CE"]
+  }
 }

@@ -1,0 +1,59 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/apps/command_prompt_window.gd" id="1_cmd"]
+
+[node name="CommandPromptWindow" type="VBoxContainer"]
+custom_minimum_size = Vector2(620, 380)
+theme_override_constants/separation = 4
+script = ExtResource("1_cmd")
+
+[node name="TerminalPanel" type="PanelContainer" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TerminalMargin" type="MarginContainer" parent="TerminalPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="TerminalVBox" type="VBoxContainer" parent="TerminalPanel/TerminalMargin"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="OutputScroll" type="ScrollContainer" parent="TerminalPanel/TerminalMargin/TerminalVBox"]
+custom_minimum_size = Vector2(0, 290)
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 1
+
+[node name="Output" type="RichTextLabel" parent="TerminalPanel/TerminalMargin/TerminalVBox/OutputScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 2
+bbcode_enabled = false
+scroll_active = true
+scroll_following = true
+selection_enabled = true
+
+[node name="PromptRow" type="HBoxContainer" parent="TerminalPanel/TerminalMargin/TerminalVBox"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="PromptLabel" type="Label" parent="TerminalPanel/TerminalMargin/TerminalVBox/PromptRow"]
+layout_mode = 2
+text = "PC1>"
+vertical_alignment = 1
+
+[node name="Input" type="LineEdit" parent="TerminalPanel/TerminalMargin/TerminalVBox/PromptRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Введите команду"
+
+[node name="StatusLabel" type="Label" parent="."]
+visible = false
+layout_mode = 2
+autowrap_mode = 2
