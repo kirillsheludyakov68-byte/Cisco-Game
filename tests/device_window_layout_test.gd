@@ -12,6 +12,7 @@ func _ready() -> void:
 	await _test_minimum_size_layout()
 	await _test_pages_fill()
 	await _test_pc_scaling()
+	await _test_all_devices_top_left()
 	await _test_preferred_size()
 	_finish()
 
@@ -182,6 +183,52 @@ func _test_pc_scaling() -> void:
 	)
 
 	await _close_window(window, device)
+
+
+func _test_all_devices_top_left() -> void:
+	for device_type in ["PC", "Laptop", "Tablet", "Switch", "Hub", "Router", "AccessPoint", "Server", "Printer"]:
+		var device: Device = await _make_device(device_type, device_type + "1")
+		var window := await _open_window(device, Vector2i(1280, 800))
+		var viewer: Control = window.get_node(
+			"WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel"
+		)
+		var modules: Control = window.get_node(
+			"WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/ModulesPanel"
+		)
+		var image_rect := window.device_image.get_global_rect()
+
+		_expect(
+			window.device_image.position.is_equal_approx(Vector2(12.0, 12.0)),
+			"%s должен стоять в левом верхнем углу области просмотра" % device_type
+		)
+		_expect(
+			image_rect.position.x >= viewer.get_global_rect().position.x
+				and image_rect.position.y >= viewer.get_global_rect().position.y,
+			"%s не должен выходить за верхний левый край области просмотра" % device_type
+		)
+		_expect(
+			image_rect.end.x <= viewer.get_global_rect().end.x + 1.0
+				and image_rect.end.y <= viewer.get_global_rect().end.y + 1.0,
+			"%s должен оставаться внутри области просмотра" % device_type
+		)
+		if window.modules_panel.visible:
+			_expect(modules.size.x == 200.0, "%s: панель модулей должна иметь ширину 200 px" % device_type)
+			_expect(
+				viewer.size.x > modules.size.x,
+				"%s: область просмотра должна занимать остаток ширины" % device_type
+			)
+		else:
+			_expect(
+				viewer.size.x >= page_width(window) - 20.0,
+				"%s: без панели модулей область просмотра должна занимать всю ширину" % device_type
+			)
+
+		await _close_window(window, device)
+
+
+func page_width(window: DeviceWindow) -> float:
+	var page: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical")
+	return page.size.x
 
 
 func _test_preferred_size() -> void:
