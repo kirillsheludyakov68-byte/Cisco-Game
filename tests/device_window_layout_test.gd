@@ -97,13 +97,29 @@ func _test_minimum_size_layout() -> void:
 	var device: Device = await _make_device("PC", "PC1")
 	var window := await _open_window(device, Vector2i(850, 600))
 	var page: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical")
+	var content_row: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow")
 	var modules: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/ModulesPanel")
+	var title: Label = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/TitleLabel")
+	var zoom: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ZoomButtons")
 	var viewer: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel")
 	var info: Control = window.get_node("WindowRoot/MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel")
 
 	_expect(page.size.x >= 700.0, "При минимальной ширине страница должна оставаться читаемой")
 	_expect(viewer.size.y >= 250.0, "При минимальной высоте область просмотра не должна схлопываться")
 	_expect(modules.size.y >= 300.0, "Панель модулей должна сохранять рабочую высоту")
+	_expect(
+		absf(title.get_global_rect().position.y - modules.get_global_rect().position.y) <= 1.0,
+		"При минимальном размере заголовок и модули должны начинаться на одном уровне"
+	)
+	_expect(
+		zoom.get_global_rect().end.y <= viewer.get_global_rect().position.y + 1.0,
+		"При минимальном размере кнопки масштаба должны оставаться над просмотром"
+	)
+	_expect(
+		modules.get_global_rect().end.y <= content_row.get_global_rect().end.y + 1.0
+			and modules.get_global_rect().end.y >= content_row.get_global_rect().end.y - 2.0,
+		"При минимальном размере панель модулей должна заполнять ContentRow по высоте"
+	)
 	_expect(
 		info.get_global_rect().end.y <= page.get_global_rect().end.y + 1.0,
 		"При минимальном размере информация о модуле должна оставаться в странице"
