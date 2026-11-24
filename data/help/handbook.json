@@ -1,0 +1,26 @@
+{
+  "title": "Пособие",
+  "subtitle": "Краткий справочник по устройствам, настройкам и диагностике сети.",
+  "categories": [
+    {
+      "id": "basics",
+      "title": "Основы",
+      "file": "basics.json"
+    },
+    {
+      "id": "devices",
+      "title": "Устройства",
+      "file": "devices.json"
+    },
+    {
+      "id": "network",
+      "title": "Сеть и службы",
+      "file": "network.json"
+    },
+    {
+      "id": "services",
+      "title": "Приложения",
+      "file": "services.json"
+    }
+  ]
+}

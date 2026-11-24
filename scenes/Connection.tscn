@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://bstjyq6cw5f4s"]
+
+[ext_resource type="Script" uid="uid://ckrn2g3ekwigg" path="res://scripts/connection.gd" id="1_u7hla"]
+
+[node name="Connection" type="Node2D" unique_id=389835790]
+script = ExtResource("1_u7hla")
+
+[node name="ClickArea" type="Area2D" parent="." unique_id=1548632716]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ClickArea" unique_id=1427707057]

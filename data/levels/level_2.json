@@ -1,0 +1,283 @@
+{
+  "id": 2,
+  "title": "Уровень 2. Беспроводная сеть и службы",
+  "description": "Настройте Wi-Fi WPA2-PSK/AES (клиенты подключаются к точке доступа автоматически), статические адреса Server0 и Printer0, службы DNS/DHCP и проверьте связь с PC0. Сеть 192.168.9.0/24.",
+  "hints": -1,
+  "score": {
+    "base": 200,
+    "par_time": 420,
+    "time_bonus": 100,
+    "hint_penalty": 10,
+    "min": 50
+  },
+  "devices": [
+    {
+      "id": "laptop2",
+      "type": "Laptop",
+      "name": "Laptop2",
+      "position": [100, 120],
+      "ip_mode": "dhcp"
+    },
+    {
+      "id": "tablet0",
+      "type": "Tablet",
+      "name": "Tablet PC0",
+      "position": [220, 120],
+      "ip_mode": "dhcp"
+    },
+    {
+      "id": "laptop1",
+      "type": "Laptop",
+      "name": "Laptop1",
+      "position": [100, 560],
+      "ip_mode": "dhcp"
+    },
+    {
+      "id": "tablet1",
+      "type": "Tablet",
+      "name": "Tablet PC1",
+      "position": [220, 560],
+      "ip_mode": "dhcp"
+    },
+    {
+      "id": "ap0",
+      "type": "AccessPoint",
+      "name": "AccessPoint",
+      "position": [160, 340]
+    },
+    {
+      "id": "sw0",
+      "type": "Switch",
+      "name": "Switch0",
+      "position": [360, 340]
+    },
+    {
+      "id": "server0",
+      "type": "Server",
+      "name": "Server0",
+      "position": [360, 120],
+      "ip_mode": "static",
+      "gateway": "192.168.9.1",
+      "dns": "192.168.9.1"
+    },
+    {
+      "id": "printer0",
+      "type": "Printer",
+      "name": "Printer0",
+      "position": [360, 560],
+      "ip_mode": "static",
+      "gateway": "192.168.9.1",
+      "dns": "192.168.9.1"
+    },
+    {
+      "id": "hub1",
+      "type": "Hub",
+      "name": "Hub1",
+      "position": [540, 340]
+    },
+    {
+      "id": "pc6",
+      "type": "PC",
+      "name": "PC6",
+      "position": [540, 120],
+      "ip_mode": "dhcp"
+    },
+    {
+      "id": "pc5",
+      "type": "PC",
+      "name": "PC5",
+      "position": [540, 560],
+      "ip_mode": "dhcp"
+    },
+    {
+      "id": "hub0",
+      "type": "Hub",
+      "name": "Hub0",
+      "position": [740, 340]
+    },
+    {
+      "id": "pc0",
+      "type": "PC",
+      "name": "PC0",
+      "position": [900, 120],
+      "ip_mode": "dhcp"
+    },
+    {
+      "id": "pc1",
+      "type": "PC",
+      "name": "PC1",
+      "position": [1040, 120],
+      "ip_mode": "dhcp"
+    },
+    {
+      "id": "pc2",
+      "type": "PC",
+      "name": "PC2",
+      "position": [900, 560],
+      "ip_mode": "dhcp"
+    },
+    {
+      "id": "pc3",
+      "type": "PC",
+      "name": "PC3",
+      "position": [1040, 560],
+      "ip_mode": "dhcp"
+    }
+  ],
+  "module_presets": {
+    "pc0": ["PT-HOST-NM-1CE"],
+    "pc1": ["PT-HOST-NM-1CE"],
+    "pc2": ["PT-HOST-NM-1CE"],
+    "pc3": ["PT-HOST-NM-1CE"],
+    "pc5": ["PT-HOST-NM-1CE"],
+    "pc6": ["PT-HOST-NM-1CE"],
+    "printer0": ["PT-HOST-NM-1CE"],
+    "hub1": [
+      "PT-REPEATER-NM-1CE",
+      "PT-REPEATER-NM-1CE",
+      "PT-REPEATER-NM-1CE",
+      "PT-REPEATER-NM-1CE"
+    ],
+    "hub0": [
+      "PT-REPEATER-NM-1CE",
+      "PT-REPEATER-NM-1CE",
+      "PT-REPEATER-NM-1CE",
+      "PT-REPEATER-NM-1CE",
+      "PT-REPEATER-NM-1CE"
+    ],
+    "laptop1": ["PT-LAPTOP-NM-1CFE"],
+    "laptop2": ["PT-LAPTOP-NM-1CFE"],
+    "server0": ["PT-HOST-NM-1CFE"],
+    "ap0": ["PT-REPEATER-NM-1CE"]
+  },
+  "connections": [
+    { "from": "ap0", "to": "sw0", "cable": "straight" },
+    { "from": "sw0", "to": "server0", "cable": "straight" },
+    { "from": "sw0", "to": "printer0", "cable": "straight" },
+    { "from": "sw0", "to": "hub1", "cable": "straight" },
+    { "from": "hub1", "to": "pc6", "cable": "straight" },
+    { "from": "hub1", "to": "pc5", "cable": "straight" },
+    { "from": "hub1", "to": "hub0", "cable": "straight" },
+    { "from": "hub0", "to": "pc0", "cable": "straight" },
+    { "from": "hub0", "to": "pc1", "cable": "straight" },
+    { "from": "hub0", "to": "pc2", "cable": "straight" },
+    { "from": "hub0", "to": "pc3", "cable": "straight" }
+  ],
+  "objectives": [
+    {
+      "id": "wifi_laptop2",
+      "type": "connection",
+      "from": "ap0",
+      "to": "laptop2",
+      "cable": "wireless",
+      "interface_kind": "wireless",
+      "text": "Настройте Laptop2 и AccessPoint на одинаковые SSID, WPA2-PSK и AES. Соединение по Wi-Fi установится автоматически."
+    },
+    {
+      "id": "wifi_tablet0",
+      "type": "connection",
+      "from": "ap0",
+      "to": "tablet0",
+      "cable": "wireless",
+      "interface_kind": "wireless",
+      "text": "Настройте Tablet PC0 на те же SSID и WPA2-PSK/AES — он подключится к AccessPoint автоматически."
+    },
+    {
+      "id": "wifi_laptop1",
+      "type": "connection",
+      "from": "ap0",
+      "to": "laptop1",
+      "cable": "wireless",
+      "interface_kind": "wireless",
+      "text": "Настройте Laptop1 на те же SSID и WPA2-PSK/AES — он подключится к AccessPoint автоматически."
+    },
+    {
+      "id": "wifi_tablet1",
+      "type": "connection",
+      "from": "ap0",
+      "to": "tablet1",
+      "cable": "wireless",
+      "interface_kind": "wireless",
+      "text": "Настройте Tablet PC1 на те же SSID и WPA2-PSK/AES — он подключится к AccessPoint автоматически."
+    },
+    {
+      "id": "server_static",
+      "type": "static_ip",
+      "device": "server0",
+      "interface": "FastEthernet0",
+      "ip": "192.168.9.1",
+      "mask": "255.255.255.0",
+      "text": "Настройте статический адрес Server0: 192.168.9.1/24."
+    },
+    {
+      "id": "printer_static",
+      "type": "static_ip",
+      "device": "printer0",
+      "interface": "Ethernet0",
+      "ip": "192.168.9.2",
+      "mask": "255.255.255.0",
+      "text": "Настройте статический адрес Printer0: 192.168.9.2/24."
+    },
+    {
+      "id": "dns_server",
+      "type": "dns_record",
+      "device": "server0",
+      "name": "server",
+      "address": "192.168.9.1",
+      "text": "Включите DNS на Server0 и добавьте запись server → 192.168.9.1."
+    },
+    {
+      "id": "dns_printer",
+      "type": "dns_record",
+      "device": "server0",
+      "name": "printer",
+      "address": "192.168.9.2",
+      "text": "Включите DNS на Server0 и добавьте запись printer → 192.168.9.2."
+    },
+    {
+      "id": "dhcp_config",
+      "type": "dhcp_config",
+      "device": "server0",
+      "start_ip": "192.168.9.3",
+      "mask": "255.255.255.0",
+      "gateway": "192.168.9.1",
+      "dns": "192.168.9.1",
+      "users": 10,
+      "text": "Включите DHCP на Server0: пул с 192.168.9.3, маска 255.255.255.0, шлюз и DNS 192.168.9.1, максимум 10 пользователей."
+    },
+    {
+      "id": "dhcp_leases",
+      "type": "dhcp_lease",
+      "devices": ["pc0", "pc1", "pc2", "pc3", "pc5", "pc6", "laptop1", "laptop2", "tablet0", "tablet1"],
+      "text": "Получите адреса по DHCP на всех клиентах: PC0–PC3, PC5, PC6, Laptop1, Laptop2, Tablet PC0, Tablet PC1."
+    },
+    {
+      "id": "ping_server_ip",
+      "type": "ping",
+      "from": "pc0",
+      "target": "192.168.9.1",
+      "text": "С PC0 выполните ping 192.168.9.1 и получите ответ."
+    },
+    {
+      "id": "ping_server_name",
+      "type": "ping",
+      "from": "pc0",
+      "target": "server",
+      "text": "С PC0 выполните ping server и получите ответ."
+    },
+    {
+      "id": "ping_printer_ip",
+      "type": "ping",
+      "from": "pc0",
+      "target": "192.168.9.2",
+      "text": "С PC0 выполните ping 192.168.9.2 и получите ответ."
+    },
+    {
+      "id": "ping_printer_name",
+      "type": "ping",
+      "from": "pc0",
+      "target": "printer",
+      "text": "С PC0 выполните ping printer и получите ответ."
+    }
+  ]
+}

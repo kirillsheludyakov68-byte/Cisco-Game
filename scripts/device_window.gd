@@ -1,0 +1,1189 @@
+extends Window
+class_name DeviceWindow
+
+const ERROR_POWER_ADD := "Невозможно добавить модуль, пока компьютер включён."
+const ERROR_POWER_REMOVE := "Невозможно извлечь модуль, пока компьютер включён."
+const ERROR_POWER_ADD_SWITCH := "Невозможно добавить модуль, пока коммутатор включён."
+const ERROR_POWER_REMOVE_SWITCH := "Невозможно извлечь модуль, пока коммутатор включён."
+const ERROR_POWER_ADD_HUB := "Невозможно добавить модуль, пока хаб включён."
+const ERROR_POWER_REMOVE_HUB := "Невозможно извлечь модуль, пока хаб включён."
+const ERROR_POWER_ADD_AP := "Невозможно добавить модуль, пока точка доступа включена."
+const ERROR_POWER_REMOVE_AP := "Невозможно извлечь модуль, пока точка доступа включена."
+const ERROR_POWER_ADD_SERVER := "Невозможно добавить модуль, пока сервер включён."
+const ERROR_POWER_REMOVE_SERVER := "Невозможно извлечь модуль, пока сервер включён."
+const ERROR_OCCUPIED := "В слоте уже установлен модуль. Сначала извлеките его."
+const ERROR_EMPTY := "В слоте нет модуля."
+const ERROR_UNKNOWN := "Неизвестный модуль."
+const ERROR_DEFAULT := "Не удалось изменить модуль."
+const ERROR_INVALID_SLOT := "Некорректный слот модуля."
+const ERROR_POWERED_OFF := "Устройство должно быть включено."
+const ERROR_BOOTING := "Коммутатор загружается. Пожалуйста, подождите."
+
+const ZOOM_STEP := 1.2
+const HUB_BASE_SCALE := 1.0 / (ZOOM_STEP * ZOOM_STEP * ZOOM_STEP)
+# Для точки доступа исходный (100%) масштаб — это четыре шага уменьшения.
+const AP_BASE_SCALE := 1.0 / (ZOOM_STEP * ZOOM_STEP * ZOOM_STEP * ZOOM_STEP)
+const ZOOM_MIN := 0.25
+const ZOOM_MAX := 3.0
+const ZOOM_SCROLL_STEP := 48.0
+const ZOOM_SCROLL_BAR_WIDTH := 14.0
+const PC_TEXTURE_SIZE := Vector2(166.0, 396.0)
+const PC_POWER_RECT := Rect2(132.0, 118.0, 14.0, 21.0)
+# Отступ изображения от краёв серой области просмотра.
+const DEVICE_VIEW_PADDING := 12.0
+# Не позволяем маленькой картинке разрастаться на весь экран.
+const DEVICE_MAX_SCALE := 1.35
+
+# Размер последнего открытого окна. Если пользователь развернул окно
+# на весь экран, следующее устройство откроется в таком же размере.
+static var _preferred_window_size := Vector2i(850, 670)
+
+@onready var tab_physical: Button = $WindowRoot/TabBar/TabPhysical
+@onready var tab_config: Button = $WindowRoot/TabBar/TabConfig
+@onready var tab_cli: Button = $WindowRoot/TabBar/TabCLI
+@onready var tab_desktop: Button = $WindowRoot/TabBar/TabDesktop
+@onready var tab_services: Button = $WindowRoot/TabBar/TabServices
+@onready var help_button: Button = $WindowRoot/TabBar/HelpButton
+
+@onready var page_physical: Control = $WindowRoot/MainPanel/ContentPanel/PagePhysical
+@onready var page_config: Control = $WindowRoot/MainPanel/ContentPanel/PageConfig
+@onready var page_cli: Control = $WindowRoot/MainPanel/ContentPanel/PageCLI
+@onready var page_desktop: Control = $WindowRoot/MainPanel/ContentPanel/PageDesktop
+@onready var page_services: Control = $WindowRoot/MainPanel/ContentPanel/PageServices
+
+@onready var modules_panel: ModulesPanel = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/ModulesPanel
+@onready var module_slot: ModuleSlot = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage/ModuleSlot
+@onready var switch_overlay: SwitchPhysicalOverlay = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage/SwitchPhysicalOverlay
+@onready var hub_overlay: HubPhysicalOverlay = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage/HubPhysicalOverlay
+@onready var laptop_overlay: LaptopPhysicalOverlay = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage/LaptopPhysicalOverlay
+@onready var printer_overlay: PrinterPhysicalOverlay = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage/PrinterPhysicalOverlay
+@onready var tablet_overlay: TabletPhysicalOverlay = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage/TabletPhysicalOverlay
+@onready var access_point_overlay: AccessPointPhysicalOverlay = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage/AccessPointPhysicalOverlay
+@onready var server_overlay: ServerPhysicalOverlay = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView/DeviceImage/ServerPhysicalOverlay
+@onready var module_info: ModuleInfoPanel = get_node_or_null("WindowRoot/MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel") as ModuleInfoPanel
+@onready var config_panel: ConfigPanel = $WindowRoot/MainPanel/ContentPanel/PageConfig/ConfigPanel
+@onready var cli_page: SwitchCLIPage = $WindowRoot/MainPanel/ContentPanel/PageCLI/SwitchCLIPage
+@onready var desktop_page: DesktopPage = $WindowRoot/MainPanel/ContentPanel/PageDesktop/DesktopPage
+@onready var services_page: ServerServicesPage = $WindowRoot/MainPanel/ContentPanel/PageServices/ServerServicesPage
+@onready var error_dialog: ErrorDialog = $ErrorDialog
+@onready var hint_overlay: HintArrow = $HintOverlay
+
+@onready var device_view: Control = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ViewerPanel/DeviceView
+@onready var zoom_in_button: Button = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ZoomButtons/ZoomIn
+@onready var original_size_button: Button = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ZoomButtons/OriginalSize
+@onready var zoom_out_button: Button = $WindowRoot/MainPanel/ContentPanel/PagePhysical/ContentRow/RightColumn/ZoomButtons/ZoomOut
+
+# Ищем картинку по всему дереву
+@onready var device_image: TextureRect = find_child("DeviceImage", true, false)
+
+var device: Device = null
+var _zoom_scale := 1.0
+var _zoom_pan := Vector2.ZERO
+var _device_base_rect := Rect2()
+var _pc_base_rect := Rect2()
+var _zoom_scroll_bar: VScrollBar = null
+var _zoom_h_scroll_bar: HScrollBar = null
+var _updating_zoom_scroll := false
+var _boot_warning_active := false
+var _config_focus_modes: Dictionary = {}
+var _laptop_texture: Texture2D = null
+
+
+func _ready() -> void:
+	# Запоминаем исходный размер ПК-картинки до открытия коммутатора.
+	_pc_base_rect = Rect2(device_image.position, device_image.size)
+	_device_base_rect = _pc_base_rect
+
+	close_requested.connect(_on_close_requested)
+	size_changed.connect(_on_window_size_changed)
+	if error_dialog:
+		error_dialog.closed.connect(_on_error_dialog_closed)
+	tab_physical.pressed.connect(_on_tab_physical)
+	tab_config.pressed.connect(_on_tab_config)
+	tab_cli.pressed.connect(_on_tab_cli)
+	tab_desktop.pressed.connect(_on_tab_desktop)
+	tab_services.pressed.connect(_on_tab_services)
+	help_button.pressed.connect(_on_help_pressed)
+	help_button.tooltip_text = "Пособие по устройству"
+	MenuStyles.apply_flat_help_button(help_button)
+
+	zoom_in_button.pressed.connect(_on_zoom_in_pressed)
+	original_size_button.pressed.connect(_on_original_size_pressed)
+	zoom_out_button.pressed.connect(_on_zoom_out_pressed)
+
+	# Клиппинг не даёт увеличенному изображению выйти за пределы Physical Device View.
+	device_view.clip_contents = true
+	# PASS нужен, чтобы колесо мыши работало и над пустой частью области просмотра.
+	device_view.mouse_filter = Control.MOUSE_FILTER_PASS
+	if not device_view.gui_input.is_connected(_on_device_view_gui_input):
+		device_view.gui_input.connect(_on_device_view_gui_input)
+	if not device_view.resized.is_connected(_on_device_view_resized):
+		device_view.resized.connect(_on_device_view_resized)
+	call_deferred("_setup_zoom")
+
+	# Подключаем клик по картинке
+	if device_image and not device_image.gui_input.is_connected(_on_device_image_gui_input):
+		device_image.gui_input.connect(_on_device_image_gui_input)
+
+	# И колесо мыши над слотом модуля — чтобы прокрутка не прерывалась.
+	if module_slot and not module_slot.gui_input.is_connected(_on_module_slot_gui_input):
+		module_slot.gui_input.connect(_on_module_slot_gui_input)
+
+	if modules_panel.has_signal("module_selected"):
+		modules_panel.module_selected.connect(_show_module_info)
+
+	tab_cli.visible = false
+	tab_desktop.visible = true
+	tab_services.visible = false
+	page_cli.visible = false
+	page_services.visible = false
+	_show_page("physical")
+
+
+static func get_preferred_window_size() -> Vector2i:
+	return _preferred_window_size
+
+
+func _on_window_size_changed() -> void:
+	if size.x < 1 or size.y < 1:
+		return
+	_preferred_window_size = size
+
+
+func open_for(dev: Device) -> void:
+	_disconnect_device()
+	_dismiss_boot_warning()
+	hide_hint()
+
+	device = dev
+	title = "Устройство: " + dev.device_name
+	if not device.device_name_changed.is_connected(_on_device_name_changed):
+		device.device_name_changed.connect(_on_device_name_changed)
+	if not device.power_changed.is_connected(_on_device_power_changed):
+		device.power_changed.connect(_on_device_power_changed)
+	if not device.boot_finished.is_connected(_on_device_boot_finished):
+		device.boot_finished.connect(_on_device_boot_finished)
+
+	var is_switch := dev.device_type == "Switch"
+	var is_hub := dev.device_type == "Hub"
+	var is_laptop := dev.device_type == "Laptop"
+	var is_printer := dev.device_type == "Printer"
+	var is_tablet := dev.device_type == "Tablet"
+	var is_access_point := dev.device_type == "AccessPoint"
+	var is_server := dev.device_type == "Server"
+	var has_config := true
+	var has_cli := is_switch
+	var has_desktop := dev.device_type in ["PC", "Laptop", "Tablet", "Server"]
+	var has_services := is_server
+	var has_host_module := ModuleCatalog.uses_host_modules(dev.device_type)
+	var has_slot_modules := ModuleCatalog.is_slot_device(dev.device_type)
+	# У планшета панель модулей есть, но список пуст: все интерфейсы встроенные.
+	var has_modules := has_host_module or has_slot_modules or is_tablet or is_access_point or is_server
+
+	tab_config.visible = has_config
+	tab_cli.visible = has_cli
+	tab_desktop.visible = has_desktop
+	tab_services.visible = has_services
+	page_desktop.visible = false
+	page_cli.visible = false
+	page_services.visible = false
+
+	# Слот модулей есть только у host-устройств, у коммутатора и хаба —
+	# по десять слотов на физической схеме. У ноутбука, принтера и планшета
+	# свои оверлеи с кнопкой питания.
+	module_slot.visible = has_host_module and not is_laptop and not is_printer and not is_tablet
+	switch_overlay.visible = is_switch
+	hub_overlay.visible = is_hub
+	laptop_overlay.visible = is_laptop
+	printer_overlay.visible = is_printer
+	tablet_overlay.visible = is_tablet
+	access_point_overlay.visible = is_access_point
+	server_overlay.visible = is_server
+	modules_panel.visible = has_modules
+	if module_info != null:
+		# У планшета нет модулей, поэтому описание модуля не показываем.
+		module_info.visible = has_modules and not is_tablet
+
+	if has_host_module and not is_laptop and not is_printer and not is_tablet:
+		module_slot.setup(dev, self)
+	if is_switch:
+		switch_overlay.setup(dev, self)
+	if is_hub:
+		hub_overlay.setup(dev, self)
+	if is_laptop:
+		laptop_overlay.setup(dev, self)
+	if is_printer:
+		printer_overlay.setup(dev, self)
+	if is_tablet:
+		tablet_overlay.setup(dev, self)
+	if is_access_point:
+		access_point_overlay.setup(dev, self)
+	if is_server:
+		server_overlay.setup(dev, self)
+	if has_modules:
+		modules_panel.setup(dev, self)
+	_update_device_image()
+	_update_device_base_rect()
+	_reset_zoom_for_device()
+	if has_modules:
+		_update_module_info()
+	if has_config:
+		config_panel.setup(dev)
+	if has_cli:
+		cli_page.setup(dev)
+	if has_desktop:
+		desktop_page.setup(dev)
+	if has_services:
+		services_page.setup(dev)
+	else:
+		services_page.setup(null)
+	_show_page("physical")
+
+
+func _disconnect_device() -> void:
+	if device == null:
+		return
+	if device.device_name_changed.is_connected(_on_device_name_changed):
+		device.device_name_changed.disconnect(_on_device_name_changed)
+	if device.power_changed.is_connected(_on_device_power_changed):
+		device.power_changed.disconnect(_on_device_power_changed)
+	if device.boot_finished.is_connected(_on_device_boot_finished):
+		device.boot_finished.disconnect(_on_device_boot_finished)
+
+
+func _on_device_name_changed(new_name: String) -> void:
+	title = "Устройство: " + new_name
+
+
+func _on_device_view_resized() -> void:
+	if device == null:
+		return
+	# После первого расчёта раскладки область просмотра может измениться.
+	# Пересчитываем размер картинки, чтобы она точно вписалась в окно.
+	_update_device_base_rect()
+	_clamp_zoom_pan()
+	_apply_zoom()
+
+
+func _on_device_power_changed(is_on: bool) -> void:
+	hide_hint()
+	if not is_on:
+		_dismiss_boot_warning()
+		if page_config.visible or page_cli.visible or page_desktop.visible or page_services.visible:
+			_show_page("physical")
+	_update_device_image()
+	_update_device_base_rect()
+	_apply_zoom()
+	if module_slot.visible:
+		module_slot.refresh()
+	if switch_overlay.visible:
+		switch_overlay.refresh()
+	if hub_overlay.visible:
+		hub_overlay.refresh()
+	if laptop_overlay.visible:
+		laptop_overlay.refresh()
+	if printer_overlay.visible:
+		printer_overlay.refresh()
+	if tablet_overlay.visible:
+		tablet_overlay.refresh()
+	if access_point_overlay.visible:
+		access_point_overlay.refresh()
+	if server_overlay.visible:
+		server_overlay.refresh()
+	if cli_page.visible:
+		cli_page.refresh()
+	if services_page != null:
+		services_page.refresh()
+	if is_on and page_config.visible:
+		config_panel.refresh()
+
+
+func _show_boot_warning() -> void:
+	_boot_warning_active = true
+	_lock_config_keyboard(true)
+	if error_dialog:
+		error_dialog.show_warning(ERROR_BOOTING)
+
+
+func _dismiss_boot_warning() -> void:
+	if not _boot_warning_active:
+		return
+	_boot_warning_active = false
+	_lock_config_keyboard(false)
+	if error_dialog:
+		error_dialog.dismiss()
+
+
+func _on_error_dialog_closed() -> void:
+	if not _boot_warning_active:
+		return
+	_dismiss_boot_warning()
+	_show_page("physical")
+
+
+# Пока висит предупреждение о загрузке, убираем фокус со всех
+# элементов Config. Мышь и так блокируется затемнением диалога,
+# а это не даёт перейти к настройкам клавишей Tab.
+func _lock_config_keyboard(locked: bool) -> void:
+	if locked:
+		if not _config_focus_modes.is_empty():
+			return
+		_apply_focus_lock(config_panel, true)
+	else:
+		if _config_focus_modes.is_empty():
+			return
+		_apply_focus_lock(config_panel, false)
+		_config_focus_modes.clear()
+
+
+func _apply_focus_lock(node: Node, locked: bool) -> void:
+	for child in node.get_children():
+		if child is Control:
+			if locked:
+				_config_focus_modes[child] = child.focus_mode
+				child.focus_mode = Control.FOCUS_NONE
+			elif _config_focus_modes.has(child):
+				child.focus_mode = _config_focus_modes[child]
+		_apply_focus_lock(child, locked)
+
+
+func _on_device_boot_finished() -> void:
+	_dismiss_boot_warning()
+
+
+# Показываем описание установленного модуля,
+# а если слот пуст — первого модуля из каталога.
+func _update_module_info() -> void:
+	if device == null:
+		return
+	if ModuleCatalog.is_slot_device(device.device_type) or device.device_type == "Server":
+		var available := ModuleCatalog.get_slot_modules(device.device_type)
+		var module_name := _get_first_installed_slot_module()
+		if module_name.is_empty() and not available.is_empty():
+			module_name = available[0]
+		_show_module_info(module_name)
+		return
+
+	if device.installed_module != "":
+		_show_module_info(device.installed_module)
+	else:
+		var available := ModuleCatalog.get_modules_for_device(device.device_type)
+		if not available.is_empty():
+			_show_module_info(available[0])
+
+
+func _get_first_installed_slot_module() -> String:
+	if device == null:
+		return ""
+	for slot_index in range(ModuleCatalog.get_slot_count(device.device_type)):
+		var module_name := device.get_installed_module(slot_index)
+		if not module_name.is_empty():
+			return module_name
+	return ""
+
+
+func _show_module_info(module_name: String) -> void:
+	if module_info == null or module_name == "":
+		return
+	module_info.show_module(module_name)
+
+
+func show_slot_module_info(slot_index: int) -> void:
+	if device == null:
+		return
+	if ModuleCatalog.is_slot_device(device.device_type) or device.device_type == "Server":
+		_show_module_info(device.get_installed_module(slot_index))
+	else:
+		_show_module_info(device.installed_module)
+
+
+func _on_tab_physical() -> void:
+	_show_page("physical")
+
+
+func _on_tab_config() -> void:
+	_show_page("config")
+
+
+func _on_tab_cli() -> void:
+	_show_page("cli")
+
+
+func _on_tab_desktop() -> void:
+	_show_page("desktop")
+
+
+func _on_tab_services() -> void:
+	_show_page("services")
+
+
+func _on_help_pressed() -> void:
+	if device == null:
+		Handbook.open()
+		return
+	Handbook.open_device(str(device.device_type))
+
+
+func _show_page(page: String) -> void:
+	if device != null:
+		var allowed := page == "physical"
+		if page == "config":
+			allowed = true
+		if page == "cli" and device.device_type == "Switch":
+			allowed = true
+		if page == "desktop" and device.device_type in ["PC", "Laptop", "Tablet", "Server"]:
+			allowed = true
+		if page == "services" and device.device_type == "Server":
+			allowed = true
+		if not allowed:
+			page = "physical"
+
+	hide_hint()
+
+	if page != "physical" and device != null and not device.is_powered_on:
+		if error_dialog:
+			error_dialog.show_error(ERROR_POWERED_OFF)
+		return
+
+	var was_config_visible := page_config.visible
+	var was_cli_visible := page_cli.visible
+	var was_desktop_visible := page_desktop.visible
+	var was_services_visible := page_services.visible
+	if was_config_visible and page != "config":
+		config_panel.commit_pending()
+	if was_desktop_visible and page != "desktop" and desktop_page != null:
+		desktop_page.commit_pending_windows()
+	if was_services_visible and page != "services" and services_page != null:
+		services_page.commit_pending()
+
+	page_physical.visible = (page == "physical")
+	page_config.visible = (page == "config")
+	page_cli.visible = (page == "cli")
+	page_desktop.visible = (page == "desktop")
+	page_services.visible = (page == "services")
+
+	if page == "config" and not was_config_visible and config_panel != null:
+		# IP Configuration на Desktop пишет в ту же модель DeviceInterface,
+		# поэтому при входе в Config перечитываем актуальные значения.
+		config_panel.refresh()
+	if page == "cli" and not was_cli_visible and cli_page != null:
+		cli_page.on_activated()
+	if page == "desktop" and not was_desktop_visible and desktop_page != null:
+		desktop_page.on_activated()
+	if page == "services" and not was_services_visible and services_page != null:
+		services_page.refresh()
+
+	# Во время загрузки коммутатора вкладку Config/CLI открыть можно,
+	# чтобы увидеть процесс загрузки, но модальное предупреждение
+	# блокирует изменение настроек. По ОК возвращаемся на Physical.
+	if page != "physical" and device != null \
+			and device.device_type == "Switch" and device.is_booting:
+		_show_boot_warning()
+
+
+func _on_close_requested() -> void:
+	if page_config.visible:
+		config_panel.commit_pending()
+	if desktop_page != null:
+		desktop_page.commit_pending_windows()
+	if services_page != null:
+		services_page.commit_pending()
+	queue_free()
+
+
+func _update_device_image() -> void:
+	if device == null or device_image == null:
+		return
+
+	switch_overlay.visible = device.device_type == "Switch"
+	hub_overlay.visible = device.device_type == "Hub"
+	laptop_overlay.visible = device.device_type == "Laptop"
+	printer_overlay.visible = device.device_type == "Printer"
+	tablet_overlay.visible = device.device_type == "Tablet"
+	access_point_overlay.visible = device.device_type == "AccessPoint"
+	server_overlay.visible = device.device_type == "Server"
+	match device.device_type:
+		"PC":
+			if device.is_powered_on:
+				device_image.texture = load("res://assets/devices/PC_on.png")
+			else:
+				device_image.texture = load("res://assets/devices/PC_off.png")
+		"Switch":
+			# Базовая текстура коммутатора; поверх неё показывается
+			# кнопка питания в состоянии PowerOn.png или PowerOff.png.
+			device_image.texture = load("res://assets/Switch/iPTRealSwitch.png")
+			switch_overlay.setup(device, self)
+			switch_overlay.refresh()
+		"Router":
+			device_image.texture = load("res://assets/fix levl2/Router.svg")
+		"AccessPoint":
+			# Корпус точки доступа всегда один и тот же; кнопка питания и
+			# съёмный модуль Port 0 показаны отдельным оверлеем.
+			device_image.texture = load("res://assets/Access Point/iPTRealAccessPoint.png")
+			access_point_overlay.setup(device, self)
+			access_point_overlay.refresh()
+		"Hub":
+			# Hub.png обрезан по краям рисунка, поэтому кабели на уровне
+			# сходятся точно в визуальном центре корпуса.
+			device_image.texture = load("res://assets/devices/Hub.png")
+			hub_overlay.setup(device, self)
+			hub_overlay.refresh()
+		"Server":
+			# Корпус сервера всегда один и тот же; питание и оба слота
+			# модулей показываются отдельным оверлеем.
+			device_image.texture = load("res://assets/Server/iRealServer.png")
+			server_overlay.setup(device, self)
+			server_overlay.refresh()
+		"Printer":
+			# Корпус принтера всегда один и тот же; состояние питания
+			# показывает кнопка PowerOnPrinter.png / PowerOffPrinter.png.
+			device_image.texture = load("res://assets/Printer/iRealPrinter.png")
+			printer_overlay.setup(device, self)
+			printer_overlay.refresh()
+		"Laptop":
+			# Нижняя крышка ноутбука: состояние питания показывает
+			# отдельная кнопка Laptop_on.png / Laptop_off.png.
+			device_image.texture = _get_laptop_texture()
+			laptop_overlay.setup(device, self)
+			laptop_overlay.refresh()
+		"Tablet":
+			# Корпус планшета всегда один и тот же; состояние питания
+			# показывает кнопка Tablet_on.png / Tablet_off.png.
+			device_image.texture = load("res://assets/Tablet-PC/iRealTabletPC.png")
+			tablet_overlay.setup(device, self)
+			tablet_overlay.refresh()
+
+
+# iRealLaptop.png — широкое изображение с прозрачным полем справа.
+# Обрезаем его по содержимому, чтобы корпус занимал всю область просмотра,
+# а координаты оверлея совпадали с видимой частью картинки.
+func _get_laptop_texture() -> Texture2D:
+	if _laptop_texture != null:
+		return _laptop_texture
+
+	var texture: Texture2D = load("res://assets/devices/iRealLaptop.png")
+	if texture == null:
+		return null
+	var image := texture.get_image()
+	var used := image.get_used_rect() if image != null else Rect2i()
+	if used.size == Vector2i.ZERO:
+		_laptop_texture = texture
+		return _laptop_texture
+
+	var atlas := AtlasTexture.new()
+	atlas.atlas = texture
+	atlas.region = Rect2(Vector2(used.position), Vector2(used.size))
+	_laptop_texture = atlas
+	return _laptop_texture
+
+
+func _update_device_base_rect() -> void:
+	if device_image == null or device_image.texture == null:
+		return
+
+	var view_size := device_view.size
+	if view_size.x <= 1.0 or view_size.y <= 1.0:
+		view_size = Vector2(606, 396)
+
+	# Для всех устройств используем одно правило: картинка стоит
+	# в левом верхнем углу области просмотра с небольшим отступом.
+	# Если она больше области — пропорционально уменьшаем,
+	# но не раздуваем её на весь экран при увеличении окна.
+	var base_size := _get_device_base_size()
+	var available_size := Vector2(
+		maxf(view_size.x - DEVICE_VIEW_PADDING * 2.0, 1.0),
+		maxf(view_size.y - DEVICE_VIEW_PADDING * 2.0, 1.0)
+	)
+	var fit_scale := minf(
+		available_size.x / maxf(base_size.x, 1.0),
+		available_size.y / maxf(base_size.y, 1.0)
+	)
+	var applied_scale := maxf(minf(fit_scale, DEVICE_MAX_SCALE), 0.01)
+	var fitted_size := base_size * applied_scale
+	_device_base_rect = Rect2(
+		Vector2(DEVICE_VIEW_PADDING, DEVICE_VIEW_PADDING),
+		fitted_size
+	)
+
+
+func _get_device_base_size() -> Vector2:
+	if device != null and device.device_type == "PC":
+		if _pc_base_rect.size == Vector2.ZERO:
+			_pc_base_rect = Rect2(Vector2.ZERO, PC_TEXTURE_SIZE)
+		return _pc_base_rect.size
+	if device_image.texture != null:
+		return device_image.texture.get_size()
+	return PC_TEXTURE_SIZE
+
+
+# --- Масштаб Physical Device View ---
+
+func _setup_zoom() -> void:
+	if device_image == null:
+		return
+	if _pc_base_rect.size == Vector2.ZERO:
+		_pc_base_rect = Rect2(device_image.position, device_image.size)
+	if _device_base_rect.size == Vector2.ZERO:
+		_update_device_base_rect()
+	_create_zoom_scroll_bar()
+	_apply_zoom()
+
+
+func _reset_zoom() -> void:
+	_zoom_scale = _get_original_zoom_scale()
+	_zoom_pan = Vector2.ZERO
+	_apply_zoom()
+
+
+func _get_original_zoom_scale() -> float:
+	if device != null and device.device_type == "AccessPoint":
+		return AP_BASE_SCALE
+	return 1.0
+
+
+func _get_initial_zoom_scale() -> float:
+	if device != null and device.device_type == "Hub":
+		return HUB_BASE_SCALE
+	if device != null and device.device_type == "AccessPoint":
+		return AP_BASE_SCALE
+	return 1.0
+
+
+func _reset_zoom_for_device() -> void:
+	_zoom_scale = _get_initial_zoom_scale()
+	_zoom_pan = Vector2.ZERO
+	_apply_zoom()
+
+
+func _on_zoom_in_pressed() -> void:
+	_set_zoom(_zoom_scale * ZOOM_STEP)
+
+
+func _on_zoom_out_pressed() -> void:
+	_set_zoom(_zoom_scale / ZOOM_STEP)
+
+
+func _on_original_size_pressed() -> void:
+	_reset_zoom()
+
+
+func _set_zoom(value: float) -> void:
+	_zoom_scale = clampf(value, ZOOM_MIN, ZOOM_MAX)
+	_apply_zoom()
+
+
+func _apply_zoom() -> void:
+	if device_image == null or _device_base_rect.size == Vector2.ZERO:
+		return
+
+	device_image.size = _device_base_rect.size * _zoom_scale
+	_clamp_zoom_pan()
+	_update_device_image_position()
+	_update_zoom_scroll_bar()
+
+
+# Картинка всегда масштабируется от левого верхнего угла.
+# _zoom_pan позволяет вручную прокрутить её вниз, когда она выше области.
+func _update_device_image_position() -> void:
+	if device_image == null:
+		return
+	device_image.position = _device_base_rect.position + _zoom_pan
+
+
+func _get_max_zoom_scroll() -> Vector2:
+	if _device_base_rect.size == Vector2.ZERO:
+		return Vector2.ZERO
+
+	var content_size := _device_base_rect.size * _zoom_scale
+	return Vector2(
+		maxf(content_size.x - device_view.size.x, 0.0),
+		maxf(content_size.y - device_view.size.y, 0.0)
+	)
+
+
+func _clamp_zoom_pan() -> void:
+	var max_scroll := _get_max_zoom_scroll()
+	_zoom_pan.x = clampf(_zoom_pan.x, -max_scroll.x, 0.0)
+	_zoom_pan.y = clampf(_zoom_pan.y, -max_scroll.y, 0.0)
+
+
+func _create_zoom_scroll_bar() -> void:
+	if _zoom_scroll_bar != null:
+		return
+
+	_zoom_scroll_bar = VScrollBar.new()
+	_zoom_scroll_bar.name = "ZoomScrollBar"
+	_zoom_scroll_bar.visible = false
+	_zoom_scroll_bar.step = 1.0
+	_zoom_scroll_bar.focus_mode = Control.FOCUS_NONE
+	_zoom_scroll_bar.z_index = 20
+	device_view.add_child(_zoom_scroll_bar)
+
+	_zoom_scroll_bar.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
+	_zoom_scroll_bar.offset_left = -ZOOM_SCROLL_BAR_WIDTH
+	_zoom_scroll_bar.offset_right = 0.0
+	_zoom_scroll_bar.offset_top = 2.0
+	_zoom_scroll_bar.offset_bottom = -2.0
+	_zoom_scroll_bar.value_changed.connect(_on_zoom_scroll_bar_changed)
+
+	# Коммутатор — широкая картинка, поэтому при увеличении нужна
+	# ещё и горизонтальная прокрутка, иначе кнопка питания уходит за край.
+	_zoom_h_scroll_bar = HScrollBar.new()
+	_zoom_h_scroll_bar.name = "ZoomHScrollBar"
+	_zoom_h_scroll_bar.visible = false
+	_zoom_h_scroll_bar.step = 1.0
+	_zoom_h_scroll_bar.focus_mode = Control.FOCUS_NONE
+	_zoom_h_scroll_bar.z_index = 20
+	device_view.add_child(_zoom_h_scroll_bar)
+
+	_zoom_h_scroll_bar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_zoom_h_scroll_bar.offset_left = 2.0
+	_zoom_h_scroll_bar.offset_right = -2.0
+	_zoom_h_scroll_bar.offset_top = -ZOOM_SCROLL_BAR_WIDTH
+	_zoom_h_scroll_bar.offset_bottom = 0.0
+	_zoom_h_scroll_bar.value_changed.connect(_on_zoom_h_scroll_bar_changed)
+
+
+func _update_zoom_scroll_bar() -> void:
+	if _zoom_scroll_bar == null or _zoom_h_scroll_bar == null:
+		return
+	if _device_base_rect.size == Vector2.ZERO:
+		return
+
+	var content_size := _device_base_rect.size * _zoom_scale
+	var view_size := device_view.size
+	var max_scroll_x := maxf(content_size.x - view_size.x, 0.0)
+	var max_scroll_y := maxf(content_size.y - view_size.y, 0.0)
+
+	_updating_zoom_scroll = true
+	_zoom_scroll_bar.min_value = 0.0
+	_zoom_scroll_bar.max_value = maxf(content_size.y, view_size.y)
+	_zoom_scroll_bar.page = view_size.y
+	_zoom_scroll_bar.value = clampf(-_zoom_pan.y, 0.0, max_scroll_y)
+	_zoom_scroll_bar.visible = max_scroll_y > 0.5
+
+	_zoom_h_scroll_bar.min_value = 0.0
+	_zoom_h_scroll_bar.max_value = maxf(content_size.x, view_size.x)
+	_zoom_h_scroll_bar.page = view_size.x
+	_zoom_h_scroll_bar.value = clampf(-_zoom_pan.x, 0.0, max_scroll_x)
+	_zoom_h_scroll_bar.visible = max_scroll_x > 0.5
+	_updating_zoom_scroll = false
+
+	# Не даём вертикальной полосе перекрывать угол горизонтальной.
+	_zoom_scroll_bar.offset_bottom = (
+		-ZOOM_SCROLL_BAR_WIDTH if _zoom_h_scroll_bar.visible else -2.0
+	)
+
+
+func _on_zoom_scroll_bar_changed(value: float) -> void:
+	if _updating_zoom_scroll:
+		return
+
+	_zoom_pan.y = -value
+	_clamp_zoom_pan()
+	_update_device_image_position()
+
+
+func _on_zoom_h_scroll_bar_changed(value: float) -> void:
+	if _updating_zoom_scroll:
+		return
+
+	_zoom_pan.x = -value
+	_clamp_zoom_pan()
+	_update_device_image_position()
+
+
+func _scroll_zoom(amount: float) -> void:
+	var max_scroll := _get_max_zoom_scroll()
+	if max_scroll.y <= 0.5:
+		return
+
+	# amount > 0 — прокрутка вниз, к нижней части корпуса.
+	_zoom_pan.y = clampf(_zoom_pan.y - amount, -max_scroll.y, 0.0)
+	_update_device_image_position()
+	_update_zoom_scroll_bar()
+
+
+func _handle_zoom_wheel(event: InputEvent) -> bool:
+	if not (event is InputEventMouseButton):
+		return false
+
+	var mouse_event := event as InputEventMouseButton
+	if not mouse_event.pressed:
+		return false
+
+	if mouse_event.button_index == MOUSE_BUTTON_WHEEL_UP:
+		_scroll_zoom(-ZOOM_SCROLL_STEP)
+		return true
+	if mouse_event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+		_scroll_zoom(ZOOM_SCROLL_STEP)
+		return true
+	return false
+
+
+func _on_device_view_gui_input(event: InputEvent) -> void:
+	if _handle_zoom_wheel(event):
+		device_view.accept_event()
+
+
+# Публичный вход для слотов коммутатора: они тоже должны пропускать
+# колесо мыши к механизму прокрутки Physical Device View.
+func handle_zoom_wheel(event: InputEvent) -> bool:
+	return _handle_zoom_wheel(event)
+
+
+func _on_module_slot_gui_input(event: InputEvent) -> void:
+	if _handle_zoom_wheel(event):
+		module_slot.accept_event()
+
+
+func _on_device_image_gui_input(event: InputEvent) -> void:
+	if _handle_zoom_wheel(event):
+		device_image.accept_event()
+		return
+
+	# У коммутатора, хаба, ноутбука, принтера и планшета кнопку питания
+	# обрабатывает физический оверлей, чтобы её зона точно совпадала с картинкой.
+	if device == null or ModuleCatalog.is_slot_device(device.device_type) \
+			or device.device_type in ["Laptop", "Printer", "Tablet", "AccessPoint", "Server"]:
+		return
+
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var button_rect := _get_power_base_rect()
+		if button_rect.size == Vector2.ZERO:
+			return
+
+		# Координаты события локальные для уже масштабированной картинки.
+		var base_position: Vector2 = event.position / _zoom_scale
+		if button_rect.has_point(base_position):
+			device.set_power(not device.is_powered_on)
+
+
+func _get_power_base_rect() -> Rect2:
+	if device == null or _device_base_rect.size == Vector2.ZERO:
+		return Rect2()
+	if device.device_type == "PC":
+		var base_size := _pc_base_rect.size
+		if base_size.x <= 0.0 or base_size.y <= 0.0:
+			base_size = PC_TEXTURE_SIZE
+		var scale := _device_base_rect.size / base_size
+		return Rect2(PC_POWER_RECT.position * scale, PC_POWER_RECT.size * scale)
+
+	var size := _device_base_rect.size
+	if device.device_type in ["Server", "Printer", "Laptop", "Tablet"]:
+		return Rect2(
+			size.x * 0.62,
+			size.y * 0.18,
+			maxf(18.0, size.x * 0.14),
+			maxf(18.0, size.y * 0.12)
+		)
+	return Rect2(
+		size.x * 0.86,
+		size.y * 0.08,
+		maxf(18.0, size.x * 0.08),
+		maxf(18.0, size.y * 0.10)
+	)
+
+
+# --- Модули: вызываются из ModuleSlot и ModulesPanel ---
+
+func try_install_module(module_name: String) -> void:
+	if device == null:
+		return
+
+	if device.device_type == "Server":
+		for slot_index in range(ModuleCatalog.SERVER_SLOT_COUNT):
+			if device.get_installed_module(slot_index).is_empty():
+				try_install_module_to_slot(module_name, slot_index)
+				return
+		_show_module_error("occupied")
+		return
+
+	var result: Dictionary = device.install_module(module_name)
+	if result.get("ok", false):
+		hide_hint()
+		module_slot.refresh()
+		if laptop_overlay.visible:
+			laptop_overlay.refresh()
+		if printer_overlay.visible:
+			printer_overlay.refresh()
+		if access_point_overlay.visible:
+			access_point_overlay.refresh()
+		if server_overlay.visible:
+			server_overlay.refresh()
+		_show_module_info(module_name)
+	else:
+		_show_module_error(result.get("reason", ""))
+
+
+func try_install_module_to_slot(module_name: String, slot_index: int) -> void:
+	if device == null:
+		return
+	if not ModuleCatalog.is_slot_device(device.device_type) and device.device_type != "Server":
+		try_install_module(module_name)
+		return
+
+	var result: Dictionary = device.install_module_in_slot(module_name, slot_index)
+	if result.get("ok", false):
+		if switch_overlay.visible:
+			switch_overlay.refresh()
+		if hub_overlay.visible:
+			hub_overlay.refresh()
+		if server_overlay.visible:
+			server_overlay.refresh()
+		module_slot.refresh()
+		_show_module_info(module_name)
+	else:
+		_show_module_error(result.get("reason", ""))
+
+
+func try_remove_module() -> void:
+	if device == null:
+		return
+
+	var result: Dictionary = device.remove_module()
+	if result.get("ok", false):
+		hide_hint()
+		module_slot.refresh()
+		if laptop_overlay.visible:
+			laptop_overlay.refresh()
+		if printer_overlay.visible:
+			printer_overlay.refresh()
+		if access_point_overlay.visible:
+			access_point_overlay.refresh()
+		if server_overlay.visible:
+			server_overlay.refresh()
+		_update_module_info()
+	else:
+		_show_module_error(result.get("reason", ""))
+
+
+func try_remove_module_from_slot(slot_index: int) -> void:
+	if device == null:
+		return
+	if (not ModuleCatalog.is_slot_device(device.device_type) \
+			and device.device_type != "Server") or slot_index < 0:
+		try_remove_module()
+		return
+
+	var result: Dictionary = device.remove_module_from_slot(slot_index)
+	if result.get("ok", false):
+		if switch_overlay.visible:
+			switch_overlay.refresh()
+		if hub_overlay.visible:
+			hub_overlay.refresh()
+		if server_overlay.visible:
+			server_overlay.refresh()
+		module_slot.refresh()
+		_update_module_info()
+	else:
+		_show_module_error(result.get("reason", ""))
+
+
+func toggle_power() -> void:
+	if device == null:
+		return
+	device.set_power(not device.is_powered_on)
+
+
+# --- Подсказки внутри окна устройства ---
+
+func hide_hint() -> void:
+	if hint_overlay != null:
+		hint_overlay.hide_hint()
+
+
+func show_hint_node(node: Control) -> void:
+	if hint_overlay == null or node == null or not is_instance_valid(node):
+		return
+	hint_overlay.show_control(node)
+
+
+func show_hint_rect(rect: Rect2) -> void:
+	if hint_overlay == null or rect.size == Vector2.ZERO:
+		return
+	hint_overlay.show_rect(rect)
+
+
+func show_hint_tab(page: String) -> void:
+	match page:
+		"physical":
+			show_hint_node(tab_physical)
+		"config":
+			show_hint_node(tab_config)
+		"cli":
+			show_hint_node(tab_cli)
+		"desktop":
+			show_hint_node(tab_desktop)
+		"services":
+			show_hint_node(tab_services)
+
+
+func show_config_interface(interface_name: String) -> void:
+	_show_page("config")
+	if config_panel != null:
+		config_panel.show_interface(interface_name)
+
+
+func show_hint_module() -> void:
+	if modules_panel == null:
+		return
+	if not modules_panel.is_list_visible():
+		show_hint_node(modules_panel.header_button)
+		return
+	if device != null and device.device_type == "AccessPoint":
+		var ap_module_button := modules_panel.get_module_button(
+			ModuleCatalog.PT_REPEATER_NM_1CE
+		)
+		if ap_module_button != null:
+			show_hint_node(ap_module_button)
+			return
+		if access_point_overlay != null:
+			var ap_slot := access_point_overlay.get_slot()
+			if ap_slot != null:
+				show_hint_node(ap_slot)
+				return
+	if device != null and device.device_type == "Server":
+		var server_button := modules_panel.get_module_button(ModuleCatalog.PT_HOST_NM_1CFE)
+		if server_button != null:
+			show_hint_node(server_button)
+			return
+		if server_overlay != null:
+			var server_slot := server_overlay.get_slot(0)
+			if server_slot != null:
+				show_hint_node(server_slot)
+				return
+	var module_button := modules_panel.get_module_button(ModuleCatalog.PT_HOST_NM_1CE)
+	if module_button != null:
+		show_hint_node(module_button)
+		return
+	if device != null and device.device_type == "Printer" and printer_overlay != null:
+		var printer_slot := printer_overlay.get_slot()
+		if printer_slot != null:
+			show_hint_node(printer_slot)
+			return
+	show_hint_node(module_slot)
+
+
+func show_hint_power() -> void:
+	show_hint_rect(get_power_hint_rect())
+
+
+func show_hint_desktop_app(app_id: String) -> void:
+	if desktop_page == null:
+		return
+	var content := desktop_page.get_app_content(app_id)
+	if content != null:
+		if app_id == "command_prompt":
+			var input := content.get_node_or_null(
+				"TerminalPanel/TerminalMargin/TerminalVBox/PromptRow/Input"
+			)
+			if input is Control:
+				show_hint_node(input)
+				return
+		show_hint_node(content)
+		return
+	var tile := desktop_page.get_tile_control(app_id)
+	if tile != null:
+		show_hint_node(tile)
+		return
+	show_hint_node(desktop_page)
+
+
+# Координаты кнопки питания в системе координат окна.
+# Для ПК это область на изображении, для коммутатора — PowerArea оверлея.
+func get_power_hint_rect() -> Rect2:
+	if device == null:
+		return Rect2()
+	if device.device_type == "Switch":
+		if switch_overlay != null and switch_overlay.power_area != null:
+			return switch_overlay.power_area.get_global_rect()
+		return Rect2()
+	if device.device_type == "Hub":
+		if hub_overlay != null and hub_overlay.power_area != null:
+			return hub_overlay.power_area.get_global_rect()
+		return Rect2()
+	if device.device_type == "Laptop":
+		if laptop_overlay != null and laptop_overlay.power_area != null:
+			return laptop_overlay.power_area.get_global_rect()
+		return Rect2()
+	if device.device_type == "Printer":
+		if printer_overlay != null and printer_overlay.power_area != null:
+			return printer_overlay.power_area.get_global_rect()
+		return Rect2()
+	if device.device_type == "Tablet":
+		if tablet_overlay != null and tablet_overlay.power_area != null:
+			return tablet_overlay.power_area.get_global_rect()
+		return Rect2()
+	if device.device_type == "AccessPoint":
+		if access_point_overlay != null and access_point_overlay.power_area != null:
+			return access_point_overlay.power_area.get_global_rect()
+		return Rect2()
+	if device.device_type == "Server":
+		if server_overlay != null and server_overlay.power_area != null:
+			return server_overlay.power_area.get_global_rect()
+		return Rect2()
+	if device_image != null:
+		var base_rect := _get_power_base_rect()
+		if base_rect.size == Vector2.ZERO:
+			return Rect2()
+		var image_rect := device_image.get_global_rect()
+		return Rect2(
+			image_rect.position + base_rect.position * _zoom_scale,
+			base_rect.size * _zoom_scale
+		)
+	return Rect2()
+
+
+func _show_module_error(reason: String) -> void:
+	var text := ERROR_DEFAULT
+	match reason:
+		"power_on_add":
+			if _is_switch():
+				text = ERROR_POWER_ADD_SWITCH
+			elif _is_hub():
+				text = ERROR_POWER_ADD_HUB
+			elif _is_access_point():
+				text = ERROR_POWER_ADD_AP
+			elif _is_server():
+				text = ERROR_POWER_ADD_SERVER
+			else:
+				text = ERROR_POWER_ADD
+		"power_on_remove":
+			if _is_switch():
+				text = ERROR_POWER_REMOVE_SWITCH
+			elif _is_hub():
+				text = ERROR_POWER_REMOVE_HUB
+			elif _is_access_point():
+				text = ERROR_POWER_REMOVE_AP
+			elif _is_server():
+				text = ERROR_POWER_REMOVE_SERVER
+			else:
+				text = ERROR_POWER_REMOVE
+		"occupied":
+			text = ERROR_OCCUPIED
+		"empty":
+			text = ERROR_EMPTY
+		"unknown":
+			text = ERROR_UNKNOWN
+		"invalid_slot":
+			text = ERROR_INVALID_SLOT
+
+	if error_dialog:
+		error_dialog.show_error(text)
+
+
+func _is_switch() -> bool:
+	return device != null and device.device_type == "Switch"
+
+
+func _is_hub() -> bool:
+	return device != null and device.device_type == "Hub"
+
+
+func _is_access_point() -> bool:
+	return device != null and device.device_type == "AccessPoint"
+
+
+func _is_server() -> bool:
+	return device != null and device.device_type == "Server"

@@ -1,0 +1,61 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/gateway_dns_block.gd" id="1_block"]
+
+[node name="GatewayDnsBlock" type="PanelContainer"]
+script = ExtResource("1_block")
+
+[node name="Root" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 7
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 7
+
+[node name="VBox" type="VBoxContainer" parent="Root"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="TitleLabel" type="Label" parent="Root/VBox"]
+layout_mode = 2
+text = "Gateway/DNS IPv4"
+
+[node name="ModeRow" type="HBoxContainer" parent="Root/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="AutomaticRadio" type="CheckBox" parent="Root/VBox/ModeRow"]
+layout_mode = 2
+text = "DHCP"
+
+[node name="StaticRadio" type="CheckBox" parent="Root/VBox/ModeRow"]
+layout_mode = 2
+text = "Static"
+
+[node name="Fields" type="GridContainer" parent="Root/VBox"]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 5
+columns = 2
+
+[node name="GatewayLabel" type="Label" parent="Root/VBox/Fields"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "Default Gateway"
+vertical_alignment = 1
+
+[node name="GatewayEdit" type="LineEdit" parent="Root/VBox/Fields"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_length = 45
+
+[node name="DnsLabel" type="Label" parent="Root/VBox/Fields"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "DNS Server"
+vertical_alignment = 1
+
+[node name="DnsEdit" type="LineEdit" parent="Root/VBox/Fields"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_length = 45

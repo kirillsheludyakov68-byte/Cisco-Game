@@ -11,17 +11,21 @@ config_version=5
 [application]
 
 config/name="Cisco Game"
+run/main_scene="res://scenes/MainMenu.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
 
 NetworkSimulator="*uid://ciw4m62jmu76w"
+ProgressManager="*res://scripts/progress_manager.gd"
+Handbook="*res://scenes/Handbook.tscn"
 
 [display]
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
+window/subwindows/embed_subwindows=false
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 

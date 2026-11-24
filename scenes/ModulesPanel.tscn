@@ -1,0 +1,119 @@
+[gd_scene format=3 uid="uid://bhrodtsrky6t"]
+
+[ext_resource type="Script" uid="uid://daoij2bjmxjtp" path="res://scripts/modules_panel.gd" id="1_cbhqr"]
+[ext_resource type="Script" path="res://scripts/module_drop_zone.gd" id="2_drop"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2ocn1"]
+bg_color = Color(0.9490196, 0.9490196, 0.9490196, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.43529412, 0.43529412, 0.43529412, 1)
+corner_detail = 1
+expand_margin_left = 1.0
+expand_margin_top = 1.0
+expand_margin_right = 1.0
+expand_margin_bottom = 1.0
+
+[sub_resource type="FontFile" id="FontFile_yvgyf"]
+cache/0/variation_coordinates = {}
+cache/0/face_index = 0
+cache/0/embolden = 0.0
+cache/0/transform = Transform2D(1, 0, 0, 1, 0, 0)
+cache/0/spacing_top = 0
+cache/0/spacing_bottom = 0
+cache/0/spacing_space = 0
+cache/0/spacing_glyph = 0
+cache/0/baseline_offset = 0.0
+cache/0/16/0/ascent = 0.0
+cache/0/16/0/descent = 0.0
+cache/0/16/0/underline_position = 0.0
+cache/0/16/0/underline_thickness = 0.0
+cache/0/16/0/scale = 1.0
+cache/0/11/0/ascent = 0.0
+cache/0/11/0/descent = 0.0
+cache/0/11/0/underline_position = 0.0
+cache/0/11/0/underline_thickness = 0.0
+cache/0/11/0/scale = 1.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_13r6r"]
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.6627451, 0.6627451, 0.6627451, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cbhqr"]
+bg_color = Color(0.8745098, 0.91764706, 0.9607843, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.6627451, 0.6627451, 0.6627451, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gvr62"]
+bg_color = Color(0.93333334, 0.95686275, 0.98039216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.6627451, 0.6627451, 0.6627451, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[node name="ModulesPanel" type="PanelContainer" unique_id=816448491]
+custom_minimum_size = Vector2(200, 470)
+offset_right = 200.0
+offset_bottom = 721.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_2ocn1")
+script = ExtResource("1_cbhqr")
+
+[node name="RootVBox" type="VBoxContainer" parent="." unique_id=2108752822]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="HeaderButton" type="Button" parent="RootVBox" unique_id=1257650392]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0.015686275, 1)
+theme_override_colors/font_focus_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0, 0, 0, 1)
+theme_override_colors/font_hover_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = SubResource("FontFile_yvgyf")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_13r6r")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_cbhqr")
+theme_override_styles/hover = SubResource("StyleBoxFlat_gvr62")
+text = "MODULES"
+
+[node name="ScrollList" type="ScrollContainer" parent="RootVBox" unique_id=1544259505]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="ModulesList" type="VBoxContainer" parent="RootVBox/ScrollList" unique_id=515588800]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="DropZone" type="Control" parent="." unique_id=1186539412]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_drop")

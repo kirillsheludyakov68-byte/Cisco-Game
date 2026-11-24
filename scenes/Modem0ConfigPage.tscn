@@ -1,0 +1,220 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/modem0_config_page.gd" id="1_page"]
+
+[node name="Modem0ConfigPage" type="PanelContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_page")
+
+[node name="Root" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 9
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 9
+theme_override_constants/margin_bottom = 9
+
+[node name="VBox" type="VBoxContainer" parent="Root"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="HeaderPanel" type="PanelContainer" parent="Root/VBox"]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+
+[node name="HeaderLabel" type="Label" parent="Root/VBox/HeaderPanel"]
+layout_mode = 2
+text = "Modem0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StatusLabel" type="Label" parent="Root/VBox"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 2
+
+[node name="BodyScroll" type="ScrollContainer" parent="Root/VBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Body" type="VBoxContainer" parent="Root/VBox/BodyScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="TopGrid" type="GridContainer" parent="Root/VBox/BodyScroll/Body"]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 6
+columns = 2
+
+[node name="PortStatusLabel" type="Label" parent="Root/VBox/BodyScroll/Body/TopGrid"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "Port Status"
+vertical_alignment = 1
+
+[node name="PortStatusRow" type="HBoxContainer" parent="Root/VBox/BodyScroll/Body/TopGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 2
+
+[node name="PortStatusCheck" type="CheckBox" parent="Root/VBox/BodyScroll/Body/TopGrid/PortStatusRow"]
+layout_mode = 2
+text = "On"
+
+[node name="BandwidthLabel" type="Label" parent="Root/VBox/BodyScroll/Body/TopGrid"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "Bandwidth"
+vertical_alignment = 1
+
+[node name="BandwidthValue" type="Label" parent="Root/VBox/BodyScroll/Body/TopGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "56 Kbps"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="DuplexLabel" type="Label" parent="Root/VBox/BodyScroll/Body/TopGrid"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "Duplex"
+vertical_alignment = 1
+
+[node name="DuplexRow" type="HBoxContainer" parent="Root/VBox/BodyScroll/Body/TopGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 2
+
+[node name="DuplexCheck" type="CheckBox" parent="Root/VBox/BodyScroll/Body/TopGrid/DuplexRow"]
+layout_mode = 2
+disabled = true
+text = "Full Duplex"
+
+[node name="IPv4Panel" type="PanelContainer" parent="Root/VBox/BodyScroll/Body"]
+layout_mode = 2
+
+[node name="IPv4Margin" type="MarginContainer" parent="Root/VBox/BodyScroll/Body/IPv4Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 7
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 7
+
+[node name="IPv4VBox" type="VBoxContainer" parent="Root/VBox/BodyScroll/Body/IPv4Panel/IPv4Margin"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="IPv4Title" type="Label" parent="Root/VBox/BodyScroll/Body/IPv4Panel/IPv4Margin/IPv4VBox"]
+layout_mode = 2
+text = "IP Configuration"
+
+[node name="IPv4Fields" type="GridContainer" parent="Root/VBox/BodyScroll/Body/IPv4Panel/IPv4Margin/IPv4VBox"]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 5
+columns = 2
+
+[node name="IPv4Label" type="Label" parent="Root/VBox/BodyScroll/Body/IPv4Panel/IPv4Margin/IPv4VBox/IPv4Fields"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "IPv4 Address"
+vertical_alignment = 1
+
+[node name="IPv4Edit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/IPv4Panel/IPv4Margin/IPv4VBox/IPv4Fields"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_length = 15
+
+[node name="MaskLabel" type="Label" parent="Root/VBox/BodyScroll/Body/IPv4Panel/IPv4Margin/IPv4VBox/IPv4Fields"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "Subnet Mask"
+vertical_alignment = 1
+
+[node name="MaskEdit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/IPv4Panel/IPv4Margin/IPv4VBox/IPv4Fields"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_length = 15
+
+[node name="IPv6Panel" type="PanelContainer" parent="Root/VBox/BodyScroll/Body"]
+layout_mode = 2
+
+[node name="IPv6Margin" type="MarginContainer" parent="Root/VBox/BodyScroll/Body/IPv6Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 7
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 7
+
+[node name="IPv6VBox" type="VBoxContainer" parent="Root/VBox/BodyScroll/Body/IPv6Panel/IPv6Margin"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="IPv6Title" type="Label" parent="Root/VBox/BodyScroll/Body/IPv6Panel/IPv6Margin/IPv6VBox"]
+layout_mode = 2
+text = "IPv6 Configuration"
+
+[node name="IPv6ModeRow" type="VBoxContainer" parent="Root/VBox/BodyScroll/Body/IPv6Panel/IPv6Margin/IPv6VBox"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="IPv6Automatic" type="CheckBox" parent="Root/VBox/BodyScroll/Body/IPv6Panel/IPv6Margin/IPv6VBox/IPv6ModeRow"]
+layout_mode = 2
+text = "Automatic"
+
+[node name="IPv6Static" type="CheckBox" parent="Root/VBox/BodyScroll/Body/IPv6Panel/IPv6Margin/IPv6VBox/IPv6ModeRow"]
+layout_mode = 2
+text = "Static"
+
+[node name="IPv6Fields" type="GridContainer" parent="Root/VBox/BodyScroll/Body/IPv6Panel/IPv6Margin/IPv6VBox"]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 5
+columns = 2
+
+[node name="IPv6Label" type="Label" parent="Root/VBox/BodyScroll/Body/IPv6Panel/IPv6Margin/IPv6VBox/IPv6Fields"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "IPv6 Address"
+vertical_alignment = 1
+
+[node name="IPv6AddressRow" type="HBoxContainer" parent="Root/VBox/BodyScroll/Body/IPv6Panel/IPv6Margin/IPv6VBox/IPv6Fields"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="IPv6Edit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/IPv6Panel/IPv6Margin/IPv6VBox/IPv6Fields/IPv6AddressRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_length = 45
+
+[node name="PrefixSlash" type="Label" parent="Root/VBox/BodyScroll/Body/IPv6Panel/IPv6Margin/IPv6VBox/IPv6Fields/IPv6AddressRow"]
+layout_mode = 2
+text = "/"
+vertical_alignment = 1
+
+[node name="PrefixEdit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/IPv6Panel/IPv6Margin/IPv6VBox/IPv6Fields/IPv6AddressRow"]
+custom_minimum_size = Vector2(42, 0)
+layout_mode = 2
+max_length = 3
+
+[node name="LinkLocalLabel" type="Label" parent="Root/VBox/BodyScroll/Body/IPv6Panel/IPv6Margin/IPv6VBox/IPv6Fields"]
+custom_minimum_size = Vector2(105, 0)
+layout_mode = 2
+text = "Link Local Address"
+vertical_alignment = 1
+
+[node name="LinkLocalEdit" type="LineEdit" parent="Root/VBox/BodyScroll/Body/IPv6Panel/IPv6Margin/IPv6VBox/IPv6Fields"]
+layout_mode = 2
+size_flags_horizontal = 3
+editable = false
+max_length = 45
+placeholder_text = "Не сформирован"

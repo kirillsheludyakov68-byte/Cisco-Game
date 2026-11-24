@@ -1,0 +1,220 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/apps/ip_configuration_window.gd" id="1_ip"]
+
+[node name="IPConfigurationWindow" type="ScrollContainer"]
+custom_minimum_size = Vector2(600, 452)
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 1
+script = ExtResource("1_ip")
+
+[node name="Content" type="VBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="InterfacePanel" type="PanelContainer" parent="Content"]
+layout_mode = 2
+
+[node name="InterfaceMargin" type="MarginContainer" parent="Content/InterfacePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 7
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 7
+theme_override_constants/margin_bottom = 5
+
+[node name="InterfaceRow" type="HBoxContainer" parent="Content/InterfacePanel/InterfaceMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="InterfaceLabel" type="Label" parent="Content/InterfacePanel/InterfaceMargin/InterfaceRow"]
+custom_minimum_size = Vector2(92, 0)
+layout_mode = 2
+text = "Interface"
+vertical_alignment = 1
+
+[node name="InterfaceOption" type="OptionButton" parent="Content/InterfacePanel/InterfaceMargin/InterfaceRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="IPv4Panel" type="PanelContainer" parent="Content"]
+layout_mode = 2
+
+[node name="IPv4Margin" type="MarginContainer" parent="Content/IPv4Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 7
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 7
+theme_override_constants/margin_bottom = 6
+
+[node name="IPv4VBox" type="VBoxContainer" parent="Content/IPv4Panel/IPv4Margin"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="IPv4Title" type="Label" parent="Content/IPv4Panel/IPv4Margin/IPv4VBox"]
+layout_mode = 2
+text = "IPv4 Configuration"
+
+[node name="IPv4ModeRow" type="HBoxContainer" parent="Content/IPv4Panel/IPv4Margin/IPv4VBox"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="IPv4Dhcp" type="CheckBox" parent="Content/IPv4Panel/IPv4Margin/IPv4VBox/IPv4ModeRow"]
+layout_mode = 2
+text = "DHCP"
+
+[node name="IPv4Static" type="CheckBox" parent="Content/IPv4Panel/IPv4Margin/IPv4VBox/IPv4ModeRow"]
+layout_mode = 2
+text = "Static"
+
+[node name="IPv4Grid" type="GridContainer" parent="Content/IPv4Panel/IPv4Margin/IPv4VBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 3
+columns = 2
+
+[node name="IPv4AddressLabel" type="Label" parent="Content/IPv4Panel/IPv4Margin/IPv4VBox/IPv4Grid"]
+custom_minimum_size = Vector2(112, 0)
+layout_mode = 2
+text = "IPv4 Address"
+vertical_alignment = 1
+
+[node name="IPv4AddressEdit" type="LineEdit" parent="Content/IPv4Panel/IPv4Margin/IPv4VBox/IPv4Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "192.168.1.10"
+
+[node name="SubnetMaskLabel" type="Label" parent="Content/IPv4Panel/IPv4Margin/IPv4VBox/IPv4Grid"]
+layout_mode = 2
+text = "Subnet Mask"
+vertical_alignment = 1
+
+[node name="SubnetMaskEdit" type="LineEdit" parent="Content/IPv4Panel/IPv4Margin/IPv4VBox/IPv4Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "255.255.255.0"
+
+[node name="GatewayLabel" type="Label" parent="Content/IPv4Panel/IPv4Margin/IPv4VBox/IPv4Grid"]
+layout_mode = 2
+text = "Default Gateway"
+vertical_alignment = 1
+
+[node name="GatewayEdit" type="LineEdit" parent="Content/IPv4Panel/IPv4Margin/IPv4VBox/IPv4Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "192.168.1.1"
+
+[node name="DnsLabel" type="Label" parent="Content/IPv4Panel/IPv4Margin/IPv4VBox/IPv4Grid"]
+layout_mode = 2
+text = "DNS Server"
+vertical_alignment = 1
+
+[node name="DnsEdit" type="LineEdit" parent="Content/IPv4Panel/IPv4Margin/IPv4VBox/IPv4Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "192.168.1.1"
+
+[node name="IPv6Panel" type="PanelContainer" parent="Content"]
+layout_mode = 2
+
+[node name="IPv6Margin" type="MarginContainer" parent="Content/IPv6Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 7
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 7
+theme_override_constants/margin_bottom = 6
+
+[node name="IPv6VBox" type="VBoxContainer" parent="Content/IPv6Panel/IPv6Margin"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="IPv6Title" type="Label" parent="Content/IPv6Panel/IPv6Margin/IPv6VBox"]
+layout_mode = 2
+text = "IPv6 Configuration"
+
+[node name="IPv6ModeRow" type="HBoxContainer" parent="Content/IPv6Panel/IPv6Margin/IPv6VBox"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="IPv6Automatic" type="CheckBox" parent="Content/IPv6Panel/IPv6Margin/IPv6VBox/IPv6ModeRow"]
+layout_mode = 2
+text = "Automatic"
+
+[node name="IPv6Static" type="CheckBox" parent="Content/IPv6Panel/IPv6Margin/IPv6VBox/IPv6ModeRow"]
+layout_mode = 2
+text = "Static"
+
+[node name="IPv6Grid" type="GridContainer" parent="Content/IPv6Panel/IPv6Margin/IPv6VBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 3
+columns = 2
+
+[node name="IPv6AddressLabel" type="Label" parent="Content/IPv6Panel/IPv6Margin/IPv6VBox/IPv6Grid"]
+custom_minimum_size = Vector2(112, 0)
+layout_mode = 2
+text = "IPv6 Address"
+vertical_alignment = 1
+
+[node name="IPv6AddressEdit" type="LineEdit" parent="Content/IPv6Panel/IPv6Margin/IPv6VBox/IPv6Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "2001:db8::10"
+
+[node name="PrefixLabel" type="Label" parent="Content/IPv6Panel/IPv6Margin/IPv6VBox/IPv6Grid"]
+layout_mode = 2
+text = "Prefix Length"
+vertical_alignment = 1
+
+[node name="PrefixEdit" type="LineEdit" parent="Content/IPv6Panel/IPv6Margin/IPv6VBox/IPv6Grid"]
+custom_minimum_size = Vector2(54, 0)
+layout_mode = 2
+text = "64"
+placeholder_text = "64"
+
+[node name="IPv6GatewayLabel" type="Label" parent="Content/IPv6Panel/IPv6Margin/IPv6VBox/IPv6Grid"]
+layout_mode = 2
+text = "Default Gateway"
+vertical_alignment = 1
+
+[node name="IPv6GatewayEdit" type="LineEdit" parent="Content/IPv6Panel/IPv6Margin/IPv6VBox/IPv6Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "2001:db8::1"
+
+[node name="IPv6DnsLabel" type="Label" parent="Content/IPv6Panel/IPv6Margin/IPv6VBox/IPv6Grid"]
+layout_mode = 2
+text = "DNS Server"
+vertical_alignment = 1
+
+[node name="IPv6DnsEdit" type="LineEdit" parent="Content/IPv6Panel/IPv6Margin/IPv6VBox/IPv6Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "2001:db8::1"
+
+[node name="LinkLocalLabel" type="Label" parent="Content/IPv6Panel/IPv6Margin/IPv6VBox/IPv6Grid"]
+layout_mode = 2
+text = "Link-local"
+vertical_alignment = 1
+
+[node name="LinkLocalEdit" type="LineEdit" parent="Content/IPv6Panel/IPv6Margin/IPv6VBox/IPv6Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+editable = false
+
+[node name="MacLabel" type="Label" parent="Content/IPv6Panel/IPv6Margin/IPv6VBox/IPv6Grid"]
+layout_mode = 2
+text = "MAC Address"
+vertical_alignment = 1
+
+[node name="MacEdit" type="LineEdit" parent="Content/IPv6Panel/IPv6Margin/IPv6VBox/IPv6Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+editable = false
+
+[node name="StatusLabel" type="Label" parent="Content"]
+visible = false
+layout_mode = 2
+autowrap_mode = 2

@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/packet.gd" id="1_packet"]
+
+[node name="Packet" type="Node2D"]
+modulate = Color(0.13, 0.59, 0.95, 1)
+z_index = 100
+script = ExtResource("1_packet")
