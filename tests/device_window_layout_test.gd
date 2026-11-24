@@ -172,11 +172,11 @@ func _test_pc_scaling() -> void:
 	var initial_size := window.device_image.size
 
 	_expect(
-		window.device_image.position.is_equal_approx(Vector2(12.0, 12.0)),
-		"PC должен стоять в левом верхнем углу области просмотра"
+		window.device_image.position.is_equal_approx(Vector2.ZERO),
+		"PC должен быть прижат к левому верхнему углу области просмотра"
 	)
 	_expect(
-		initial_size.x <= device_view.size.x - 22.0 and initial_size.y <= device_view.size.y - 22.0,
+		initial_size.x <= device_view.size.x + 1.0 and initial_size.y <= device_view.size.y + 1.0,
 		"PC не должен выходить за пределы области просмотра"
 	)
 
@@ -190,7 +190,7 @@ func _test_pc_scaling() -> void:
 	window.size = Vector2i(1920, 1080)
 	await _wait_frames(2)
 	_expect(
-		window.device_image.position.is_equal_approx(Vector2(12.0, 12.0)),
+		window.device_image.position.is_equal_approx(Vector2.ZERO),
 		"При увеличении окна PC должен оставаться в левом верхнем углу"
 	)
 	_expect(
@@ -214,8 +214,8 @@ func _test_all_devices_top_left() -> void:
 		var image_rect := window.device_image.get_global_rect()
 
 		_expect(
-			window.device_image.position.is_equal_approx(Vector2(12.0, 12.0)),
-			"%s должен стоять в левом верхнем углу области просмотра" % device_type
+			window.device_image.position.is_equal_approx(Vector2.ZERO),
+			"%s должен быть прижат к левому верхнему углу области просмотра" % device_type
 		)
 		_expect(
 			image_rect.position.x >= viewer.get_global_rect().position.x
@@ -227,6 +227,11 @@ func _test_all_devices_top_left() -> void:
 				and image_rect.end.y <= viewer.get_global_rect().end.y + 1.0,
 			"%s должен оставаться внутри области просмотра" % device_type
 		)
+		if device_type == "AccessPoint":
+			_expect(
+				image_rect.size.x >= 240.0,
+				"Точка доступа в исходном масштабе не должна быть слишком маленькой"
+			)
 		if window.modules_panel.visible:
 			_expect(modules.size.x == 200.0, "%s: панель модулей должна иметь ширину 200 px" % device_type)
 			_expect(

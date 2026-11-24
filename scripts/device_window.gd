@@ -21,16 +21,17 @@ const ERROR_BOOTING := "Коммутатор загружается. Пожал�
 
 const ZOOM_STEP := 1.2
 const HUB_BASE_SCALE := 1.0 / (ZOOM_STEP * ZOOM_STEP * ZOOM_STEP)
-# Для точки доступа исходный (100%) масштаб — это четыре шага уменьшения.
-const AP_BASE_SCALE := 1.0 / (ZOOM_STEP * ZOOM_STEP * ZOOM_STEP * ZOOM_STEP)
+# Для точки доступа исходный (100%) масштаб — это один шаг уменьшения.
+# Прежние четыре шага делали устройство слишком маленьким в окне просмотра.
+const AP_BASE_SCALE := 1.0 / ZOOM_STEP
 const ZOOM_MIN := 0.25
 const ZOOM_MAX := 3.0
 const ZOOM_SCROLL_STEP := 48.0
 const ZOOM_SCROLL_BAR_WIDTH := 14.0
 const PC_TEXTURE_SIZE := Vector2(166.0, 396.0)
 const PC_POWER_RECT := Rect2(132.0, 118.0, 14.0, 21.0)
-# Отступ изображения от краёв серой области просмотра.
-const DEVICE_VIEW_PADDING := 12.0
+# Изображение устройства прижато к левому верхнему углу области просмотра.
+const DEVICE_VIEW_PADDING := 0.0
 # Не позволяем маленькой картинке разрастаться на весь экран.
 const DEVICE_MAX_SCALE := 1.35
 
@@ -585,10 +586,9 @@ func _update_device_base_rect() -> void:
 	if view_size.x <= 1.0 or view_size.y <= 1.0:
 		view_size = Vector2(606, 396)
 
-	# Для всех устройств используем одно правило: картинка стоит
-	# в левом верхнем углу области просмотра с небольшим отступом.
-	# Если она больше области — пропорционально уменьшаем,
-	# но не раздуваем её на весь экран при увеличении окна.
+	# Для всех устройств используем одно правило: картинка прижата
+	# к левому верхнему углу области просмотра. Если она больше области —
+	# пропорционально уменьшаем, но не раздуваем её на весь экран.
 	var base_size := _get_device_base_size()
 	var available_size := Vector2(
 		maxf(view_size.x - DEVICE_VIEW_PADDING * 2.0, 1.0),
