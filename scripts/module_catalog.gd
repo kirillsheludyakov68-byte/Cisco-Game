@@ -5,14 +5,46 @@ extends RefCounted
 # Единый каталог модулей: используется панелью, слотами и загрузчиком уровня.
 const PT_HOST_NM_1AM := "PT-HOST-NM-1AM"
 const PT_HOST_NM_1CE := "PT-HOST-NM-1CE"
+const PT_HOST_NM_1CFE := "PT-HOST-NM-1CFE"
+const PT_HOST_NM_1FGE := "PT-HOST-NM-1FGE"
 const PT_HOST_NM_1W := "PT-HOST-NM-1W"
 const WMP300N := "WMP300N"
+
+# Съёмные модули ноутбука.
+const WPC300N := "WPC300N"
+const PT_LAPTOP_NM_1CFE := "PT-LAPTOP-NM-1CFE"
+const PT_LAPTOP_NM_1FGE := "PT-LAPTOP-NM-1FGE"
 
 const PT_SWITCH_NM_1CE := "PT-SWITCH-NM-1CE"
 const PT_SWITCH_NM_1CFE := "PT-SWITCH-NM-1CFE"
 const PT_SWITCH_NM_1FGE := "PT-SWITCH-NM-1FGE"
 
+const PT_REPEATER_NM_1CE := "PT-REPEATER-NM-1CE"
+const PT_REPEATER_NM_1CFE := "PT-REPEATER-NM-1CFE"
+const PT_REPEATER_NM_1FGE := "PT-REPEATER-NM-1FGE"
+
 const SWITCH_SLOT_COUNT := 10
+const HUB_SLOT_COUNT := 10
+# У сервера два слота: верхний (0) и нижний (1).
+const SERVER_SLOT_COUNT := 2
+
+# Устройства с десятью слотами съёмных модулей.
+const SLOT_DEVICE_TYPES: Array[String] = ["Switch", "Hub"]
+
+# Устройства, которые используют съёмные host-модули.
+const HOST_MODULE_DEVICE_TYPES: Array[String] = [
+	"PC",
+	"Laptop",
+	"Printer",
+]
+
+# Модули сервера. Порядок совпадает с панелью Modules.
+const SERVER_MODULES: Array[String] = [
+	WMP300N,
+	PT_HOST_NM_1CE,
+	PT_HOST_NM_1CFE,
+	PT_HOST_NM_1FGE,
+]
 
 const MODULES: Array[String] = [
 	WMP300N,
@@ -21,10 +53,39 @@ const MODULES: Array[String] = [
 	PT_HOST_NM_1W,
 ]
 
+# В ноутбук устанавливаются только эти три модуля.
+const LAPTOP_MODULES: Array[String] = [
+	WPC300N,
+	PT_LAPTOP_NM_1CFE,
+	PT_LAPTOP_NM_1FGE,
+]
+
+# Модули принтера: проводные Ethernet/FastEthernet/GigabitEthernet
+# и беспроводной WMP300N.
+const PRINTER_MODULES: Array[String] = [
+	PT_HOST_NM_1CE,
+	PT_HOST_NM_1CFE,
+	PT_HOST_NM_1FGE,
+	WMP300N,
+]
+
 const SWITCH_MODULES: Array[String] = [
 	PT_SWITCH_NM_1CE,
 	PT_SWITCH_NM_1CFE,
 	PT_SWITCH_NM_1FGE,
+]
+
+const HUB_MODULES: Array[String] = [
+	PT_REPEATER_NM_1CE,
+	PT_REPEATER_NM_1CFE,
+	PT_SWITCH_NM_1FGE,
+]
+
+# Модули, которые устанавливаются в единственный слот точки доступа.
+const ACCESS_POINT_MODULES: Array[String] = [
+	PT_REPEATER_NM_1CE,
+	PT_REPEATER_NM_1CFE,
+	PT_REPEATER_NM_1FGE,
 ]
 
 # Заводская конфигурация коммутатора: слот 0 — крайний справа, слот 9 — слева.
@@ -38,27 +99,47 @@ const DEFAULT_SWITCH_MODULES := {
 	5: PT_SWITCH_NM_1FGE,
 }
 
+# Хаб собирается из модулей так же, как коммутатор. По умолчанию слоты
+# пусты: порты появляются только после установки модуля.
+const DEFAULT_HUB_MODULES := {}
+
 const ICON_PATHS := {
 	WMP300N: "res://assets/modules/wmp300n.jpg",
 	PT_HOST_NM_1AM: "res://assets/modules/pt-host-nm-1am.jpg",
-	PT_HOST_NM_1CE: "res://assets/modules/pt-host-nm-1ce.jpg",
-	PT_HOST_NM_1W: "res://assets/modules/pt-host-nm-1w.jpg",
+	PT_HOST_NM_1CE: "res://assets/Printer/gPTHostNM-1CE.png",
+	PT_HOST_NM_1CFE: "res://assets/Printer/gPTHostNM-1CFE.png",
+	PT_HOST_NM_1FGE: "res://assets/Printer/gPTHostNM-1FGE.png",
+	PT_HOST_NM_1W: "res://assets/Printer/gPTHostNM-1W.png",
+	WPC300N: "res://assets/modules/gPTLaptopNM-1W.png",
+	PT_LAPTOP_NM_1CFE: "res://assets/modules/gPTLaptopNM-1CFE.png",
+	PT_LAPTOP_NM_1FGE: "res://assets/modules/gPTLaptopNM-1FGE.png",
 	PT_SWITCH_NM_1CE: "res://assets/Switch/modules/gPTSwitchNM-1CE.png",
 	PT_SWITCH_NM_1CFE: "res://assets/Switch/modules/gPTSwitchNM-1CFE.png",
 	PT_SWITCH_NM_1FGE: "res://assets/Switch/modules/gPTSwitchNM-1FGE.png",
+	PT_REPEATER_NM_1CE: "res://assets/devices/gPTRepeaterNM-1CE.png",
+	PT_REPEATER_NM_1CFE: "res://assets/devices/gPTRepeaterNM-1CFE.png",
+	PT_REPEATER_NM_1FGE: "res://assets/Switch/modules/gPTSwitchNM-1FGE.png",
 }
 
 const DESCRIPTIONS := {
 	WMP300N: "Модуль WMP300N обеспечивает один беспроводной интерфейс 2,4 ГГц, предназначенный для подключения к беспроводным сетям. Модуль поддерживает протоколы, использующие Ethernet для доступа к локальной сети.",
 	PT_HOST_NM_1AM: "Карта PT-HOST-NM-1AM оснащена двумя разъёмами RJ-11, которые используются для базовых телефонных соединений. WIC-1AM использует один порт для подключения к стандартной телефонной линии, а второй порт можно подключить к обычному аналоговому телефону, пока модем не используется.",
 	PT_HOST_NM_1CE: "Модуль PT-HOST-NM-1CE оснащён одним портом Ethernet, который может подключаться к магистральной сети LAN, также поддерживающей либо шесть соединений PRI для объединения линий ISDN, либо 24 синхронных/асинхронных порта.",
+	PT_HOST_NM_1CFE: "Модуль PT-HOST-NM-1CFE предоставляет один интерфейс Fast Ethernet для работы с медным кабелем. Идеально подходит для широкого спектра приложений локальных сетей. Сетевые модули Fast Ethernet поддерживают множество функций и стандартов. Однопортовые модули обеспечивают автоопределение 10/100BaseTX или 100BaseFX. Версия TX (медь) поддерживает развёртывание VLAN.",
+	PT_HOST_NM_1FGE: "Однопортовый сетевой модуль Cisco Gigabit Ethernet (PT-HOST-NM-1FGE) обеспечивает оптическое подключение Gigabit Ethernet для доступа к маршрутизаторам. Модуль поддерживается Cisco 2691, Cisco 3660, Cisco 3725 и Cisco 3745. Модуль имеет один слот GBIC для любого стандартного медного или оптического Cisco GBIC.",
 	PT_HOST_NM_1W: "Модуль PT-HOST-NM-1W обеспечивает один беспроводной интерфейс 2,4 ГГц, предназначенный для подключения к беспроводным сетям. Модуль поддерживает протоколы, использующие Ethernet для доступа к локальной сети.",
+	WPC300N: "Модуль WPC300N обеспечивает один беспроводной интерфейс 2,4 ГГц, предназначенный для подключения к беспроводным сетям. Модуль поддерживает протоколы, использующие Ethernet для доступа к локальной сети.",
+	PT_LAPTOP_NM_1CFE: "Модуль PT-LAPTOP-NM-1CFE предоставляет один интерфейс Fast Ethernet для работы с медным кабелем. Идеально подходит для широкого спектра приложений локальных сетей. Сетевые модули Fast Ethernet поддерживают множество функций и стандартов. Однопортовые модули обеспечивают автоопределение 10/100BaseTX или 100BaseFX. Версия TX (медь) поддерживает развёртывание VLAN.",
+	PT_LAPTOP_NM_1FGE: "Однопортовый сетевой модуль Cisco Gigabit Ethernet (PT-LAPTOP-NM-1FGE) обеспечивает оптическое подключение Gigabit Ethernet для доступа к маршрутизаторам. Модуль поддерживается Cisco 2691, Cisco 3660, Cisco 3725 и Cisco 3745. Модуль имеет один слот GBIC для любого стандартного медного или оптического Cisco GBIC.",
 	PT_SWITCH_NM_1CE: "Модуль PT-SWITCH-NM-1CE оснащён одним портом Ethernet, который может подключаться к магистральной сети LAN, также поддерживающей либо шесть соединений PRI для объединения линий ISDN, либо 24 синхронных/асинхронных порта.",
 	PT_SWITCH_NM_1CFE: "Модуль PT-SWITCH-NM-1CFE предоставляет один интерфейс Fast Ethernet для работы с медным кабелем. Идеально подходит для широкого спектра приложений локальных сетей. Сетевые модули Fast Ethernet поддерживают множество функций и стандартов. Однопортовые модули обеспечивают автоопределение 10/100BaseTX или 100BaseFX. Версия TX (медь) поддерживает развёртывание VLAN.",
 	PT_SWITCH_NM_1FGE: "Однопортовый сетевой модуль Cisco Gigabit Ethernet (PT-SWITCH-NM-1FGE) обеспечивает оптическое подключение Gigabit Ethernet для доступа к маршрутизаторам. Модуль поддерживается Cisco 2691, Cisco 3660, Cisco 3725 и Cisco 3745. Модуль имеет один слот GBIC для любого стандартного медного или оптического Cisco GBIC.",
+	PT_REPEATER_NM_1CE: "Модуль повторителя PT-REPEATER-NM-1CE добавляет хабу один порт Ethernet 10 Мбит/с для подключения оконечных устройств или другого концентратора.",
+	PT_REPEATER_NM_1CFE: "Модуль повторителя PT-REPEATER-NM-1CFE добавляет хабу один порт Fast Ethernet 100 Мбит/с для подключения оконечных устройств или другого концентратора.",
+	PT_REPEATER_NM_1FGE: "Однопортовый сетевой модуль Cisco Gigabit Ethernet (PT-REPEATER-NM-1FGE) обеспечивает оптическое подключение Gigabit Ethernet для доступа к маршрутизаторам. Модуль поддерживается Cisco 2691, Cisco 3660, Cisco 3725 и Cisco 3745. Модуль имеет один слот GBIC для любого стандартного медного или оптического Cisco GBIC.",
 }
 
-# Интерфейсы, которые физически предоставляют модули ПК.
+# Интерфейсы, которые физически предоставляют модули host-устройств.
 # Это единственный источник названий и типов интерфейсов для Config.
 const NETWORK_INTERFACES := {
 	PT_HOST_NM_1CE: [
@@ -66,6 +147,22 @@ const NETWORK_INTERFACES := {
 			"name": "Ethernet0",
 			"kind": "ethernet",
 			"bandwidth_mbps": 10,
+		},
+	],
+	PT_HOST_NM_1CFE: [
+		{
+			"name": "FastEthernet0",
+			"kind": "ethernet",
+			"bandwidth_mbps": 100,
+			"bandwidth_mode": "100mbps",
+		},
+	],
+	PT_HOST_NM_1FGE: [
+		{
+			"name": "GigabitEthernet0",
+			"kind": "fiber",
+			"bandwidth_mbps": 1000,
+			"bandwidth_mode": "1000mbps",
 		},
 	],
 	WMP300N: [
@@ -84,6 +181,29 @@ const NETWORK_INTERFACES := {
 			"bandwidth_mbps": 11,
 			"ipv4_mode": "dhcp",
 			"ipv6_mode": "automatic",
+		},
+	],
+	WPC300N: [
+		{
+			"name": "Wireless0",
+			"kind": "wireless",
+			"bandwidth_mbps": 54,
+			"ipv4_mode": "dhcp",
+			"ipv6_mode": "automatic",
+		},
+	],
+	PT_LAPTOP_NM_1CFE: [
+		{
+			"name": "FastEthernet0",
+			"kind": "ethernet",
+			"bandwidth_mbps": 100,
+		},
+	],
+	PT_LAPTOP_NM_1FGE: [
+		{
+			"name": "GigabitEthernet0",
+			"kind": "fiber",
+			"bandwidth_mbps": 1000,
 		},
 	],
 	# У 1AM два телефонных порта RJ-11; для Config используется интерфейс модема.
@@ -121,27 +241,129 @@ const BUILTIN_INTERFACES := {
 			"name": "FastEthernet0",
 			"kind": "ethernet",
 		},
+		{
+			"name": "Wireless0",
+			"kind": "wireless",
+			"bandwidth_mbps": 11,
+			"ipv4_mode": "static",
+			"ipv6_mode": "static",
+		},
+	],
+	"Server": [
+		{
+			"name": "Ethernet0",
+			"kind": "ethernet",
+			"bandwidth_mbps": 1000,
+		},
+	],
+	# Планшет не имеет съёмных модулей: все интерфейсы встроенные.
+	"Tablet": [
+		{
+			"name": "Wireless0",
+			"kind": "wireless",
+			"bandwidth_mbps": 11,
+			"ipv4_mode": "dhcp",
+			"ipv6_mode": "automatic",
+		},
+		{
+			"name": "3G/4G Cell1",
+			"kind": "cellular",
+			"bandwidth_mbps": 0,
+			"ipv4_mode": "dhcp",
+			"ipv6_mode": "automatic",
+			"provider_name": "ptcellular",
+			# До получения аренды маска не отображается.
+			"subnet_mask": "",
+		},
+		{
+			"name": "Bluetooth",
+			"kind": "bluetooth",
+			"bandwidth_mbps": 0,
+			"ipv4_mode": "static",
+			"ipv6_mode": "static",
+		},
 	],
 }
 
 
 static func has_module(module_name: String) -> bool:
-	return MODULES.has(module_name)
+	return MODULES.has(module_name) \
+		or LAPTOP_MODULES.has(module_name) \
+		or PRINTER_MODULES.has(module_name) \
+		or ACCESS_POINT_MODULES.has(module_name)
+
+
+static func is_access_point_module(module_name: String) -> bool:
+	return ACCESS_POINT_MODULES.has(module_name)
+
+
+static func is_server_module(module_name: String) -> bool:
+	return SERVER_MODULES.has(module_name)
+
+
+static func is_server(device_type: String) -> bool:
+	return device_type == "Server"
 
 
 static func has_switch_module(module_name: String) -> bool:
 	return SWITCH_MODULES.has(module_name)
 
 
+static func is_slot_device(device_type: String) -> bool:
+	return SLOT_DEVICE_TYPES.has(device_type)
+
+
+static func get_slot_count(device_type: String) -> int:
+	if device_type == "Hub":
+		return HUB_SLOT_COUNT
+	if device_type == "Switch":
+		return SWITCH_SLOT_COUNT
+	if device_type == "Server":
+		return SERVER_SLOT_COUNT
+	return 0
+
+
+static func get_slot_modules(device_type: String) -> Array[String]:
+	var result: Array[String] = []
+	if device_type == "Switch":
+		for module_name in SWITCH_MODULES:
+			result.append(module_name)
+	elif device_type == "Hub":
+		for module_name in HUB_MODULES:
+			result.append(module_name)
+	elif device_type == "Server":
+		for module_name in SERVER_MODULES:
+			result.append(module_name)
+	return result
+
+
+static func has_slot_module(device_type: String, module_name: String) -> bool:
+	return get_slot_modules(device_type).has(module_name)
+
+
+static func uses_host_modules(device_type: String) -> bool:
+	return HOST_MODULE_DEVICE_TYPES.has(device_type)
+
+
 static func get_modules_for_device(device_type: String) -> Array[String]:
 	var result: Array[String] = []
-	match device_type:
-		"PC":
-			for module_name in MODULES:
-				result.append(module_name)
-		"Switch":
-			for module_name in SWITCH_MODULES:
-				result.append(module_name)
+	if device_type == "Laptop":
+		for module_name in LAPTOP_MODULES:
+			result.append(module_name)
+	elif device_type == "Printer":
+		for module_name in PRINTER_MODULES:
+			result.append(module_name)
+	elif device_type == "AccessPoint":
+		for module_name in ACCESS_POINT_MODULES:
+			result.append(module_name)
+	elif device_type == "Server":
+		for module_name in SERVER_MODULES:
+			result.append(module_name)
+	elif uses_host_modules(device_type):
+		for module_name in MODULES:
+			result.append(module_name)
+	else:
+		result = get_slot_modules(device_type)
 	return result
 
 
@@ -170,35 +392,45 @@ static func get_builtin_interfaces(device_type: String) -> Array[Dictionary]:
 	return result
 
 
-# Имя интерфейса коммутатора: тип модуля + номер слота + /1.
+# Имя интерфейса слота: тип модуля + номер слота + /1.
 # Второй номер всегда 1, потому что каждый модуль имеет один порт.
-static func get_switch_interface_name(module_name: String, slot_index: int) -> String:
+static func get_slot_interface_name(module_name: String, slot_index: int) -> String:
 	var prefix := ""
 	match module_name:
-		PT_SWITCH_NM_1CE:
+		PT_SWITCH_NM_1CE, PT_REPEATER_NM_1CE:
 			prefix = "Ethernet"
-		PT_SWITCH_NM_1CFE:
+		PT_SWITCH_NM_1CFE, PT_REPEATER_NM_1CFE:
 			prefix = "FastEthernet"
-		PT_SWITCH_NM_1FGE:
+		PT_SWITCH_NM_1FGE, PT_REPEATER_NM_1FGE:
 			prefix = "GigabitEthernet"
 		_:
 			return ""
 	return "%s%d/1" % [prefix, slot_index]
 
 
-static func get_switch_interface_spec(module_name: String, slot_index: int) -> Dictionary:
-	var interface_name := get_switch_interface_name(module_name, slot_index)
+static func get_switch_interface_name(module_name: String, slot_index: int) -> String:
+	return get_slot_interface_name(module_name, slot_index)
+
+
+static func get_slot_interface_spec(
+	device_type: String,
+	module_name: String,
+	slot_index: int
+) -> Dictionary:
+	if not has_slot_module(device_type, module_name):
+		return {}
+	var interface_name := get_slot_interface_name(module_name, slot_index)
 	if interface_name.is_empty():
 		return {}
 
 	var bandwidth_mbps := 10
 	var interface_kind := "ethernet"
 	match module_name:
-		PT_SWITCH_NM_1CFE:
+		PT_SWITCH_NM_1CFE, PT_REPEATER_NM_1CFE:
 			bandwidth_mbps = 100
-		PT_SWITCH_NM_1FGE:
+		PT_SWITCH_NM_1FGE, PT_REPEATER_NM_1FGE:
 			bandwidth_mbps = 1000
-			# PT-SWITCH-NM-1FGE — оптический Gigabit Ethernet.
+			# PT-SWITCH-NM-1FGE и PT-REPEATER-NM-1FGE — оптический Gigabit Ethernet.
 			interface_kind = "fiber"
 
 	return {
@@ -214,25 +446,125 @@ static func get_switch_interface_spec(module_name: String, slot_index: int) -> D
 	}
 
 
-static func get_switch_bandwidth_options(module_name: String) -> Array[Dictionary]:
+static func get_switch_interface_spec(module_name: String, slot_index: int) -> Dictionary:
+	return get_slot_interface_spec("Switch", module_name, slot_index)
+
+
+static func get_slot_bandwidth_options(module_name: String) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	match module_name:
-		PT_SWITCH_NM_1CE:
+		PT_SWITCH_NM_1CE, PT_REPEATER_NM_1CE:
 			result = [
 				{"label": "10 Mbps", "value": "10mbps"},
 				{"label": "Auto", "value": "auto"},
 			]
-		PT_SWITCH_NM_1CFE:
+		PT_SWITCH_NM_1CFE, PT_REPEATER_NM_1CFE:
 			result = [
 				{"label": "100 Mbps", "value": "100mbps"},
 				{"label": "Auto", "value": "auto"},
 			]
-		PT_SWITCH_NM_1FGE:
+		PT_SWITCH_NM_1FGE, PT_REPEATER_NM_1FGE:
 			result = [
 				{"label": "1000 Mbps", "value": "1000mbps"},
 				{"label": "Auto", "value": "auto"},
 			]
 	return result
+
+
+static func get_switch_bandwidth_options(module_name: String) -> Array[Dictionary]:
+	return get_slot_bandwidth_options(module_name)
+
+
+# Интерфейс Port 0 точки доступа всегда называется одинаково, независимо от
+# установленного модуля. Сам модуль определяет только скорость и тип порта.
+static func get_access_point_port0_spec(module_name: String) -> Dictionary:
+	if not is_access_point_module(module_name):
+		return {}
+
+	var bandwidth_mbps := 10
+	var bandwidth_mode := DeviceInterface.BANDWIDTH_10MBPS
+	var interface_kind := "ethernet"
+	match module_name:
+		PT_REPEATER_NM_1CFE:
+			bandwidth_mbps = 100
+			bandwidth_mode = DeviceInterface.BANDWIDTH_100MBPS
+		PT_REPEATER_NM_1FGE:
+			bandwidth_mbps = 1000
+			bandwidth_mode = DeviceInterface.BANDWIDTH_1000MBPS
+			interface_kind = "fiber"
+
+	return {
+		"name": "Port 0",
+		"kind": interface_kind,
+		"source_module": module_name,
+		"slot_index": -1,
+		"bandwidth_mbps": bandwidth_mbps,
+		"bandwidth_mode": bandwidth_mode,
+		"duplex_mode": DeviceInterface.DUPLEX_AUTO,
+		"ipv4_mode": NetworkSettings.IPV4_STATIC,
+		"ipv6_mode": NetworkSettings.IPV6_STATIC,
+	}
+
+
+static func get_access_point_bandwidth_options(module_name: String) -> Array[Dictionary]:
+	return get_slot_bandwidth_options(module_name)
+
+
+# Интерфейс сервера называется по типу модуля и номеру слота:
+# верхний слот даёт индекс 0, нижний — 1. WMP300N даёт Wireless0/Wireless1.
+static func get_server_interface_spec(module_name: String, slot_index: int) -> Dictionary:
+	if not is_server_module(module_name):
+		return {}
+	if slot_index < 0 or slot_index >= SERVER_SLOT_COUNT:
+		return {}
+
+	var interface_name := ""
+	var interface_kind := "ethernet"
+	var bandwidth_mbps := 10
+	var bandwidth_mode := DeviceInterface.BANDWIDTH_AUTO
+	var ipv4_mode := NetworkSettings.IPV4_STATIC
+	var ipv6_mode := NetworkSettings.IPV6_STATIC
+	match module_name:
+		PT_HOST_NM_1CE:
+			interface_name = "Ethernet%d" % slot_index
+			bandwidth_mode = DeviceInterface.BANDWIDTH_10MBPS
+		PT_HOST_NM_1CFE:
+			interface_name = "FastEthernet%d" % slot_index
+			bandwidth_mbps = 100
+			bandwidth_mode = DeviceInterface.BANDWIDTH_100MBPS
+		PT_HOST_NM_1FGE:
+			interface_name = "GigabitEthernet%d" % slot_index
+			interface_kind = "fiber"
+			bandwidth_mbps = 1000
+			bandwidth_mode = DeviceInterface.BANDWIDTH_1000MBPS
+		WMP300N:
+			interface_name = "Wireless%d" % slot_index
+			interface_kind = "wireless"
+			bandwidth_mbps = 11
+			ipv4_mode = NetworkSettings.IPV4_DHCP
+			ipv6_mode = NetworkSettings.IPV6_AUTOMATIC
+		_:
+			return {}
+
+	return {
+		"name": interface_name,
+		"kind": interface_kind,
+		"source_module": module_name,
+		"slot_index": slot_index,
+		"bandwidth_mbps": bandwidth_mbps,
+		"bandwidth_mode": bandwidth_mode,
+		"duplex_mode": DeviceInterface.DUPLEX_AUTO,
+		"ipv4_mode": ipv4_mode,
+		"ipv6_mode": ipv6_mode,
+	}
+
+
+static func get_default_slot_modules(device_type: String) -> Dictionary:
+	if device_type == "Hub":
+		return DEFAULT_HUB_MODULES.duplicate(true)
+	if device_type == "Switch":
+		return DEFAULT_SWITCH_MODULES.duplicate(true)
+	return {}
 
 
 static func get_default_switch_modules() -> Dictionary:

@@ -23,6 +23,8 @@ var bandwidth_kbps: int = 0
 var duplex_mode: String = DUPLEX_AUTO
 
 var mac_address: String = ""
+# Имя сотового провайдера для интерфейсов 3G/4G.
+var provider_name: String = ""
 var ipv4_mode: String = NetworkSettings.IPV4_STATIC
 var ipv4_address: String = ""
 var subnet_mask: String = "255.255.255.0"

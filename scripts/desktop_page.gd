@@ -6,6 +6,8 @@ const FRAME_SCENE := preload("res://scenes/DesktopWindowFrame.tscn")
 const MIN_TILE_WIDTH := 132.0
 const GRID_GAP := 14.0
 const MAX_COLUMNS := 4
+const TABLET_MIN_TILE_WIDTH := 156.0
+const TABLET_MAX_COLUMNS := 3
 
 @onready var background: ColorRect = $Background
 @onready var desktop_scroll: ScrollContainer = $DesktopMargin/DesktopScroll
@@ -19,6 +21,8 @@ var _tiles: Array[DesktopAppTile] = []
 var _windows: Dictionary = {}
 var _window_contents: Dictionary = {}
 var _window_sequence := 0
+var _min_tile_width := MIN_TILE_WIDTH
+var _max_columns := MAX_COLUMNS
 
 
 func _ready() -> void:
@@ -34,8 +38,31 @@ func setup(device_value: Device) -> void:
 		return
 	_close_all_windows()
 	device = device_value
+	_apply_device_layout()
 	if device != null:
 		_hide_status()
+	_update_columns.call_deferred()
+
+
+# Планшет получает более крупные плитки и отдельный фон, но тот же
+# набор приложений и то же поведение окон, что у ПК и ноутбука.
+func _apply_device_layout() -> void:
+	var is_tablet := device != null and device.device_type == "Tablet"
+	_min_tile_width = TABLET_MIN_TILE_WIDTH if is_tablet else MIN_TILE_WIDTH
+	_max_columns = TABLET_MAX_COLUMNS if is_tablet else MAX_COLUMNS
+	background.color = (
+		DesktopStyles.TABLET_DESKTOP_BG if is_tablet else DesktopStyles.DESKTOP_BG
+	)
+
+	var gap := 18 if is_tablet else int(GRID_GAP)
+	desktop_grid.add_theme_constant_override("h_separation", gap)
+	desktop_grid.add_theme_constant_override("v_separation", gap)
+
+	var margin := desktop_scroll.get_parent() as MarginContainer
+	if margin != null:
+		var margin_size := 18 if is_tablet else 12
+		for side in ["left", "top", "right", "bottom"]:
+			margin.add_theme_constant_override("margin_" + side, margin_size)
 
 
 func on_activated() -> void:
@@ -191,8 +218,9 @@ func _update_columns() -> void:
 	var width := desktop_scroll.size.x
 	if width <= 1.0:
 		return
-	var columns := int(floor((width + GRID_GAP) / (MIN_TILE_WIDTH + GRID_GAP)))
-	columns = clampi(columns, 1, MAX_COLUMNS)
+	var gap := 18.0 if device != null and device.device_type == "Tablet" else GRID_GAP
+	var columns := int(floor((width + gap) / (_min_tile_width + gap)))
+	columns = clampi(columns, 1, _max_columns)
 	if desktop_grid.columns != columns:
 		desktop_grid.columns = columns
 

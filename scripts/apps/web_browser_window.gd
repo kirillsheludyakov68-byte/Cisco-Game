@@ -28,6 +28,9 @@ func _ready() -> void:
 
 func setup(device_value: Device) -> void:
 	device = device_value
+	var handler := SimWebRequestHandler.new()
+	handler.device = device
+	request_handler = handler
 	uri_edit.grab_focus()
 
 
@@ -157,9 +160,8 @@ func _show_home() -> void:
 	page_text.text = (
 		"Web Browser\n\n"
 		+ "Введите http:// или https:// адрес и нажмите Go.\n\n"
-		+ "HTTP-серверы в сети симулятора пока не реализованы. "
-		+ "Браузер не обращается к настоящему интернету и не загружает файлы "
-		+ "из файловой системы."
+		+ "Браузер обращается к HTTP/HTTPS-службе серверов в сети симулятора. "
+		+ "Настоящий интернет и локальные файлы не используются."
 	)
 	page_text.scroll_to_line(0)
 	status_label.visible = false

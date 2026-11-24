@@ -95,6 +95,16 @@ static func ipv4_to_int(value: String) -> int:
 	return result
 
 
+static func ipv4_from_int(value: int) -> String:
+	var clamped := clampi(value, 0, 0xFFFFFFFF)
+	return "%d.%d.%d.%d" % [
+		(clamped >> 24) & 0xFF,
+		(clamped >> 16) & 0xFF,
+		(clamped >> 8) & 0xFF,
+		clamped & 0xFF,
+	]
+
+
 static func _split_ipv6_side(text: String):
 	if text.is_empty():
 		return []

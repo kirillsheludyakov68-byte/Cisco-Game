@@ -96,6 +96,9 @@ func _populate_modules() -> void:
 	for module_name in modules:
 		var btn := Button.new()
 		btn.text = module_name
+		# Длинные имена модулей не должны растягивать панель.
+		btn.clip_text = true
+		btn.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		PanelNavStyles.apply_item_button(
 			btn,

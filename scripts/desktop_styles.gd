@@ -4,6 +4,8 @@ class_name DesktopStyles
 # Визуальные константы рабочего стола. Держим их отдельно от ConfigStyles,
 # потому что Desktop использует собственную тёмную палитру.
 const DESKTOP_BG := Color(0.043, 0.165, 0.314)          # #0B2A50
+# Планшетный рабочий стол: более тёмный бирюзовый фон и крупные плитки.
+const TABLET_DESKTOP_BG := Color(0.055, 0.180, 0.220)   # #0E2E38
 const TILE_BG := Color(0.302, 0.741, 0.816)             # #4DBDD0
 const TILE_HOVER_BG := Color(0.380, 0.816, 0.878)
 const TILE_PRESSED_BG := Color(0.235, 0.635, 0.710)

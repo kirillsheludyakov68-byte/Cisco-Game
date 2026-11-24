@@ -25,10 +25,23 @@ func _ready() -> void:
 
 
 func setup(device_value: Device) -> void:
+	if device != null and is_instance_valid(device) \
+			and device.power_changed.is_connected(_on_device_power_changed):
+		device.power_changed.disconnect(_on_device_power_changed)
 	device = device_value
-	_reset_terminal()
+	if device != null and is_instance_valid(device) \
+			and not device.power_changed.is_connected(_on_device_power_changed):
+		device.power_changed.connect(_on_device_power_changed)
+	_restore_session()
 	if device != null:
 		input.grab_focus()
+
+
+func _exit_tree() -> void:
+	_save_session()
+	if device != null and is_instance_valid(device) \
+			and device.power_changed.is_connected(_on_device_power_changed):
+		device.power_changed.disconnect(_on_device_power_changed)
 
 
 func activate() -> void:
@@ -37,8 +50,8 @@ func activate() -> void:
 
 
 func commit_pending() -> void:
-	# В командной строке нет отложенных настроек: всё выполняется сразу.
-	pass
+	# Сохраняем ввод и вывод, чтобы они пережили закрытие окна ПК.
+	_save_session()
 
 
 func _apply_styles() -> void:
@@ -60,10 +73,54 @@ func _apply_styles() -> void:
 
 func _reset_terminal() -> void:
 	output.text = ""
+	input.clear()
 	prompt_label.text = _prompt_text()
 	_append_line("Command Prompt — локальная модель сети.")
 	_append_line("Введите help, чтобы увидеть доступные команды.")
 	_append_line("")
+	if device != null and is_instance_valid(device):
+		device.command_prompt_initialized = true
+	_save_session()
+
+
+func _restore_session() -> void:
+	if device == null or not is_instance_valid(device):
+		_reset_terminal()
+		return
+	if not device.is_powered_on:
+		_clear_terminal_view()
+		return
+	if not device.command_prompt_initialized:
+		_reset_terminal()
+		return
+	prompt_label.text = _prompt_text()
+	output.text = device.command_prompt_output
+	input.text = device.command_prompt_input
+	input.caret_column = input.text.length()
+
+
+func _clear_terminal_view() -> void:
+	output.text = ""
+	input.clear()
+	prompt_label.text = _prompt_text()
+
+
+func _save_session() -> void:
+	if device == null or not is_instance_valid(device):
+		return
+	if not device.is_powered_on or not device.command_prompt_initialized:
+		return
+	if not is_instance_valid(output) or not is_instance_valid(input):
+		return
+	device.command_prompt_output = output.get_parsed_text()
+	device.command_prompt_input = input.text
+
+
+func _on_device_power_changed(is_on: bool) -> void:
+	if is_on:
+		_reset_terminal()
+	else:
+		_clear_terminal_view()
 
 
 func _prompt_text() -> String:
@@ -112,7 +169,7 @@ func _print_help() -> void:
 	_append_line("Доступные команды:")
 	_append_line("  help                 — список команд")
 	_append_line("  ipconfig             — параметры сетевых интерфейсов")
-	_append_line("  ping <IPv4>          — проверка доступности по топологии")
+	_append_line("  ping <IPv4|имя>      — проверка доступности по топологии")
 	_append_line("  cls | clear          — очистить экран")
 	_append_line("")
 	_append_line("Ping не эмулирует ICMP, ARP и маршрутизацию.")
@@ -161,8 +218,8 @@ func _run_ping(args: PackedStringArray) -> void:
 		return
 
 	var target := args[0].strip_edges()
-	if not NetworkValidation.is_valid_ipv4(target):
-		_append_line("Некорректный IPv4-адрес: " + target)
+	if target.is_empty():
+		_append_line("Использование: ping <IPv4|имя>")
 		_finish_ping_output()
 		return
 
@@ -172,11 +229,30 @@ func _run_ping(args: PackedStringArray) -> void:
 		_finish_ping_output()
 		return
 
+	var resolved_address := target
+	if not NetworkValidation.is_valid_ipv4(target):
+		var resolved: Dictionary = simulator.resolve_hostname(device, target)
+		if not bool(resolved.get("ok", false)):
+			_append_line(
+				"Ping request could not find host %s. Please check the name and try again." % target
+			)
+			_append_line("[Ошибка] " + str(resolved.get("error", "Не удалось разрешить имя.")))
+			_finish_ping_output()
+			return
+		resolved_address = str(resolved.get("address", ""))
+		if not NetworkValidation.is_valid_ipv4(resolved_address):
+			_append_line("DNS вернул некорректный IPv4-адрес для " + target)
+			_finish_ping_output()
+			return
+
 	_ping_in_progress = true
 	input.editable = false
-	_append_line("Pinging %s with 32 bytes of data:" % target)
+	var address_suffix := ""
+	if resolved_address != target:
+		address_suffix = " [%s]" % resolved_address
+	_append_line("Pinging %s%s with 32 bytes of data:" % [target, address_suffix])
 
-	var route: Dictionary = simulator.calculate_ping_route(device, target)
+	var route: Dictionary = simulator.calculate_ping_route(device, resolved_address)
 	print("[Ping] Маршрут: %s" % _route_debug_text(route))
 
 	# Прячем все открытые окна устройств, но не главное окно игры.
@@ -199,7 +275,7 @@ func _run_ping(args: PackedStringArray) -> void:
 	if cancelled:
 		_append_line("[Прервано] Проверка ping остановлена.")
 	elif success:
-		_append_line("Reply from %s: bytes=32 time=1ms TTL=128" % target)
+		_append_line("Reply from %s: bytes=32 time=1ms TTL=128" % resolved_address)
 	else:
 		_append_line(_ping_failure_line(error_msg))
 		if not error_msg.is_empty():

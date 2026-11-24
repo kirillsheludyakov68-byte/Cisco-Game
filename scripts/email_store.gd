@@ -1,9 +1,9 @@
 extends RefCounted
 class_name EmailStore
 
-# Локальная модель почты для симулятора. Она не изображает SMTP/POP3:
-# сообщения живут в памяти текущей сессии и доступны приложениям Email.
-# Этого достаточно для обмена между устройствами внутри одного запуска.
+# Модель почты для симулятора. Если в сети есть включённый EMAIL-сервер
+# с подходящим доменом, письмо сохраняется в его ящике и подчиняется
+# настройкам SMTP/POP3. Без сервера используется локальный ящик.
 
 static var _messages: Array[Dictionary] = []
 static var _next_id := 1
@@ -16,6 +16,26 @@ static func reset() -> void:
 
 
 static func send(sender: String, recipient: String, subject: String, body: String) -> Dictionary:
+	return _send(sender, recipient, subject, body, null)
+
+
+static func send_from_device(
+	source: Device,
+	sender: String,
+	recipient: String,
+	subject: String,
+	body: String
+) -> Dictionary:
+	return _send(sender, recipient, subject, body, source)
+
+
+static func _send(
+	sender: String,
+	recipient: String,
+	subject: String,
+	body: String,
+	source: Device
+) -> Dictionary:
 	var from_text := sender.strip_edges()
 	var to_text := recipient.strip_edges()
 	var subject_text := subject.strip_edges()
@@ -43,6 +63,25 @@ static func send(sender: String, recipient: String, subject: String, body: Strin
 		"created_at": Time.get_datetime_string_from_system(false, true),
 	}
 	_next_id += 1
+
+	var domain := to_text.get_slice("@", 1).to_lower()
+	var server := find_server_for_domain(domain)
+	if server != null:
+		if not server.email_smtp_enabled:
+			return {
+				"ok": false,
+				"reason": "SMTP выключен на сервере %s." % server.device_name,
+			}
+		var recipient_user := to_text.get_slice("@", 0).to_lower()
+		if not server.email_users.is_empty() and not server.email_users.has(recipient_user):
+			return {
+				"ok": false,
+				"reason": "Пользователь %s не зарегистрирован на сервере %s."
+					% [recipient_user, server.device_name],
+			}
+		server.email_messages.append(message.duplicate(true))
+		return {"ok": true, "reason": "", "message": message.duplicate(true), "server": server}
+
 	_messages.append(message)
 	return {"ok": true, "reason": "", "message": message.duplicate(true)}
 
@@ -53,12 +92,49 @@ static func get_inbox(address: String) -> Array[Dictionary]:
 	for message in _messages:
 		if str(message.get("to", "")).to_lower() == target:
 			result.append((message as Dictionary).duplicate(true))
+
+	var domain := target.get_slice("@", 1).to_lower()
+	var server := find_server_for_domain(domain)
+	if server != null and server.email_pop3_enabled:
+		for message in server.email_messages:
+			if str(message.get("to", "")).to_lower() == target:
+				result.append((message as Dictionary).duplicate(true))
+
 	result.reverse()
 	return result
 
 
 static func get_message_count() -> int:
-	return _messages.size()
+	var total := _messages.size()
+	var simulator = _get_simulator()
+	if simulator != null:
+		for candidate in simulator.devices:
+			if candidate != null and is_instance_valid(candidate) \
+					and str(candidate.device_type) == "Server":
+				total += candidate.email_messages.size()
+	return total
+
+
+static func find_server_for_domain(domain: String) -> Device:
+	var simulator = _get_simulator()
+	if simulator == null:
+		return null
+	var target := domain.strip_edges().to_lower()
+	for candidate in simulator.devices:
+		if candidate == null or not is_instance_valid(candidate):
+			continue
+		if str(candidate.device_type) != "Server" or not candidate.is_operational():
+			continue
+		if candidate.email_domain.to_lower() == target:
+			return candidate
+	return null
+
+
+static func _get_simulator():
+	var loop := Engine.get_main_loop()
+	if loop is SceneTree:
+		return (loop as SceneTree).root.get_node_or_null("NetworkSimulator")
+	return null
 
 
 static func device_address(device: Device) -> String:
@@ -69,7 +145,16 @@ static func device_address(device: Device) -> String:
 	local = local.replace("@", "")
 	if local.is_empty():
 		local = "user"
-	return local + "@" + _default_domain
+	var domain := _default_domain
+	var simulator = _get_simulator()
+	if simulator != null:
+		for candidate in simulator.devices:
+			if candidate != null and is_instance_valid(candidate) \
+					and str(candidate.device_type) == "Server" \
+					and not str(candidate.email_domain).is_empty():
+				domain = str(candidate.email_domain)
+				break
+	return local + "@" + domain
 
 
 static func is_valid_address(value: String) -> bool:

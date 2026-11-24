@@ -1,6 +1,11 @@
 extends Node2D
 class_name Device
 
+# У AccessPoint.svg корпус находится ниже центра текстуры: антенны занимают
+# верхнюю часть. Смещаем рисунок вверх, чтобы кабель на уровне сходился
+# ровно в середине корпуса точки доступа.
+const AP_CABLE_OFFSET := Vector2(0.0, -48.5)
+
 @onready var sprite: Sprite2D = $Sprite
 @onready var name_label: Label = $NameLabel
 @onready var collision_shape: CollisionShape2D = $ClickArea/CollisionShape2D
@@ -10,7 +15,10 @@ var is_powered_on: bool = true:
 		if is_powered_on == value:
 			return
 		is_powered_on = value
+		if not value:
+			reset_command_prompt_session()
 		_refresh_active_module()
+		_apply_texture_by_type()
 		if device_type == "Switch" and not _suppress_power_boot:
 			if value:
 				_start_switch_boot()
@@ -23,6 +31,10 @@ var is_powered_on: bool = true:
 
 # Физически установленные модули коммутатора: { slot_index: module_name }.
 var installed_switch_modules: Dictionary = {}
+
+# Физически установленные модули сервера: { slot_index: module_name }.
+# Слот 0 — верхний, слот 1 — нижний.
+var installed_server_modules: Dictionary = {}
 
 # Модуль, который реально работает. Обновляется только при включении ПК.
 var active_module: String = ""
@@ -42,7 +54,8 @@ var active_module: String = ""
 var console: SwitchConsole = SwitchConsole.new()
 var is_booting: bool = false
 
-var _switch_defaults_initialized: bool = false
+var _slot_defaults_initialized: bool = false
+var _server_service_defaults_initialized: bool = false
 var _boot_generation: int = 0
 var _suppress_power_boot: bool = false
 
@@ -59,8 +72,8 @@ var _suppress_power_boot: bool = false
 	set(value):
 		var previous_type := device_type
 		device_type = value
-		if value == "Switch":
-			_ensure_switch_defaults()
+		if ModuleCatalog.is_slot_device(value):
+			_ensure_slot_defaults()
 		if sprite:
 			_apply_texture_by_type()
 		if collision_shape:
@@ -71,12 +84,49 @@ var _suppress_power_boot: bool = false
 var interfaces: Array[DeviceInterface] = []
 var network_settings: NetworkSettings = NetworkSettings.new()
 
+# --- Службы сервера ---
+# DNS: { "имя": "IPv4-адрес" }.
+var dns_service_enabled: bool = false
+var dns_records: Dictionary = {}
+# Кэш последних успешных разрешений имён через этот сервер.
+var dns_cache: Dictionary = {}
+
+# DHCP-пул. Адреса выдаются математически, без имитации DHCP-пакетов.
+var dhcp_service_enabled: bool = false
+var dhcp_start_ip: String = ""
+var dhcp_subnet_mask: String = "255.255.255.0"
+var dhcp_gateway: String = ""
+var dhcp_dns: String = ""
+var dhcp_max_users: int = 0
+var dhcp_pool_name: String = "serverPool"
+var dhcp_interface: String = ""
+var dhcp_tftp: String = ""
+var dhcp_wlc: String = ""
+
+# HTTP/HTTPS: файлы, которые сервер отдаёт браузеру.
+var http_service_enabled: bool = false
+var https_service_enabled: bool = false
+var http_files: Dictionary = {}
+
+# EMAIL: SMTP/POP3 и учётные записи. Письма хранятся в email_messages.
+var email_smtp_enabled: bool = false
+var email_pop3_enabled: bool = false
+var email_domain: String = "local"
+var email_users: Dictionary = {}
+var email_messages: Array[Dictionary] = []
+
 # Резервные значения для данных старого уровня, пока у устройства нет
 # подходящего интерфейса (например, ПК без установленного модуля).
 var _pending_ipv4: String = ""
 var _pending_mask: String = "255.255.255.0"
 var _pending_ipv6: String = ""
 var _pending_ipv6_prefix: int = 64
+
+# Состояние Command Prompt, которое переживает закрытие окна ПК.
+# Сбрасывается только при выключении устройства.
+var command_prompt_output: String = ""
+var command_prompt_input: String = ""
+var command_prompt_initialized: bool = false
 
 # Совместимость со старыми данными уровня: ip/mask принадлежат первому интерфейсу.
 var ip_address: String:
@@ -109,6 +159,14 @@ var subnet_mask: String:
 @export var texture_switch: Texture2D
 @export var texture_router: Texture2D
 @export var texture_ap: Texture2D
+@export var texture_hub: Texture2D
+@export var texture_server_on: Texture2D
+@export var texture_server_off: Texture2D
+@export var texture_printer_on: Texture2D
+@export var texture_printer_off: Texture2D
+@export var texture_laptop_on: Texture2D
+@export var texture_tablet_on: Texture2D
+@export var texture_tablet_off: Texture2D
 
 signal device_clicked(device: Device)
 signal power_changed(is_on: bool)
@@ -123,8 +181,15 @@ signal interfaces_changed
 
 
 func _ready() -> void:
-	if device_type == "Switch":
-		_ensure_switch_defaults()
+	# Планшет по умолчанию получает адреса автоматически: это соответствует
+	# встроенному Wireless0 и странице Global Settings.
+	if device_type == "Tablet":
+		network_settings.ipv4_mode = NetworkSettings.IPV4_DHCP
+		network_settings.ipv6_mode = NetworkSettings.IPV6_AUTOMATIC
+	if ModuleCatalog.is_slot_device(device_type):
+		_ensure_slot_defaults()
+	if device_type == "Server":
+		_ensure_server_service_defaults()
 	_sync_interfaces_from_module()
 	_ensure_mac_addresses()
 	if name_label:
@@ -136,16 +201,19 @@ func _ready() -> void:
 	$ClickArea.mouse_exited.connect(_on_mouse_exited)
 
 
-func _ensure_switch_defaults() -> void:
-	if _switch_defaults_initialized:
+func _ensure_slot_defaults() -> void:
+	if _slot_defaults_initialized:
 		return
-	_switch_defaults_initialized = true
+	_slot_defaults_initialized = true
 	if installed_switch_modules.is_empty():
-		installed_switch_modules = ModuleCatalog.get_default_switch_modules()
+		installed_switch_modules = ModuleCatalog.get_default_slot_modules(device_type)
 
 func _apply_texture_by_type() -> void:
 	if not sprite:
 		return
+	# У SVG-иконок могут быть прозрачные поля. Смещение выравнивает
+	# визуальный центр рисунка по точке подключения кабелей.
+	sprite.offset = Vector2.ZERO
 	match device_type:
 		"PC":
 			if texture_pc: sprite.texture = texture_pc
@@ -154,7 +222,42 @@ func _apply_texture_by_type() -> void:
 		"Router":
 			if texture_router: sprite.texture = texture_router
 		"AccessPoint":
-			if texture_ap: sprite.texture = texture_ap
+			if texture_ap:
+				sprite.texture = texture_ap
+				sprite.offset = AP_CABLE_OFFSET
+		"Hub":
+			if texture_hub:
+				sprite.texture = texture_hub
+				sprite.offset = _get_texture_content_offset(texture_hub)
+		"Server":
+			var server_texture := texture_server_on if is_powered_on else texture_server_off
+			if server_texture: sprite.texture = server_texture
+		"Printer":
+			var printer_texture := texture_printer_on if is_powered_on else texture_printer_off
+			if printer_texture: sprite.texture = printer_texture
+		"Laptop":
+			# На главной панели уровня ноутбук всегда показан одной и той же
+			# иконкой; состояние питания отображается только в окне устройства.
+			if texture_laptop_on: sprite.texture = texture_laptop_on
+		"Tablet":
+			# На главной панели уровня планшет всегда показан одной и той же
+			# иконкой; состояние питания отображается только в окне устройства.
+			if texture_tablet_on: sprite.texture = texture_tablet_on
+
+
+func _get_texture_content_offset(texture: Texture2D) -> Vector2:
+	if texture == null:
+		return Vector2.ZERO
+	var image := texture.get_image()
+	if image == null:
+		return Vector2.ZERO
+	var used := image.get_used_rect()
+	if used.size == Vector2i.ZERO:
+		return Vector2.ZERO
+	var texture_center := Vector2(image.get_size()) / 2.0
+	var content_center := Vector2(used.position) + Vector2(used.size) / 2.0
+	return texture_center - content_center
+
 
 func _fit_sprite_to_collision() -> void:
 	if not sprite or not sprite.texture:
@@ -195,8 +298,10 @@ func reset_highlight() -> void:
 # --- Сетевая конфигурация ---
 
 func get_installed_module(slot_index: int = -1) -> String:
-	if device_type == "Switch":
+	if ModuleCatalog.is_slot_device(device_type):
 		return str(installed_switch_modules.get(slot_index, ""))
+	if device_type == "Server":
+		return str(installed_server_modules.get(slot_index, ""))
 	if slot_index <= 0:
 		return installed_module
 	return ""
@@ -204,6 +309,10 @@ func get_installed_module(slot_index: int = -1) -> String:
 
 func get_installed_switch_modules() -> Dictionary:
 	return installed_switch_modules.duplicate(true)
+
+
+func get_installed_server_modules() -> Dictionary:
+	return installed_server_modules.duplicate(true)
 
 
 func get_primary_interface() -> DeviceInterface:
@@ -362,6 +471,20 @@ func set_interface_duplex(interface_name: String, mode: String) -> void:
 	configuration_changed.emit()
 
 
+func set_interface_provider_name(interface_name: String, value: String) -> bool:
+	var trimmed := value.strip_edges()
+	if trimmed.is_empty() or trimmed.length() > 64:
+		return false
+	var iface := get_interface(interface_name)
+	if iface == null:
+		return false
+	if iface.provider_name == trimmed:
+		return true
+	iface.provider_name = trimmed
+	configuration_changed.emit()
+	return true
+
+
 func set_interface_wireless_settings(interface_name: String, values: Dictionary) -> bool:
 	# Wireless security is configuration state only; no encryption handshake is simulated.
 	var iface := get_interface(interface_name)
@@ -384,10 +507,22 @@ func set_interface_wireless_settings(interface_name: String, values: Dictionary)
 	if not WirelessSettings.is_valid_eap_method(eap_method):
 		return false
 
+	if values.has("channel_5ghz") \
+			and not WirelessSettings.is_valid_5ghz_channel(int(values["channel_5ghz"])):
+		return false
+	if values.has("coverage_range_m"):
+		var coverage_range := float(values["coverage_range_m"])
+		if coverage_range < 0.0 or coverage_range > 10000.0:
+			return false
+
 	iface.wireless.ssid = ssid
 	iface.wireless.authentication_mode = auth_mode
 	iface.wireless.encryption_type = encryption_type
 	iface.wireless.eap_method = eap_method
+	if values.has("channel_5ghz"):
+		iface.wireless.channel_5ghz = int(values["channel_5ghz"])
+	if values.has("coverage_range_m"):
+		iface.wireless.coverage_range_m = float(values["coverage_range_m"])
 	if values.has("wep_key"):
 		iface.wireless.wep_key = str(values["wep_key"])
 	if values.has("psk_passphrase"):
@@ -435,20 +570,280 @@ func set_ipv6_gateway_dns(gateway: String, dns: String) -> void:
 	configuration_changed.emit()
 
 
+func get_wireless_interface(require_enabled: bool = true) -> DeviceInterface:
+	for iface in interfaces:
+		if iface.interface_kind == "wireless" and (iface.enabled or not require_enabled):
+			return iface
+	return null
+
+
+func get_primary_ipv4_address() -> String:
+	for iface in interfaces:
+		if not iface.ipv4_address.is_empty():
+			return iface.ipv4_address
+	return ""
+
+
+func _ensure_server_service_defaults() -> void:
+	if _server_service_defaults_initialized:
+		return
+	_server_service_defaults_initialized = true
+	if http_files.is_empty():
+		http_files = {
+			"copyrights.html": (
+				"<html><head><title>Copyrights</title></head><body>"
+				+ "<h1>Copyrights</h1><p>Cisco Packet Tracer simulator.</p></body></html>"
+			),
+			"helloworld.html": (
+				"<html><head><title>Hello World</title></head><body>"
+				+ "<h1>Hello World</h1><p>It works!</p></body></html>"
+			),
+			"image.html": (
+				"<html><head><title>Image</title></head><body>"
+				+ "<h1>Image</h1><p>Image page.</p></body></html>"
+			),
+			"index.html": (
+				"<html><head><title>Welcome</title></head><body>"
+				+ "<h1>Welcome to Cisco Packet Tracer</h1>"
+				+ "<p>This page is served by the simulator HTTP service.</p>"
+				+ "</body></html>"
+			),
+			"cscoptlogo177x111.jpg": "Binary image placeholder.",
+		}
+	http_service_enabled = true
+	https_service_enabled = false
+	email_smtp_enabled = true
+	email_pop3_enabled = true
+	if email_domain.is_empty():
+		email_domain = "local"
+
+
+func set_http_service(enabled: bool, use_https: bool = false) -> void:
+	if use_https:
+		https_service_enabled = enabled
+	else:
+		http_service_enabled = enabled
+	configuration_changed.emit()
+
+
+func set_http_file(file_name: String, content: String) -> bool:
+	var name := file_name.strip_edges()
+	if name.is_empty() or name.length() > 128 or name.contains("/") or name.contains("\\"):
+		return false
+	http_files[name] = content
+	configuration_changed.emit()
+	return true
+
+
+func remove_http_file(file_name: String) -> bool:
+	if not http_files.has(file_name):
+		return false
+	http_files.erase(file_name)
+	configuration_changed.emit()
+	return true
+
+
+func get_http_file(file_name: String) -> String:
+	if http_files.has(file_name):
+		return str(http_files[file_name])
+	var target := file_name.to_lower()
+	for key in http_files:
+		if str(key).to_lower() == target:
+			return str(http_files[key])
+	return ""
+
+
+func set_email_config(domain: String, smtp_enabled: bool, pop3_enabled: bool) -> bool:
+	var value := domain.strip_edges().to_lower()
+	if value.is_empty() or value.length() > 63 or value.contains(" "):
+		return false
+	email_domain = value
+	email_smtp_enabled = smtp_enabled
+	email_pop3_enabled = pop3_enabled
+	configuration_changed.emit()
+	return true
+
+
+func set_email_user(user_name: String, password: String) -> bool:
+	var user := user_name.strip_edges().to_lower()
+	if user.is_empty() or user.length() > 64 or user.contains("@") or user.contains(" "):
+		return false
+	email_users[user] = password
+	configuration_changed.emit()
+	return true
+
+
+func remove_email_user(user_name: String) -> bool:
+	var user := user_name.strip_edges().to_lower()
+	if not email_users.has(user):
+		return false
+	email_users.erase(user)
+	configuration_changed.emit()
+	return true
+
+
+func set_dns_service(enabled: bool) -> void:
+	if dns_service_enabled == enabled:
+		return
+	dns_service_enabled = enabled
+	configuration_changed.emit()
+
+
+func add_dns_record(record_name: String, address: String) -> bool:
+	var key := record_name.strip_edges().to_lower()
+	if key.is_empty() or key.length() > 63:
+		return false
+	if not NetworkValidation.is_valid_ipv4(address):
+		return false
+	dns_records[key] = address.strip_edges()
+	configuration_changed.emit()
+	return true
+
+
+func remove_dns_record(record_name: String) -> bool:
+	var key := record_name.strip_edges().to_lower()
+	if not dns_records.has(key):
+		return false
+	dns_records.erase(key)
+	configuration_changed.emit()
+	return true
+
+
+func set_dhcp_service(enabled: bool) -> void:
+	if dhcp_service_enabled == enabled:
+		return
+	dhcp_service_enabled = enabled
+	configuration_changed.emit()
+
+
+func set_dhcp_config(values: Dictionary) -> bool:
+	var start_ip := str(values.get("start_ip", dhcp_start_ip)).strip_edges()
+	var mask := str(values.get("subnet_mask", dhcp_subnet_mask)).strip_edges()
+	var gateway := str(values.get("gateway", dhcp_gateway)).strip_edges()
+	var dns := str(values.get("dns", dhcp_dns)).strip_edges()
+	var max_users := int(values.get("max_users", dhcp_max_users))
+	var pool_name := str(values.get("pool_name", dhcp_pool_name)).strip_edges()
+	var interface_name := str(values.get("interface", dhcp_interface)).strip_edges()
+	var tftp := str(values.get("tftp", dhcp_tftp)).strip_edges()
+	var wlc := str(values.get("wlc", dhcp_wlc)).strip_edges()
+
+	if not NetworkValidation.is_valid_ipv4(start_ip):
+		return false
+	if not NetworkValidation.is_valid_subnet_mask(mask):
+		return false
+	if not gateway.is_empty() and not NetworkValidation.is_valid_ipv4(gateway):
+		return false
+	if not dns.is_empty() and not NetworkValidation.is_valid_ipv4(dns):
+		return false
+	if max_users < 1 or max_users > 254:
+		return false
+	if not tftp.is_empty() and not NetworkValidation.is_valid_ipv4(tftp):
+		return false
+	if not wlc.is_empty() and not NetworkValidation.is_valid_ipv4(wlc):
+		return false
+
+	dhcp_start_ip = start_ip
+	dhcp_subnet_mask = mask
+	dhcp_gateway = gateway
+	dhcp_dns = dns
+	dhcp_max_users = max_users
+	dhcp_pool_name = pool_name if not pool_name.is_empty() else "serverPool"
+	dhcp_interface = interface_name
+	dhcp_tftp = tftp
+	dhcp_wlc = wlc
+	configuration_changed.emit()
+	return true
+
+
+func clear_dhcp_config() -> void:
+	dhcp_service_enabled = false
+	dhcp_start_ip = ""
+	dhcp_gateway = ""
+	dhcp_dns = ""
+	dhcp_max_users = 0
+	dhcp_pool_name = "serverPool"
+	dhcp_interface = ""
+	dhcp_tftp = ""
+	dhcp_wlc = ""
+	configuration_changed.emit()
+
+
+func get_dhcp_pool() -> Array[String]:
+	var pool: Array[String] = []
+	if not NetworkValidation.is_valid_ipv4(dhcp_start_ip):
+		return pool
+	if not NetworkValidation.is_valid_subnet_mask(dhcp_subnet_mask):
+		return pool
+	if dhcp_max_users < 1:
+		return pool
+
+	var start_value := NetworkValidation.ipv4_to_int(dhcp_start_ip)
+	var mask_value := NetworkValidation.ipv4_to_int(dhcp_subnet_mask)
+	var network_value := start_value & mask_value
+	var broadcast_value := network_value | ((~mask_value) & 0xFFFFFFFF)
+	for offset in range(dhcp_max_users):
+		var candidate := start_value + offset
+		if candidate >= broadcast_value:
+			break
+		pool.append(NetworkValidation.ipv4_from_int(candidate))
+	return pool
+
+
+func _get_access_point_interfaces() -> Array[Dictionary]:
+	var specs: Array[Dictionary] = []
+
+	# Port 0 — съёмный модуль. Пока модуль не установлен, порта нет.
+	if installed_module != "":
+		var port0 := ModuleCatalog.get_access_point_port0_spec(installed_module)
+		if not port0.is_empty():
+			specs.append(port0)
+
+	# Port 1 — постоянный встроенный беспроводной интерфейс точки доступа.
+	specs.append({
+		"name": "Port 1",
+		"kind": "wireless",
+		"source_module": "",
+		"slot_index": -1,
+		"bandwidth_mbps": 11,
+		"ipv4_mode": NetworkSettings.IPV4_STATIC,
+		"ipv6_mode": NetworkSettings.IPV6_STATIC,
+	})
+	return specs
+
+
+func _get_server_interfaces() -> Array[Dictionary]:
+	var specs: Array[Dictionary] = []
+	var slots: Array = installed_server_modules.keys()
+	slots.sort()
+	for slot_value in slots:
+		var slot_index := int(slot_value)
+		var module_name := str(installed_server_modules[slot_value])
+		var spec := ModuleCatalog.get_server_interface_spec(module_name, slot_index)
+		if not spec.is_empty():
+			specs.append(spec)
+	return specs
+
+
 func _sync_interfaces_from_module() -> void:
 	var specs: Array[Dictionary] = []
-	if device_type == "PC":
+	if device_type == "AccessPoint":
+		specs = _get_access_point_interfaces()
+	elif device_type == "Server":
+		specs = _get_server_interfaces()
+	elif ModuleCatalog.uses_host_modules(device_type):
 		specs = ModuleCatalog.get_network_interfaces(installed_module)
 		for spec in specs:
 			spec["source_module"] = installed_module
 			spec["slot_index"] = -1
-	elif device_type == "Switch":
+	elif ModuleCatalog.is_slot_device(device_type):
 		var slots: Array = installed_switch_modules.keys()
 		slots.sort()
 		for slot_value in slots:
 			var slot_index := int(slot_value)
 			var module_name := str(installed_switch_modules[slot_value])
-			var spec := ModuleCatalog.get_switch_interface_spec(module_name, slot_index)
+			var spec := ModuleCatalog.get_slot_interface_spec(
+				device_type, module_name, slot_index
+			)
 			if not spec.is_empty():
 				specs.append(spec)
 	else:
@@ -513,6 +908,8 @@ func _sync_interfaces_from_module() -> void:
 		network_interface.interface_kind = interface_kind
 		network_interface.source_module = source_module
 		network_interface.slot_index = slot_index
+		network_interface.provider_name = str(spec.get("provider_name", ""))
+		network_interface.subnet_mask = str(spec.get("subnet_mask", network_interface.subnet_mask))
 		network_interface.bandwidth_mbps = int(spec.get("bandwidth_mbps", 10))
 		network_interface.bandwidth_kbps = int(spec.get("bandwidth_kbps", 0))
 		var bandwidth_mode := str(spec.get("bandwidth_mode", DeviceInterface.BANDWIDTH_AUTO))
@@ -537,8 +934,21 @@ func _sync_interfaces_from_module() -> void:
 
 		if old_interface != null:
 			_copy_interface_state(old_interface, network_interface)
-		elif index == 0 and device_type == "PC":
-			# ПК сохраняет IP первого интерфейса при смене/переустановке модуля.
+			# У точки доступа Port 0 — это новый модуль в слоте. При его
+			# замене скорость и дуплекс должны соответствовать модулю,
+			# а не старому порту с тем же именем.
+			if device_type == "AccessPoint" and interface_name == "Port 0":
+				network_interface.bandwidth_mbps = int(
+					spec.get("bandwidth_mbps", network_interface.bandwidth_mbps)
+				)
+				network_interface.bandwidth_mode = str(
+					spec.get("bandwidth_mode", network_interface.bandwidth_mode)
+				)
+				network_interface.duplex_mode = str(
+					spec.get("duplex_mode", network_interface.duplex_mode)
+				)
+		elif index == 0 and ModuleCatalog.uses_host_modules(device_type):
+			# Host-устройство сохраняет IP первого интерфейса при смене модуля.
 			network_interface.ipv4_address = _pending_ipv4
 			network_interface.subnet_mask = _pending_mask
 			network_interface.ipv6_address = _pending_ipv6
@@ -553,6 +963,7 @@ func _sync_interfaces_from_module() -> void:
 
 func _copy_interface_state(source: DeviceInterface, target: DeviceInterface) -> void:
 	target.enabled = source.enabled
+	target.provider_name = source.provider_name
 	target.bandwidth_mode = source.bandwidth_mode
 	target.bandwidth_mbps = source.bandwidth_mbps
 	target.bandwidth_kbps = source.bandwidth_kbps
@@ -573,6 +984,8 @@ func _copy_interface_state(source: DeviceInterface, target: DeviceInterface) -> 
 	target.wireless.eap_user_name = source.wireless.eap_user_name
 	target.wireless.eap_password = source.wireless.eap_password
 	target.wireless.encryption_type = source.wireless.encryption_type
+	target.wireless.channel_5ghz = source.wireless.channel_5ghz
+	target.wireless.coverage_range_m = source.wireless.coverage_range_m
 
 
 func _ensure_mac_addresses() -> void:
@@ -598,6 +1011,14 @@ func _generate_mac(index: int) -> String:
 
 func set_power(on: bool) -> void:
 	is_powered_on = on
+
+
+# Очищает сессию командной строки. Вызывается при выключении питания,
+# чтобы после включения ПК консоль начиналась с чистого листа.
+func reset_command_prompt_session() -> void:
+	command_prompt_output = ""
+	command_prompt_input = ""
+	command_prompt_initialized = false
 
 
 # Начальное состояние из уровня: без запуска загрузки и без записи
@@ -643,17 +1064,19 @@ func remove_module() -> Dictionary:
 	return {"ok": true, "reason": ""}
 
 
-# Поставить модуль в конкретный слот коммутатора.
+# Поставить модуль в конкретный слот коммутатора или сервера.
 func install_module_in_slot(module_name: String, slot_index: int) -> Dictionary:
-	if device_type != "Switch":
+	if device_type == "Server":
+		return _install_server_module_in_slot(module_name, slot_index)
+	if not ModuleCatalog.is_slot_device(device_type):
 		return install_module(module_name)
 	if is_powered_on:
 		return {"ok": false, "reason": "power_on_add"}
-	if slot_index < 0 or slot_index >= ModuleCatalog.SWITCH_SLOT_COUNT:
+	if slot_index < 0 or slot_index >= ModuleCatalog.get_slot_count(device_type):
 		return {"ok": false, "reason": "invalid_slot"}
 	if str(installed_switch_modules.get(slot_index, "")) != "":
 		return {"ok": false, "reason": "occupied"}
-	if not ModuleCatalog.has_switch_module(module_name):
+	if not ModuleCatalog.has_slot_module(device_type, module_name):
 		return {"ok": false, "reason": "unknown"}
 
 	installed_switch_modules[slot_index] = module_name
@@ -661,13 +1084,15 @@ func install_module_in_slot(module_name: String, slot_index: int) -> Dictionary:
 	return {"ok": true, "reason": ""}
 
 
-# Извлечь модуль из конкретного слота коммутатора.
+# Извлечь модуль из конкретного слота коммутатора или сервера.
 func remove_module_from_slot(slot_index: int) -> Dictionary:
-	if device_type != "Switch":
+	if device_type == "Server":
+		return _remove_server_module_from_slot(slot_index)
+	if not ModuleCatalog.is_slot_device(device_type):
 		return remove_module()
 	if is_powered_on:
 		return {"ok": false, "reason": "power_on_remove"}
-	if slot_index < 0 or slot_index >= ModuleCatalog.SWITCH_SLOT_COUNT:
+	if slot_index < 0 or slot_index >= ModuleCatalog.get_slot_count(device_type):
 		return {"ok": false, "reason": "invalid_slot"}
 	if str(installed_switch_modules.get(slot_index, "")) == "":
 		return {"ok": false, "reason": "empty"}
@@ -677,8 +1102,39 @@ func remove_module_from_slot(slot_index: int) -> Dictionary:
 	return {"ok": true, "reason": ""}
 
 
+func _install_server_module_in_slot(module_name: String, slot_index: int) -> Dictionary:
+	if is_powered_on:
+		return {"ok": false, "reason": "power_on_add"}
+	if slot_index < 0 or slot_index >= ModuleCatalog.SERVER_SLOT_COUNT:
+		return {"ok": false, "reason": "invalid_slot"}
+	if str(installed_server_modules.get(slot_index, "")) != "":
+		return {"ok": false, "reason": "occupied"}
+	if not ModuleCatalog.is_server_module(module_name):
+		return {"ok": false, "reason": "unknown"}
+
+	installed_server_modules[slot_index] = module_name
+	_sync_interfaces_from_module()
+	return {"ok": true, "reason": ""}
+
+
+func _remove_server_module_from_slot(slot_index: int) -> Dictionary:
+	if is_powered_on:
+		return {"ok": false, "reason": "power_on_remove"}
+	if slot_index < 0 or slot_index >= ModuleCatalog.SERVER_SLOT_COUNT:
+		return {"ok": false, "reason": "invalid_slot"}
+	if str(installed_server_modules.get(slot_index, "")) == "":
+		return {"ok": false, "reason": "empty"}
+
+	installed_server_modules.erase(slot_index)
+	_sync_interfaces_from_module()
+	return {"ok": true, "reason": ""}
+
+
 # Установка предустановленного модуля из JSON уровня (без проверок питания).
 func set_initial_module(module_name: String) -> void:
+	if device_type == "Server":
+		set_initial_server_module(module_name, 0)
+		return
 	if not ModuleCatalog.has_module(module_name):
 		push_warning("Неизвестный модуль в уровне: " + module_name)
 		return
@@ -687,12 +1143,23 @@ func set_initial_module(module_name: String) -> void:
 	_refresh_active_module()
 
 
-func set_initial_switch_module(module_name: String, slot_index: int) -> void:
-	if not ModuleCatalog.has_switch_module(module_name):
-		push_warning("Неизвестный модуль коммутатора в уровне: " + module_name)
+func set_initial_server_module(module_name: String, slot_index: int) -> void:
+	if not ModuleCatalog.is_server_module(module_name):
+		push_warning("Неизвестный модуль сервера в уровне: " + module_name)
 		return
-	if slot_index < 0 or slot_index >= ModuleCatalog.SWITCH_SLOT_COUNT:
-		push_warning("Некорректный слот модуля коммутатора: " + str(slot_index))
+	if slot_index < 0 or slot_index >= ModuleCatalog.SERVER_SLOT_COUNT:
+		push_warning("Некорректный слот модуля сервера: " + str(slot_index))
+		return
+	installed_server_modules[slot_index] = module_name
+	_sync_interfaces_from_module()
+
+
+func set_initial_switch_module(module_name: String, slot_index: int) -> void:
+	if not ModuleCatalog.has_slot_module(device_type, module_name):
+		push_warning("Неизвестный модуль в уровне: " + module_name)
+		return
+	if slot_index < 0 or slot_index >= ModuleCatalog.get_slot_count(device_type):
+		push_warning("Некорректный слот модуля: " + str(slot_index))
 		return
 	installed_switch_modules[slot_index] = module_name
 	_sync_interfaces_from_module()
@@ -885,7 +1352,7 @@ func _cancel_switch_boot() -> void:
 
 
 func _refresh_active_module() -> void:
-	if device_type == "Switch":
+	if ModuleCatalog.is_slot_device(device_type):
 		active_module = ""
 		return
 	active_module = installed_module if is_powered_on else ""

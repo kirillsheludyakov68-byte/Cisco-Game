@@ -6,6 +6,7 @@ const ICON_LOCK := preload("res://assets/menu/icon_lock.svg")
 const LEVEL_COUNT := 15
 const LEVEL_SCENES := {
 	1: "res://scenes/level_1.tscn",
+	2: "res://scenes/level_2.tscn",
 }
 
 const TILE_SIZE := Vector2(132.0, 132.0)

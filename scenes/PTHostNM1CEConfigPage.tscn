@@ -75,6 +75,14 @@ vertical_alignment = 1
 layout_mode = 2
 theme_override_constants/separation = 14
 
+[node name="Bandwidth1000" type="CheckBox" parent="Root/VBox/BodyScroll/Body/TopGrid/BandwidthRow"]
+layout_mode = 2
+text = "1000 Mbps"
+
+[node name="Bandwidth100" type="CheckBox" parent="Root/VBox/BodyScroll/Body/TopGrid/BandwidthRow"]
+layout_mode = 2
+text = "100 Mbps"
+
 [node name="Bandwidth10" type="CheckBox" parent="Root/VBox/BodyScroll/Body/TopGrid/BandwidthRow"]
 layout_mode = 2
 text = "10 Mbps"
