@@ -4,6 +4,7 @@ const PROFILE_SELECT_SCENE := "res://scenes/ProfileSelect.tscn"
 const LEVEL_SELECT_SCENE := "res://scenes/LevelSelect.tscn"
 const ICON_PLAY := preload("res://assets/menu/icon_play.svg")
 const ICON_PROFILE := preload("res://assets/menu/icon_profile.svg")
+const ICON_HELP := preload("res://assets/menu/icon_help.svg")
 const ICON_EXIT := preload("res://assets/menu/icon_exit.svg")
 const PC_TEXTURE := preload("res://assets/PC.svg")
 const GLOBE_TEXTURE := preload("res://assets/menu/globe.svg")
@@ -53,6 +54,10 @@ func _build_ui() -> void:
 	continue_button = _make_menu_button("Продолжить", ICON_PROFILE, "secondary")
 	continue_button.pressed.connect(_on_continue_pressed)
 	buttons.add_child(continue_button)
+
+	var help_button := _make_menu_button("Пособие", ICON_HELP, "secondary")
+	help_button.pressed.connect(_on_help_pressed)
+	buttons.add_child(help_button)
 
 	exit_button = _make_menu_button("Выход", ICON_EXIT, "primary")
 	exit_button.pressed.connect(_on_exit_pressed)
@@ -237,6 +242,10 @@ func _on_continue_pressed() -> void:
 	if not ProgressManager.has_profiles():
 		return
 	get_tree().change_scene_to_file(PROFILE_SELECT_SCENE)
+
+
+func _on_help_pressed() -> void:
+	Handbook.open()
 
 
 func _on_exit_pressed() -> void:

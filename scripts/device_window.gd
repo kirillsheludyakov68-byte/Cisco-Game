@@ -27,12 +27,19 @@ const ZOOM_MIN := 0.25
 const ZOOM_MAX := 3.0
 const ZOOM_SCROLL_STEP := 48.0
 const ZOOM_SCROLL_BAR_WIDTH := 14.0
+const PC_TEXTURE_SIZE := Vector2(166.0, 396.0)
+const PC_POWER_RECT := Rect2(132.0, 118.0, 14.0, 21.0)
+
+# Размер последнего открытого окна. Если пользователь развернул окно
+# на весь экран, следующее устройство откроется в таком же размере.
+static var _preferred_window_size := Vector2i(850, 670)
 
 @onready var tab_physical: Button = $WindowRoot/TabBar/TabPhysical
 @onready var tab_config: Button = $WindowRoot/TabBar/TabConfig
 @onready var tab_cli: Button = $WindowRoot/TabBar/TabCLI
 @onready var tab_desktop: Button = $WindowRoot/TabBar/TabDesktop
 @onready var tab_services: Button = $WindowRoot/TabBar/TabServices
+@onready var help_button: Button = $WindowRoot/TabBar/HelpButton
 
 @onready var page_physical: Control = $MainPanel/ContentPanel/PagePhysical
 @onready var page_config: Control = $MainPanel/ContentPanel/PageConfig
@@ -41,14 +48,14 @@ const ZOOM_SCROLL_BAR_WIDTH := 14.0
 @onready var page_services: Control = $MainPanel/ContentPanel/PageServices
 
 @onready var modules_panel: ModulesPanel = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ModulesPanel
-@onready var module_slot: ModuleSlot = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/ModuleSlot
-@onready var switch_overlay: SwitchPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/SwitchPhysicalOverlay
-@onready var hub_overlay: HubPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/HubPhysicalOverlay
-@onready var laptop_overlay: LaptopPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/LaptopPhysicalOverlay
-@onready var printer_overlay: PrinterPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/PrinterPhysicalOverlay
-@onready var tablet_overlay: TabletPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/TabletPhysicalOverlay
-@onready var access_point_overlay: AccessPointPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/AccessPointPhysicalOverlay
-@onready var server_overlay: ServerPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView/DeviceImage/ServerPhysicalOverlay
+@onready var module_slot: ModuleSlot = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/ModuleSlot
+@onready var switch_overlay: SwitchPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/SwitchPhysicalOverlay
+@onready var hub_overlay: HubPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/HubPhysicalOverlay
+@onready var laptop_overlay: LaptopPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/LaptopPhysicalOverlay
+@onready var printer_overlay: PrinterPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/PrinterPhysicalOverlay
+@onready var tablet_overlay: TabletPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/TabletPhysicalOverlay
+@onready var access_point_overlay: AccessPointPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/AccessPointPhysicalOverlay
+@onready var server_overlay: ServerPhysicalOverlay = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView/DeviceImage/ServerPhysicalOverlay
 @onready var module_info: ModuleInfoPanel = get_node_or_null("MainPanel/ContentPanel/PagePhysical/ModuleInfoPanel") as ModuleInfoPanel
 @onready var config_panel: ConfigPanel = $MainPanel/ContentPanel/PageConfig/ConfigPanel
 @onready var cli_page: SwitchCLIPage = $MainPanel/ContentPanel/PageCLI/SwitchCLIPage
@@ -57,7 +64,7 @@ const ZOOM_SCROLL_BAR_WIDTH := 14.0
 @onready var error_dialog: ErrorDialog = $ErrorDialog
 @onready var hint_overlay: HintArrow = $HintOverlay
 
-@onready var device_view: Control = $MainPanel/ContentPanel/PagePhysical/ViewerPanel/DeviceView
+@onready var device_view: Control = $MainPanel/ContentPanel/PagePhysical/PhysicalLayout/ViewerPanel/DeviceView
 @onready var zoom_in_button: Button = $MainPanel/ContentPanel/PagePhysical/ZoomButtons/ZoomIn
 @onready var original_size_button: Button = $MainPanel/ContentPanel/PagePhysical/ZoomButtons/OriginalSize
 @onready var zoom_out_button: Button = $MainPanel/ContentPanel/PagePhysical/ZoomButtons/ZoomOut
@@ -84,6 +91,7 @@ func _ready() -> void:
 	_device_base_rect = _pc_base_rect
 
 	close_requested.connect(_on_close_requested)
+	size_changed.connect(_on_window_size_changed)
 	if error_dialog:
 		error_dialog.closed.connect(_on_error_dialog_closed)
 	tab_physical.pressed.connect(_on_tab_physical)
@@ -91,6 +99,9 @@ func _ready() -> void:
 	tab_cli.pressed.connect(_on_tab_cli)
 	tab_desktop.pressed.connect(_on_tab_desktop)
 	tab_services.pressed.connect(_on_tab_services)
+	help_button.pressed.connect(_on_help_pressed)
+	help_button.tooltip_text = "Пособие по устройству"
+	MenuStyles.apply_button(help_button, "secondary", 18, 10, 9)
 
 	zoom_in_button.pressed.connect(_on_zoom_in_pressed)
 	original_size_button.pressed.connect(_on_original_size_pressed)
@@ -123,6 +134,16 @@ func _ready() -> void:
 	page_cli.visible = false
 	page_services.visible = false
 	_show_page("physical")
+
+
+static func get_preferred_window_size() -> Vector2i:
+	return _preferred_window_size
+
+
+func _on_window_size_changed() -> void:
+	if size.x < 1 or size.y < 1:
+		return
+	_preferred_window_size = size
 
 
 func open_for(dev: Device) -> void:
@@ -231,7 +252,7 @@ func _on_device_name_changed(new_name: String) -> void:
 
 
 func _on_device_view_resized() -> void:
-	if device == null or device.device_type == "PC":
+	if device == null:
 		return
 	# После первого расчёта раскладки область просмотра может измениться.
 	# Пересчитываем размер картинки, чтобы она точно вписалась в окно.
@@ -392,6 +413,13 @@ func _on_tab_services() -> void:
 	_show_page("services")
 
 
+func _on_help_pressed() -> void:
+	if device == null:
+		Handbook.open()
+		return
+	Handbook.open_device(str(device.device_type))
+
+
 func _show_page(page: String) -> void:
 	if device != null:
 		var allowed := page == "physical"
@@ -549,11 +577,12 @@ func _update_device_base_rect() -> void:
 	if device_image == null or device_image.texture == null:
 		return
 
+	var view_size := device_view.size
+	if view_size.x <= 1.0 or view_size.y <= 1.0:
+		view_size = Vector2(606, 396)
+
 	if device != null and device.device_type != "PC":
 		var texture_size := device_image.texture.get_size()
-		var view_size := device_view.size
-		if view_size.x <= 1.0 or view_size.y <= 1.0:
-			view_size = Vector2(606, 396)
 		var fit_scale := minf(
 			view_size.x / maxf(texture_size.x, 1.0),
 			view_size.y / maxf(texture_size.y, 1.0)
@@ -564,8 +593,16 @@ func _update_device_base_rect() -> void:
 		_device_base_rect = Rect2(Vector2.ZERO, fitted_size)
 	else:
 		if _pc_base_rect.size == Vector2.ZERO:
-			_pc_base_rect = Rect2(Vector2.ZERO, Vector2(166, 396))
-		_device_base_rect = _pc_base_rect
+			_pc_base_rect = Rect2(Vector2.ZERO, PC_TEXTURE_SIZE)
+		# Компьютер тоже вписываем в область просмотра и центрируем,
+		# иначе в полноэкранном окне он остаётся маленьким в углу.
+		var fit_scale := minf(
+			view_size.x / maxf(_pc_base_rect.size.x, 1.0),
+			view_size.y / maxf(_pc_base_rect.size.y, 1.0)
+		)
+		var fitted_size := _pc_base_rect.size * maxf(fit_scale, 0.01)
+		var fitted_position := (view_size - fitted_size) * 0.5
+		_device_base_rect = Rect2(fitted_position, fitted_size)
 
 
 # --- Масштаб Physical Device View ---
@@ -815,7 +852,11 @@ func _get_power_base_rect() -> Rect2:
 	if device == null or _device_base_rect.size == Vector2.ZERO:
 		return Rect2()
 	if device.device_type == "PC":
-		return Rect2(132, 118, 14, 21)
+		var base_size := _pc_base_rect.size
+		if base_size.x <= 0.0 or base_size.y <= 0.0:
+			base_size = PC_TEXTURE_SIZE
+		var scale := _device_base_rect.size / base_size
+		return Rect2(PC_POWER_RECT.position * scale, PC_POWER_RECT.size * scale)
 
 	var size := _device_base_rect.size
 	if device.device_type in ["Server", "Printer", "Laptop", "Tablet"]:

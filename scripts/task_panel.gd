@@ -9,6 +9,7 @@ class_name TaskPanel
 @onready var title_label: Label = $TaskCard/Margin/VBox/Header/TitleLabel
 @onready var score_label: Label = $TaskCard/Margin/VBox/Header/ScoreLabel
 @onready var completion_badge: Label = $TaskCard/Margin/VBox/Header/CompletionBadge
+@onready var help_button: Button = $TaskCard/Margin/VBox/Header/HelpButton
 @onready var menu_button: Button = $TaskCard/Margin/VBox/Header/MenuButton
 @onready var collapse_button: Button = $TaskCard/Margin/VBox/Header/CollapseButton
 @onready var content: VBoxContainer = $TaskCard/Margin/VBox/Content
@@ -43,6 +44,9 @@ var _user_moved := false
 func _ready() -> void:
 	header.gui_input.connect(_on_header_gui_input)
 	collapse_button.pressed.connect(_toggle_collapsed)
+	help_button.pressed.connect(_on_help_pressed)
+	help_button.tooltip_text = "Пособие"
+	MenuStyles.apply_button(help_button, "secondary", 14, 6, 8)
 	menu_button.pressed.connect(_on_menu_pressed)
 	MenuStyles.apply_button(menu_button, "secondary", 13, 10, 10)
 	reveal_step_button.pressed.connect(_reveal_next_step)
@@ -209,6 +213,10 @@ func _toggle_collapsed() -> void:
 	content.visible = not _collapsed
 	collapse_button.text = "▸" if _collapsed else "▾"
 	call_deferred("_clamp_task_card")
+
+
+func _on_help_pressed() -> void:
+	Handbook.open()
 
 
 func _on_menu_pressed() -> void:

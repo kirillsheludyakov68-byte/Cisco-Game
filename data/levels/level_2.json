@@ -1,7 +1,7 @@
 {
   "id": 2,
   "title": "Уровень 2. Беспроводная сеть и службы",
-  "description": "Настройте Wi-Fi WPA2-PSK/AES, статические адреса Server0 и Printer0, службы DNS/DHCP и проверьте связь с PC0. Сеть 192.168.9.0/24.",
+  "description": "Настройте Wi-Fi WPA2-PSK/AES (клиенты подключаются к точке доступа автоматически), статические адреса Server0 и Printer0, службы DNS/DHCP и проверьте связь с PC0. Сеть 192.168.9.0/24.",
   "hints": -1,
   "score": {
     "base": 200,
@@ -171,7 +171,7 @@
       "to": "laptop2",
       "cable": "wireless",
       "interface_kind": "wireless",
-      "text": "Подключите Laptop2 к AccessPoint по Wi-Fi. Настройте одинаковые SSID, WPA2-PSK и AES."
+      "text": "Настройте Laptop2 и AccessPoint на одинаковые SSID, WPA2-PSK и AES. Соединение по Wi-Fi установится автоматически."
     },
     {
       "id": "wifi_tablet0",
@@ -180,7 +180,7 @@
       "to": "tablet0",
       "cable": "wireless",
       "interface_kind": "wireless",
-      "text": "Подключите Tablet PC0 к AccessPoint по Wi-Fi с теми же SSID и WPA2-PSK/AES."
+      "text": "Настройте Tablet PC0 на те же SSID и WPA2-PSK/AES — он подключится к AccessPoint автоматически."
     },
     {
       "id": "wifi_laptop1",
@@ -189,7 +189,7 @@
       "to": "laptop1",
       "cable": "wireless",
       "interface_kind": "wireless",
-      "text": "Подключите Laptop1 к AccessPoint по Wi-Fi с теми же SSID и WPA2-PSK/AES."
+      "text": "Настройте Laptop1 на те же SSID и WPA2-PSK/AES — он подключится к AccessPoint автоматически."
     },
     {
       "id": "wifi_tablet1",
@@ -198,7 +198,7 @@
       "to": "tablet1",
       "cable": "wireless",
       "interface_kind": "wireless",
-      "text": "Подключите Tablet PC1 к AccessPoint по Wi-Fi с теми же SSID и WPA2-PSK/AES."
+      "text": "Настройте Tablet PC1 на те же SSID и WPA2-PSK/AES — он подключится к AccessPoint автоматически."
     },
     {
       "id": "server_static",

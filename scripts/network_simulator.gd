@@ -11,6 +11,12 @@ enum CableType {
 # Устройства, которые подключаются к сети как оконечные узлы.
 const END_DEVICE_TYPES: Array[String] = ["PC", "Laptop", "Tablet", "Printer", "Server"]
 
+# Клиенты, которые могут автоматически подключаться к точке доступа.
+const WIRELESS_CLIENT_TYPES: Array[String] = ["PC", "Laptop", "Tablet"]
+
+# Метка на связи, созданной автоматически по Wi-Fi.
+const AUTO_WIRELESS_META := "auto_wireless"
+
 # Таблица совместимости: тип устройства + тип устройства -> допустимые кабели.
 # Ключ пары строится по алфавиту, поэтому порядок кликов не важен.
 # Значения: straight, crossover, wireless, fiber.
@@ -86,6 +92,10 @@ var connections: Array = []
 # Выданные DHCP-адреса: { instance_id клиента: IPv4 }.
 var _dhcp_leases: Dictionary = {}
 
+# Автоматическое подключение Wi-Fi выполняется один раз за кадр.
+var _wireless_refresh_queued := false
+var _wireless_refreshing := false
+
 # Сигналы
 signal devices_changed
 signal connections_changed
@@ -101,13 +111,157 @@ func notify_ping_checked(source, target_address: String, ok: bool) -> void:
 	ping_checked.emit(source, target_address, ok)
 
 func register_device(device) -> void:
-	if device not in devices:
-		devices.append(device)
-		devices_changed.emit()
+	if device == null or not is_instance_valid(device):
+		return
+	if device in devices:
+		return
+	devices.append(device)
+	_connect_device_signals(device)
+	devices_changed.emit()
+	_queue_wireless_refresh()
 
 func unregister_device(device) -> void:
+	_disconnect_device_signals(device)
 	devices.erase(device)
 	devices_changed.emit()
+	_queue_wireless_refresh()
+
+
+# --- Автоматическое подключение Wi-Fi -------------------------------------
+
+func _connect_device_signals(device) -> void:
+	if device == null or not is_instance_valid(device):
+		return
+	if device.has_signal("configuration_changed") \
+			and not device.configuration_changed.is_connected(_on_device_wireless_state_changed):
+		device.configuration_changed.connect(_on_device_wireless_state_changed)
+	if device.has_signal("interfaces_changed") \
+			and not device.interfaces_changed.is_connected(_on_device_wireless_state_changed):
+		device.interfaces_changed.connect(_on_device_wireless_state_changed)
+	if device.has_signal("power_changed") \
+			and not device.power_changed.is_connected(_on_device_power_changed):
+		device.power_changed.connect(_on_device_power_changed)
+
+
+func _disconnect_device_signals(device) -> void:
+	if device == null or not is_instance_valid(device):
+		return
+	if device.has_signal("configuration_changed") \
+			and device.configuration_changed.is_connected(_on_device_wireless_state_changed):
+		device.configuration_changed.disconnect(_on_device_wireless_state_changed)
+	if device.has_signal("interfaces_changed") \
+			and device.interfaces_changed.is_connected(_on_device_wireless_state_changed):
+		device.interfaces_changed.disconnect(_on_device_wireless_state_changed)
+	if device.has_signal("power_changed") \
+			and device.power_changed.is_connected(_on_device_power_changed):
+		device.power_changed.disconnect(_on_device_power_changed)
+
+
+func _on_device_wireless_state_changed() -> void:
+	_queue_wireless_refresh()
+
+
+func _on_device_power_changed(_is_on: bool) -> void:
+	_queue_wireless_refresh()
+
+
+func _queue_wireless_refresh() -> void:
+	if _wireless_refresh_queued:
+		return
+	_wireless_refresh_queued = true
+	call_deferred("refresh_wireless_connections")
+
+
+# Настроенные и включённые Wi-Fi клиенты подключаются к точке доступа сами.
+# Ручной беспроводной кабель остаётся доступен как запасной вариант.
+func refresh_wireless_connections() -> void:
+	_wireless_refresh_queued = false
+	if _wireless_refreshing:
+		return
+	_wireless_refreshing = true
+
+	var access_points: Array = []
+	var clients: Array = []
+	for candidate in devices:
+		if candidate == null or not is_instance_valid(candidate):
+			continue
+		var type_name := str(candidate.device_type)
+		if type_name == "AccessPoint":
+			access_points.append(candidate)
+		elif WIRELESS_CLIENT_TYPES.has(type_name):
+			clients.append(candidate)
+
+	# Сначала убираем автосвязи, которые перестали быть корректными:
+	# выключили устройство, изменили SSID/пароль или убрали Wi-Fi модуль.
+	for connection in connections.duplicate():
+		if connection == null or not is_instance_valid(connection):
+			continue
+		if not bool(connection.get_meta(AUTO_WIRELESS_META, false)):
+			continue
+		if _is_auto_wireless_connection_valid(
+				connection.from_device, connection.to_device
+		):
+			continue
+		remove_connection(connection)
+		connection.queue_free()
+
+	# Затем создаём недостающие связи. Уже существующую ручную связь не трогаем.
+	for ap in access_points:
+		for client in clients:
+			if not _should_auto_connect_wireless(ap, client):
+				continue
+			if find_connection(ap, client) != null:
+				continue
+			_create_auto_wireless_connection(ap, client)
+
+	_wireless_refreshing = false
+
+
+func _should_auto_connect_wireless(ap, client) -> bool:
+	return _is_wireless_pair_ready(ap, client)
+
+
+func _is_auto_wireless_connection_valid(a, b) -> bool:
+	if a == null or b == null or not is_instance_valid(a) or not is_instance_valid(b):
+		return false
+	var ap = a if str(a.device_type) == "AccessPoint" else b
+	var client = b if ap == a else a
+	return _is_wireless_pair_ready(ap, client)
+
+
+func _is_wireless_pair_ready(ap, client) -> bool:
+	if ap == null or client == null or not is_instance_valid(ap) or not is_instance_valid(client):
+		return false
+	if str(ap.device_type) != "AccessPoint":
+		return false
+	if not WIRELESS_CLIENT_TYPES.has(str(client.device_type)):
+		return false
+	if not _is_operational(ap) or not _is_operational(client):
+		return false
+	var pair_rules: Dictionary = _get_pair_rules(ap, client)
+	if not bool(pair_rules.get("wireless", false)):
+		return false
+	if not _is_wireless_capable(ap) or not _is_wireless_capable(client):
+		return false
+	return is_wireless_link_secure(ap, client)
+
+
+func _create_auto_wireless_connection(ap, client) -> void:
+	var scene := load("res://scenes/Connection.tscn")
+	if scene == null:
+		return
+	var parent = ap.get_parent()
+	if parent == null:
+		parent = get_tree().current_scene
+	if parent == null:
+		return
+
+	var connection = scene.instantiate()
+	connection.set_meta(AUTO_WIRELESS_META, true)
+	parent.add_child(connection)
+	connection.setup(ap, client, CableType.WIRELESS)
+	add_connection(connection)
+
 
 func add_connection(connection) -> void:
 	if connection not in connections:
@@ -125,9 +279,13 @@ func remove_connection(connection) -> void:
 
 # Очистить всё (при загрузке нового уровня)
 func clear() -> void:
+	for device in devices:
+		_disconnect_device_signals(device)
 	devices.clear()
 	connections.clear()
 	_dhcp_leases.clear()
+	_wireless_refresh_queued = false
+	_wireless_refreshing = false
 	devices_changed.emit()
 	connections_changed.emit()
 
@@ -151,6 +309,12 @@ func refresh_dhcp_leases() -> void:
 		for interface_name in client.get_interface_names():
 			var network_interface: DeviceInterface = client.get_interface(interface_name)
 			if network_interface == null or network_interface.ipv4_mode != NetworkSettings.IPV4_DHCP:
+				continue
+			# Локальный DHCP-сервер обслуживает только Ethernet и Wi-Fi.
+			# Сотовый модем получает адрес у провайдера, а Bluetooth не является
+			# IP-интерфейсом для DHCP; иначе планшет занимал бы несколько аренд.
+			if network_interface.interface_kind != "ethernet" \
+					and network_interface.interface_kind != "wireless":
 				continue
 			if not _is_operational(client):
 				network_interface.ipv4_address = ""

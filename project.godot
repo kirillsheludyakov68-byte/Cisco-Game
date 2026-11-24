@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 
 NetworkSimulator="*uid://ciw4m62jmu76w"
 ProgressManager="*res://scripts/progress_manager.gd"
+Handbook="*res://scenes/Handbook.tscn"
 
 [display]
 
