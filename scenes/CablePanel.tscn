@@ -1,6 +1,34 @@
-[gd_scene format=3 uid="uid://bxjtr8hqkf7hh"]
+[gd_scene load_steps=8 format=3 uid="uid://bxjtr8hqkf7hh"]
 
 [ext_resource type="Script" uid="uid://bmdu86l1id2ki" path="res://scripts/cable_panel.gd" id="1_gpeir"]
+[ext_resource type="Texture2D" path="res://assets/Cables/Straight.png" id="2_straight"]
+[ext_resource type="Texture2D" path="res://assets/Cables/Crossover.png" id="3_crossover"]
+[ext_resource type="Texture2D" path="res://assets/Cables/Wireless.svg" id="4_wireless"]
+[ext_resource type="Texture2D" path="res://assets/Cables/Fiber.png" id="5_fiber"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cable_hover"]
+bg_color = Color(1, 1, 1, 0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.45, 0.65, 0.95, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cable_pressed"]
+bg_color = Color(0.65, 0.8, 1, 0.25)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.2, 0.45, 0.85, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
 
 [node name="CablePanel" type="CanvasLayer" unique_id=1299563539]
 script = ExtResource("1_gpeir")
@@ -8,20 +36,58 @@ script = ExtResource("1_gpeir")
 [node name="PanelContainer" type="PanelContainer" parent="." unique_id=1164621002]
 offset_left = 10.0
 offset_top = 10.0
-offset_right = 410.0
-offset_bottom = 60.0
+offset_right = 214.0
+offset_bottom = 62.0
 
 [node name="HBoxContainer" type="HBoxContainer" parent="PanelContainer" unique_id=973879033]
 layout_mode = 2
+theme_override_constants/separation = 2
+alignment = 1
 
 [node name="ButtonStraight" type="Button" parent="PanelContainer/HBoxContainer" unique_id=1623713519]
+custom_minimum_size = Vector2(44, 44)
 layout_mode = 2
-text = "Прямой Кабель"
+size_flags_vertical = 4
+focus_mode = 0
+tooltip_text = "Прямой кабель"
+toggle_mode = true
+flat = true
+theme_override_styles/hover = SubResource("StyleBoxFlat_cable_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_cable_pressed")
+icon = ExtResource("2_straight")
 
 [node name="ButtonCrossover" type="Button" parent="PanelContainer/HBoxContainer" unique_id=1850466474]
+custom_minimum_size = Vector2(44, 44)
 layout_mode = 2
-text = "Кроссовер"
+size_flags_vertical = 4
+focus_mode = 0
+tooltip_text = "Кроссовер (пунктир)"
+toggle_mode = true
+flat = true
+theme_override_styles/hover = SubResource("StyleBoxFlat_cable_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_cable_pressed")
+icon = ExtResource("3_crossover")
 
 [node name="ButtonWireless" type="Button" parent="PanelContainer/HBoxContainer" unique_id=447535527]
+custom_minimum_size = Vector2(44, 44)
 layout_mode = 2
-text = "Wireless"
+size_flags_vertical = 4
+focus_mode = 0
+tooltip_text = "Беспроводной кабель"
+toggle_mode = true
+flat = true
+theme_override_styles/hover = SubResource("StyleBoxFlat_cable_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_cable_pressed")
+icon = ExtResource("4_wireless")
+
+[node name="ButtonFiber" type="Button" parent="PanelContainer/HBoxContainer" unique_id=1910455127]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+tooltip_text = "Оптоволокно"
+toggle_mode = true
+flat = true
+theme_override_styles/hover = SubResource("StyleBoxFlat_cable_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_cable_pressed")
+icon = ExtResource("5_fiber")

@@ -231,6 +231,25 @@ func is_network_ready() -> bool:
 	return false
 
 
+# Для проверки совместимости кабеля: нужен именно включённый интерфейс
+# нужного типа, а не любой сетевой интерфейс.
+func has_enabled_interface_kind(kind: String) -> bool:
+	for iface in interfaces:
+		if iface.enabled and iface.interface_kind == kind:
+			return true
+	return false
+
+
+# Устройство может передавать трафик только когда оно включено.
+# Коммутатор во время загрузки ещё не готов.
+func is_operational() -> bool:
+	if not is_powered_on:
+		return false
+	if device_type == "Switch" and is_booting:
+		return false
+	return true
+
+
 func set_interface_enabled(interface_name: String, enabled: bool) -> void:
 	var iface := get_interface(interface_name)
 	if iface == null or iface.enabled == enabled:
